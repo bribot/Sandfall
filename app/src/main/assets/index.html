@@ -3,140 +3,150 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#0a0d18">
+<meta name="theme-color" content="#080b14">
 <title>Sandfall</title>
 <style>
 :root{
-  --bg:#080b14; --rail:rgba(20,25,42,.82); --tile:rgba(255,255,255,.04); --tile-h:rgba(255,255,255,.09);
-  --line:rgba(255,255,255,.08); --text:#e9ecf5; --dim:#8c95ad; --accent:#7cc8ff; --accent2:#ffb057;
-  --good:#5fe0a0; --bad:#ff7070; --r:12px;
+  --bg:#080b14; --glass:rgba(12,16,30,.52); --glass2:rgba(12,16,30,.38);
+  --tile:rgba(255,255,255,.07); --tile-h:rgba(255,255,255,.14);
+  --line:rgba(255,255,255,.14); --text:#eef1f8; --dim:#a3abc2; --accent:#7cc8ff; --accent2:#ffb057;
+  /* screen insets (camera cutout, rounded corners); MainActivity overrides these */
+  --it:env(safe-area-inset-top,0px); --ir:env(safe-area-inset-right,0px);
+  --ib:env(safe-area-inset-bottom,0px); --il:env(safe-area-inset-left,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
-  font:13px/1.3 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;user-select:none;-webkit-user-select:none;overscroll-behavior:none}
-body{
-  background:radial-gradient(1200px 600px at 50% -10%, #1a2350 0%, transparent 60%),
-             radial-gradient(900px 500px at 100% 110%, #2a1640 0%, transparent 60%), var(--bg);
-  display:grid;grid-template-columns:auto 1fr auto;gap:8px;
-  padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
-}
-.rail{background:var(--rail);border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(10px);
-  box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
-#left{width:148px;padding:10px 8px}
-#right{width:164px;padding:10px;display:flex;flex-direction:column;gap:10px}
-.logo{display:flex;align-items:center;gap:8px;margin:0 2px 8px;font-weight:800;font-size:16px;letter-spacing:.5px}
-.logo b{background:linear-gradient(90deg,#ffd27a,#ff8a4c);-webkit-background-clip:text;background-clip:text;color:transparent}
-.logo svg{flex:none}
-.cat{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--dim);margin:10px 4px 6px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.el{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 2px 6px;border-radius:var(--r);
-  background:var(--tile);border:1px solid transparent;color:var(--text);font:inherit;font-size:11px;cursor:pointer;transition:background .15s,transform .1s,border-color .15s}
-.el:hover{background:var(--tile-h)}
-.el:active{transform:scale(.95)}
-.el.on{border-color:var(--accent);background:rgba(124,200,255,.12);box-shadow:0 0 14px rgba(124,200,255,.25)}
-.el .sw{width:28px;height:28px;border-radius:50%;box-shadow:inset 0 -3px 6px rgba(0,0,0,.35), inset 0 2px 3px rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.4)}
-.el .bud{position:absolute;top:3px;right:5px;font-size:9.5px;color:var(--accent2);font-weight:700}
-.el.disabled{opacity:.18;pointer-events:none}
-button.b,select.b{background:var(--tile);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 6px;font:inherit;cursor:pointer;transition:background .15s}
-button.b:hover{background:var(--tile-h)}
-button.b.on{background:rgba(124,200,255,.16);border-color:var(--accent)}
-select.b{width:100%;appearance:none;-webkit-appearance:none;padding:9px 26px 9px 10px;
-  background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
-  background-position:calc(100% - 14px) 50%,calc(100% - 9px) 50%;background-size:5px 5px;background-repeat:no-repeat}
-select.b option{background:#161b2c}
-.row{display:flex;gap:6px}
-.row>*{flex:1}
-#play{height:48px;border-radius:14px;border:none;font-size:15px;font-weight:700;color:#10131c;cursor:pointer;
-  background:linear-gradient(180deg,#ffd27a,#ff9b4c);box-shadow:0 6px 18px rgba(255,150,70,.35)}
-#play.running{background:linear-gradient(180deg,#9fdcff,#5aa8ff);box-shadow:0 6px 18px rgba(90,168,255,.35)}
-.lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:var(--dim);margin-bottom:-4px}
-#tiltRow{align-items:center}
-#gravDial{flex:none;width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#28304d,#141a2c);
-  border:1px solid var(--line);display:grid;place-items:center;font-size:18px}
-#gravDial span{display:block;transition:transform .2s;color:var(--accent2)}
-input[type=range]{width:100%;accent-color:var(--accent)}
-#stage{position:relative;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
-canvas#c{display:block;border-radius:14px;touch-action:none;cursor:crosshair;
-  box-shadow:0 0 0 1px rgba(255,255,255,.07), 0 20px 50px rgba(0,0,0,.55), 0 0 60px rgba(90,120,255,.08)}
-#goal{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:min(560px,calc(100% - 24px));display:none;
-  background:rgba(12,15,28,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:14px;padding:8px 12px;pointer-events:auto}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font:13px/1.3 system-ui,Roboto,"Segoe UI",sans-serif;user-select:none;-webkit-user-select:none;overscroll-behavior:none;touch-action:none}
+canvas#c{position:absolute;left:0;top:0;display:block;touch-action:none}
+button{font:inherit;color:inherit}
+.glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px) saturate(1.3);-webkit-backdrop-filter:blur(10px) saturate(1.3);
+  box-shadow:0 8px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08)}
+
+/* --- top overlay: play / step / speed --- */
+#top{position:absolute;top:calc(var(--it) + 10px);left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:5}
+.fab{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;cursor:pointer;padding:0;
+  background:var(--glass2);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  box-shadow:0 4px 16px rgba(0,0,0,.35);transition:transform .1s,background .15s;font-weight:700;font-size:14px}
+.fab:active{transform:scale(.9)}
+.fab svg{width:20px;height:20px;fill:currentColor}
+#play.paused{background:rgba(255,176,87,.35);border-color:rgba(255,190,120,.6)}
+
+/* --- challenge goal --- */
+#goal{position:absolute;top:calc(var(--it) + 66px);left:50%;transform:translateX(-50%);width:min(380px,calc(100% - 24px));display:none;
+  border-radius:14px;padding:8px 12px;z-index:4}
 #goal .t{font-weight:700;font-size:14px}
 #goal .d{color:var(--dim);font-size:12px;margin-top:2px}
 #goal .gr{display:flex;align-items:center;gap:10px;margin-top:6px}
-#bar{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+#bar{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}
 #bar div{height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#5fe0a0,#b6f36b);transition:width .25s}
 #goal.min .d{display:none}
-#toast{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(12,15,28,.85);border:1px solid var(--line);
-  border-radius:20px;padding:6px 14px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+
+/* --- corner buttons --- */
+.corner{position:absolute;bottom:calc(var(--ib) + 18px);width:62px;height:62px;border-radius:50%;z-index:6;cursor:pointer;padding:0;
+  display:grid;place-items:center;transition:transform .1s}
+.corner:active{transform:scale(.92)}
+#elBtn{left:calc(var(--il) + 18px)}
+#optBtn{right:calc(var(--ir) + 18px)}
+#elBtn .sw{width:38px;height:38px}
+#elBtn .bud{position:absolute;top:-4px;right:-4px;min-width:22px;padding:2px 5px;border-radius:11px;background:var(--accent2);color:#1a1206;font-size:11px;font-weight:800;display:none}
+#elBtn .bud.show{display:block}
+#optBtn svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2}
+.corner.open{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,200,255,.35),0 8px 28px rgba(0,0,0,.35)}
+
+/* --- menus --- */
+.menu{position:absolute;bottom:calc(var(--ib) + 92px);z-index:7;border-radius:20px;padding:12px;
+  max-height:calc(100% - var(--it) - var(--ib) - 170px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;
+  opacity:0;pointer-events:none;transform:scale(.85);transition:opacity .16s,transform .16s}
+.menu.open{opacity:1;pointer-events:auto;transform:none}
+#elMenu{left:calc(var(--il) + 12px);width:min(318px,calc(100% - 24px));transform-origin:0 100%}
+#optMenu{right:calc(var(--ir) + 12px);width:min(268px,calc(100% - 24px));transform-origin:100% 100%;display:flex;flex-direction:column;gap:9px}
+#optMenu.open{display:flex}
+.cat{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--dim);margin:2px 2px 7px}
+.cat:not(:first-child){margin-top:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.el{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0 6px;border-radius:14px;
+  background:var(--tile);border:1px solid transparent;font-size:11px;cursor:pointer}
+.el:active{transform:scale(.94)}
+.el.on{border-color:var(--accent);background:rgba(124,200,255,.18);box-shadow:0 0 14px rgba(124,200,255,.3)}
+.sw{display:block;width:32px;height:32px;border-radius:50%;box-shadow:inset 0 -3px 6px rgba(0,0,0,.35), inset 0 2px 3px rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.4)}
+.el .bud{position:absolute;top:3px;right:5px;font-size:10px;color:var(--accent2);font-weight:800}
+.el.disabled{opacity:.2;pointer-events:none}
+.b{background:var(--tile);border:1px solid var(--line);border-radius:12px;padding:10px 6px;cursor:pointer;min-height:42px}
+.b:active{background:var(--tile-h)}
+.b.on{background:rgba(124,200,255,.22);border-color:var(--accent)}
+select.b{width:100%;appearance:none;-webkit-appearance:none;padding:10px 28px 10px 12px;color:var(--text);
+  background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+  background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px;background-repeat:no-repeat;background-color:var(--tile)}
+select.b option{background:#161b2c}
+.row{display:flex;gap:6px;align-items:center}
+.row>*{flex:1}
+.lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:var(--dim);margin:3px 2px -3px}
+.sub{font-size:11px;color:var(--dim);margin:-3px 2px 0}
+#gravDial{flex:none;width:42px;height:42px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#28304d,#141a2c);
+  border:1px solid var(--line);display:grid;place-items:center;font-size:19px}
+#gravDial span{display:block;transition:transform .2s;color:var(--accent2)}
+.sizeRow{margin-top:8px}
+.sizeRow input{flex:1 1 auto}
+#sizeDot{flex:none;width:26px;height:26px;display:grid;place-items:center}
+#sizeDot i{display:block;border-radius:50%;background:var(--text)}
+input[type=range]{width:100%;accent-color:var(--accent);height:30px}
+
+#toast{position:absolute;bottom:calc(var(--ib) + 96px);left:50%;transform:translateX(-50%);background:rgba(12,15,28,.85);border:1px solid var(--line);
+  border-radius:20px;padding:7px 14px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 170px);text-align:center;z-index:8}
 #toast.show{opacity:1}
-#overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.45);backdrop-filter:blur(2px);border-radius:14px}
-#overlay .card{background:rgba(20,25,42,.95);border:1px solid var(--line);border-radius:18px;padding:22px 28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.45);z-index:9}
+#overlay .card{border-radius:20px;padding:22px 26px;text-align:center;width:min(320px,calc(100% - 40px))}
 #overlay h2{margin:0 0 6px;font-size:24px}
 #overlay p{margin:0 0 16px;color:var(--dim)}
-#overlay button{padding:10px 16px}
 .hidden{display:none!important}
-@media (max-height:480px){
-  #left{width:132px;padding:8px 6px}
-  #right{width:148px;padding:8px;gap:7px}
-  .el{padding:5px 2px 4px}
-  .el .sw{width:22px;height:22px}
-  #play{height:40px}
-  button.b,select.b{padding:6px 5px}
-  .logo{margin-bottom:2px}
-}
-@media (orientation:portrait) and (max-width:760px){
-  body{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}
-  #right{width:auto;order:-1;flex-direction:row;flex-wrap:wrap;align-items:center}
-  #right>*{flex:1 1 130px}
-  #right .lbl{display:none}
-  #left{width:auto;max-height:34vh}
-  #left .grid2{grid-template-columns:repeat(auto-fill,minmax(64px,1fr))}
-}
 </style>
 </head>
 <body>
-<aside id="left" class="rail">
-  <div class="logo">
-    <svg width="22" height="22" viewBox="0 0 24 24"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff8a4c"/></linearGradient></defs>
-      <circle cx="12" cy="4" r="2" fill="url(#lg)"/><circle cx="8" cy="10" r="1.6" fill="url(#lg)"/><circle cx="15" cy="11" r="1.8" fill="url(#lg)"/>
-      <path d="M2 22 Q12 12 22 22Z" fill="url(#lg)"/></svg>
-    <b>Sandfall</b>
-  </div>
+<canvas id="c"></canvas>
+
+<div id="top">
+  <button class="fab" id="play" aria-label="Pause"></button>
+  <button class="fab" id="step" aria-label="One step"><svg viewBox="0 0 24 24"><path d="M5 5l10 7-10 7z"/><rect x="16" y="5" width="3" height="14" rx="1"/></svg></button>
+  <button class="fab" id="speed" aria-label="Speed">1×</button>
+</div>
+
+<div id="goal" class="glass">
+  <div class="t" id="goalTitle"></div>
+  <div class="d" id="goalDesc"></div>
+  <div class="gr"><span id="goalText"></span><div id="bar"><div></div></div><span id="timer"></span></div>
+</div>
+
+<button class="corner glass" id="elBtn" aria-label="Elements"><span class="sw"></span><span class="bud"></span></button>
+<button class="corner glass" id="optBtn" aria-label="Options">
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>
+</button>
+
+<div id="elMenu" class="menu glass">
   <div id="palette"></div>
-</aside>
-
-<main id="stage">
-  <canvas id="c"></canvas>
-  <div id="goal">
-    <div class="t" id="goalTitle"></div>
-    <div class="d" id="goalDesc"></div>
-    <div class="gr"><span id="goalText"></span><div id="bar"><div></div></div><span id="timer"></span></div>
-  </div>
-  <div id="toast"></div>
-  <div id="overlay"><div class="card"><h2 id="ovTitle"></h2><p id="ovText"></p>
-    <div class="row"><button class="b" id="ovRetry">Try again</button><button class="b on" id="ovNext">Next ›</button></div></div></div>
-</main>
-
-<aside id="right" class="rail">
-  <select id="mode" class="b" title="Mode"></select>
-  <button id="play">▶ Play</button>
-  <div class="row"><button class="b" id="step" title="One step">Step</button><button class="b" id="speed" title="Speed">1×</button></div>
-  <div class="lbl">Gravity</div>
-  <div class="row" id="tiltRow"><button class="b" id="tiltL" title="Tilt left (Q)">⟲</button><div id="gravDial"><span>↓</span></div><button class="b" id="tiltR" title="Tilt right (E)">⟳</button></div>
-  <button class="b hidden" id="tiltPhone">📱 Tilt phone: off</button>
-  <div class="lbl">Brush</div>
+  <div class="cat">Brush</div>
   <div class="row">
-    <button class="b on" data-shape="brush" title="Brush">✎</button>
-    <button class="b" data-shape="line" title="Line">╱</button>
-    <button class="b" data-shape="rect" title="Box">▢</button>
-    <button class="b" data-shape="frect" title="Filled box">■</button>
+    <button class="b on" data-shape="brush">✎ Draw</button>
+    <button class="b" data-shape="line">╱ Line</button>
   </div>
-  <input id="size" type="range" min="0" max="12" value="3" title="Brush size">
-  <div id="sandboxOnly" style="display:flex;flex-direction:column;gap:8px">
+  <div class="row" style="margin-top:6px">
+    <button class="b" data-shape="rect">▢ Box</button>
+    <button class="b" data-shape="frect">■ Fill</button>
+  </div>
+  <div class="row sizeRow"><span id="sizeDot"><i></i></span><input id="size" type="range" min="0" max="12" value="4" aria-label="Brush size"></div>
+</div>
+
+<div id="optMenu" class="menu glass">
+  <select id="mode" class="b" aria-label="Mode"></select>
+  <div class="lbl">Gravity</div>
+  <div class="row"><button class="b" id="tiltL" aria-label="Tilt left">⟲</button><div id="gravDial"><span>↓</span></div><button class="b" id="tiltR" aria-label="Tilt right">⟳</button></div>
+  <button class="b hidden" id="tiltPhone">📱 Tilt phone: off</button>
+  <div id="sandboxOnly" style="display:flex;flex-direction:column;gap:9px">
+    <div class="lbl">Screen edges</div>
+    <div class="row"><button class="b on" id="edgeWall">▣ Solid</button><button class="b" id="edgeOpen">⬚ Open</button></div>
+    <div class="sub" id="edgeHint">Things pile up against the edges.</div>
     <div class="lbl">World</div>
-    <div class="row"><button class="b" id="save">Save</button><button class="b" id="load">Load</button></div>
-    <button class="b" id="clear">Clear</button>
-    <select id="rule" class="b" title="How virus grows">
+    <div class="row"><button class="b" id="save">Save</button><button class="b" id="load">Load</button><button class="b" id="clear">Clear</button></div>
+    <select id="rule" class="b" aria-label="How virus grows">
       <option value="B3/S23">Virus: Classic</option>
       <option value="B36/S23">Virus: HighLife</option>
       <option value="B3678/S34678">Virus: Day &amp; Night</option>
@@ -145,21 +155,27 @@ canvas#c{display:block;border-radius:14px;touch-action:none;cursor:crosshair;
       <option value="B368/S245">Virus: Morley</option>
     </select>
   </div>
-  <div id="challengeOnly" class="hidden" style="display:flex;flex-direction:column;gap:8px">
+  <div id="challengeOnly" class="hidden" style="display:flex;flex-direction:column;gap:9px">
     <button class="b" id="reset">↺ Reset level</button>
-    <button class="b" id="goalToggle">Hide hint</button>
+    <div class="sub">Tap the goal card to show or hide the hint.</div>
   </div>
-</aside>
+</div>
+
+<div id="toast"></div>
+<div id="overlay"><div class="card glass"><h2 id="ovTitle"></h2><p id="ovText"></p>
+  <div class="row"><button class="b" id="ovRetry">Try again</button><button class="b on" id="ovNext">Next ›</button></div></div></div>
 
 <script>
 "use strict";
 // =====================================================================
 //  Simulation
 // =====================================================================
-const W = 300, H = 180, N = W * H;
+// The grid is 180 cells wide and as tall as the screen's shape needs, so the play area fills the whole phone.
+const VW0 = innerWidth || screen.width, VH0 = innerHeight || screen.height;
+const W = 180, H = Math.max(200, Math.min(520, Math.ceil(W * VH0 / VW0))), N = W * H;
 const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15;
 const INFO = [
-  ["Eraser","Removes anything. Right-click also erases.","radial-gradient(circle at 35% 30%,#3a4058,#141826)"],
+  ["Eraser","Removes anything.","radial-gradient(circle at 35% 30%,#3a4058,#141826)"],
   ["Wall","Blocks everything.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
   ["Sand","Falls and piles up.","radial-gradient(circle at 35% 30%,#ffe7a8,#d9b06a 60%,#a5803f)"],
   ["Water","Flows. Puts out fire, dissolves salt, erodes soil.","radial-gradient(circle at 35% 30%,#a8dcff,#2f86e6 55%,#174a9c)"],
@@ -176,8 +192,6 @@ const INFO = [
   ["Spill","Leaks oil.","radial-gradient(circle at 35% 30%,#d8a060,#7a4a1c 55%,#3a200a)"],
   ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#e8ff9a,#7ee03a 50%,#2e7a10)"],
 ];
-const KEYS = {"0":E,"1":WALL,"2":SAND,"3":WATER,"4":OIL,"5":FIRE,"6":PLANT,"7":SEED,"8":SALT,"9":SOIL};
-const GEN = new Uint8Array(16); [CLOUD,MAGMA,SHAKER,SPILL,TOXIN].forEach(t=>GEN[t]=1);
 const GRAIN = new Uint8Array(16); [SAND,WATER,OIL,SEED,SALT].forEach(t=>GRAIN[t]=1);
 const DENS = new Float32Array(16); DENS[OIL]=1; DENS[WATER]=2; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
 const FLAMMABLE = new Float32Array(16); FLAMMABLE[PLANT]=0.2; FLAMMABLE[OIL]=0.45; FLAMMABLE[SEED]=0.3; FLAMMABLE[VIRUS]=0.5;
@@ -187,7 +201,10 @@ const stamp = new Uint16Array(N), lock = new Uint8Array(N), nb = new Uint8Array(
 let tk = 1;
 const DX = [0,-1,-1,-1,0,1,1,1], DY = [1,1,0,-1,-1,-1,0,1];   // index 0 = down
 let grav = 0;
+let openEdges = false;   // the player's choice (sandbox)
+let edgesOpen = false;   // what the simulation uses right now (challenges always have solid edges)
 const ORTH = [[1,0],[-1,0],[0,1],[0,-1]];
+const OUT = -2;          // a move that carried the cell off the screen
 const rnd = Math.random;
 
 function set(i, t){
@@ -195,6 +212,7 @@ function set(i, t){
   life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : 0;
   stamp[i] = tk;
 }
+function vanish(i){ type[i]=E; life[i]=0; }
 function swap(i, j){
   let t=type[i]; type[i]=type[j]; type[j]=t;
   t=shade[i]; shade[i]=shade[j]; shade[j]=t;
@@ -211,34 +229,36 @@ function canDisplace(s, o){
   }
   return false;
 }
+// Move cell i one step in direction k. Returns the new index, OUT if it left the screen, or -1.
 function tryDir(i,x,y,k){
   const j = idx(x+DX[k&7], y+DY[k&7]);
-  if (j<0) return -1;
+  if (j<0){ if (edgesOpen){ vanish(i); return OUT; } return -1; }
   if (canDisplace(type[i], type[j])) { swap(i,j); return j; }
   return -1;
 }
 function tryEmpty(i,x,y,k){
   const j = idx(x+DX[k&7], y+DY[k&7]);
-  if (j<0 || type[j]!==E) return -1;
+  if (j<0){ if (edgesOpen){ vanish(i); return OUT; } return -1; }
+  if (type[j]!==E) return -1;
   swap(i,j); return j;
 }
 function powder(i,x,y){
-  if (tryDir(i,x,y,grav)>=0) return;
+  if (tryDir(i,x,y,grav)!==-1) return;
   const s = rnd()<.5 ? 1 : -1;
-  if (tryDir(i,x,y,grav+s+8)>=0) return;
+  if (tryDir(i,x,y,grav+s+8)!==-1) return;
   tryDir(i,x,y,grav-s+8);
 }
 function liquid(i,x,y){
-  if (tryDir(i,x,y,grav)>=0) return;
+  if (tryDir(i,x,y,grav)!==-1) return;
   const s = rnd()<.5 ? 1 : -1;
-  if (tryDir(i,x,y,grav+s+8)>=0) return;
-  if (tryDir(i,x,y,grav-s+8)>=0) return;
+  if (tryDir(i,x,y,grav+s+8)!==-1) return;
+  if (tryDir(i,x,y,grav-s+8)!==-1) return;
   for (const side of [s, -s]) {
     const k = (grav + 2*side + 8) & 7;
     let cx=x, cy=y, ci=i, moved=false;
     for (let n=0; n<4; n++) {
       const j = idx(cx+DX[k], cy+DY[k]);
-      if (j<0) break;
+      if (j<0){ if (edgesOpen){ vanish(ci); moved=true; } break; }
       const o = type[j];
       if (o===E || (o!==type[ci] && (o===WATER||o===OIL) && DENS[type[ci]]>DENS[o] && rnd()<.5)) {
         swap(ci,j); ci=j; cx+=DX[k]; cy+=DY[k]; moved=true;
@@ -302,11 +322,13 @@ function stepWorld(){
         case FIRE: {
           if (life[i]<=1){ set(i,E); break; }
           life[i]--;
+          let fuel=false;
           for (const [dx,dy] of ORTH){
             const j=idx(x+dx,y+dy); if(j<0) continue;
             const f=FLAMMABLE[type[j]];
-            if (f && rnd()<f){ const was=type[j]; set(j,FIRE); if(was===OIL) life[j]+=12; }
+            if (f){ fuel=true; if (rnd()<f){ const was=type[j]; set(j,FIRE); if(was===OIL) life[j]+=12; } }
           }
+          if (fuel && rnd()<.7) break;      // flames cling to whatever they're burning
           const r=rnd();
           const k = r<.5 ? up : r<.7 ? up+1 : r<.9 ? up+7 : (r<.95 ? up+2 : up+6);
           tryEmpty(i,x,y,k);
@@ -380,17 +402,21 @@ function buildBackdrop(w,h){
   bgC = document.createElement("canvas"); bgC.width=w; bgC.height=h;
   const b = bgC.getContext("2d");
   const g = b.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,"#151c38"); g.addColorStop(.55,"#0d1226"); g.addColorStop(1,"#080a14");
+  g.addColorStop(0,"#1a2350"); g.addColorStop(.35,"#121838"); g.addColorStop(.75,"#0b0f22"); g.addColorStop(1,"#080a14");
   b.fillStyle=g; b.fillRect(0,0,w,h);
-  // faint distant specks for depth
-  for (let n=0;n<Math.floor(w*h/2500);n++){
-    const x=Math.random()*w, y=Math.random()*h*0.8, a=Math.random()*.25+.05;
-    b.fillStyle=`rgba(180,200,255,${a})`; b.fillRect(x,y,1.2,1.2);
+  const r2 = b.createRadialGradient(w,h,0,w,h,w*1.1);
+  r2.addColorStop(0,"rgba(60,26,90,.45)"); r2.addColorStop(1,"rgba(60,26,90,0)");
+  b.fillStyle=r2; b.fillRect(0,0,w,h);
+  // faint stars
+  const dot = Math.max(1.2, w/500);
+  for (let n=0;n<Math.floor(w*h/9000);n++){
+    const x=Math.random()*w, y=Math.random()*h*0.7, a=Math.random()*.3+.05;
+    b.fillStyle=`rgba(180,200,255,${a})`; b.fillRect(x,y,dot,dot);
   }
   vigC = document.createElement("canvas"); vigC.width=w; vigC.height=h;
   const v = vigC.getContext("2d");
-  const r = v.createRadialGradient(w/2,h*.45,Math.min(w,h)*.35,w/2,h/2,Math.max(w,h)*.75);
-  r.addColorStop(0,"rgba(0,0,0,0)"); r.addColorStop(1,"rgba(0,0,0,.5)");
+  const r = v.createRadialGradient(w/2,h*.45,Math.min(w,h)*.45,w/2,h/2,Math.max(w,h)*.75);
+  r.addColorStop(0,"rgba(0,0,0,0)"); r.addColorStop(1,"rgba(0,0,0,.45)");
   v.fillStyle=r; v.fillRect(0,0,w,h);
 }
 
@@ -402,14 +428,15 @@ function paintCells(){
   // iterate so that each cell's "up" neighbour is visited first (for depth)
   const ya = gy>0 ? 0 : H-1, yb = gy>0 ? H : -1, ysd = gy>0 ? 1 : -1;
   const xa = gx>0 ? 0 : W-1, xb = gx>0 ? W : -1, xsd = gx>0 ? 1 : -1;
+  const edge = edgesOpen ? E : WALL;
   for (let y=ya; y!==yb; y+=ysd) {
     for (let x=xa; x!==xb; x+=xsd) {
       const i = y*W+x, ty = type[i], o = i<<2;
       if (ty===E){ P[o+3]=0; G[o+3]=0; depth[i]=0; continue; }
       const ux2=x+ux, uy2=y+uy;
       const j = (ux2<0||uy2<0||ux2>=W||uy2>=H) ? -1 : uy2*W+ux2;
-      const above = j<0 ? WALL : type[j];
-      const d = above===ty ? Math.min(255, depth[j]+1) : 0;
+      const above = j<0 ? edge : type[j];
+      const d = (j>=0 && above===ty) ? Math.min(255, depth[j]+1) : 0;
       depth[i] = d;
       const open = above===E;
       const sh = shade[i], hs = HASH[i];
@@ -557,60 +584,88 @@ function render(){
   ctx.globalAlpha = .6;  ctx.drawImage(haloC,0,0,cw,ch);
   ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
   ctx.drawImage(vigC,0,0);
-  // tool preview
-  const s = cw / W;
+  // shape preview while dragging a line or box
   if (preview){
-    ctx.strokeStyle="rgba(255,255,255,.8)"; ctx.lineWidth=Math.max(1,s*.5); ctx.setLineDash([s*2,s*2]);
+    const s = cw / W;
+    ctx.strokeStyle="rgba(255,255,255,.85)"; ctx.lineWidth=Math.max(1,s*.5); ctx.setLineDash([s*2,s*2]);
     const {a,b}=preview; ctx.beginPath();
     if (shape==="line"){ ctx.moveTo((a.x+.5)*s,(a.y+.5)*s); ctx.lineTo((b.x+.5)*s,(b.y+.5)*s); }
     else ctx.rect(Math.min(a.x,b.x)*s, Math.min(a.y,b.y)*s, (Math.abs(a.x-b.x)+1)*s, (Math.abs(a.y-b.y)+1)*s);
     ctx.stroke(); ctx.setLineDash([]);
-  } else if (hover && shape==="brush" && !isTouch){
-    ctx.strokeStyle="rgba(255,255,255,.45)"; ctx.lineWidth=Math.max(1,s*.4); ctx.beginPath();
-    ctx.arc((hover.x+.5)*s,(hover.y+.5)*s,(brush+.5)*s,0,Math.PI*2); ctx.stroke();
   }
 }
 
+// The grid covers the whole screen. If the window changes shape a lot later
+// (split screen, a foldable opening), show the whole grid letterboxed instead.
 function fit(){
-  const st = document.getElementById("stage").getBoundingClientRect();
-  const dpr = Math.min(window.devicePixelRatio||1, 2.5);
-  let k = Math.min(st.width*dpr/W, st.height*dpr/H);
-  if (k >= 2) k = Math.floor(k);
-  const pw = Math.max(W, Math.round(W*k)), ph = Math.max(H, Math.round(H*k));
+  const vw = innerWidth, vh = innerHeight;
+  if (!vw || !vh) return;
+  const dpr = Math.min(window.devicePixelRatio||1, 3);
+  const cover = Math.max(vw/W, vh/H), contain = Math.min(vw/W, vh/H);
+  const k = cover/contain < 1.15 ? cover : contain;          // CSS px per cell
+  const px = Math.max(1, Math.round(k*dpr));                  // canvas px per cell
+  const pw = W*px, ph = H*px;
   if (cv.width!==pw || cv.height!==ph){ cv.width=pw; cv.height=ph; buildBackdrop(pw,ph); }
-  cv.style.width=(pw/dpr)+"px"; cv.style.height=(ph/dpr)+"px";
+  const cssW = W*k, cssH = H*k;
+  cv.style.width=cssW+"px"; cv.style.height=cssH+"px";
+  cv.style.left=((vw-cssW)/2)+"px"; cv.style.top=((vh-cssH)/2)+"px";
 }
 addEventListener("resize",fit);
 
 // =====================================================================
 //  UI
 // =====================================================================
-const isTouch = matchMedia("(pointer:coarse)").matches;
-let tool = SAND, shape = "brush", brush = isTouch ? 4 : 3, running = false, speed = 1, acc = 0;
-let hover = null, preview = null, drawing = false, last = null, eraseBtn = false;
+let tool = SAND, shape = "brush", brush = 4, running = false, speed = 1, acc = 0;
+let preview = null, drawing = false, last = null;
 let challenge = null, budget = {}, runTicks = 0, hold = 0, finished = false;
 const $ = id => document.getElementById(id);
+
+// Called by MainActivity with the screen's cutout / rounded-corner insets in CSS px.
+window.setInsets = (t,r,b,l)=>{
+  const s=document.documentElement.style;
+  s.setProperty("--it",t+"px"); s.setProperty("--ir",r+"px"); s.setProperty("--ib",b+"px"); s.setProperty("--il",l+"px");
+};
+
+// --- menus ---
+const menus = { el:[$("elBtn"),$("elMenu")], opt:[$("optBtn"),$("optMenu")] };
+function openMenu(name){
+  for (const k in menus){ const on = k===name && !menus[k][1].classList.contains("open"); menus[k][0].classList.toggle("open",on); menus[k][1].classList.toggle("open",on); }
+}
+function closeMenus(){
+  let was=false;
+  for (const k in menus){ if (menus[k][1].classList.contains("open")) was=true; menus[k][0].classList.remove("open"); menus[k][1].classList.remove("open"); }
+  return was;
+}
+$("elBtn").onclick=()=>openMenu("el");
+$("optBtn").onclick=()=>openMenu("opt");
+// Android back button: close a menu first, otherwise let the app close.
+window.onAndroidBack = ()=>{
+  if (closeMenus()) return true;
+  if ($("overlay").style.display==="flex"){ $("overlay").style.display="none"; return true; }
+  return false;
+};
 
 const palette = $("palette");
 const groups = [["Elements",[SAND,WATER,OIL,FIRE,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,E]]];
 const elBtns = {};
 for (const [g,list] of groups){
   const h=document.createElement("div"); h.className="cat"; h.textContent=g; palette.appendChild(h);
-  const grid=document.createElement("div"); grid.className="grid2"; palette.appendChild(grid);
+  const grid=document.createElement("div"); grid.className="grid4"; palette.appendChild(grid);
   for (const t of list){
     const b=document.createElement("button"); b.className="el";
     b.innerHTML=`<span class="sw" style="background:${INFO[t][2]}"></span><span>${INFO[t][0]}</span><span class="bud"></span>`;
-    b.onclick=()=>selectTool(t);
-    b.title=INFO[t][1];
+    b.onclick=()=>{ selectTool(t); closeMenus(); };
     grid.appendChild(b); elBtns[t]=b;
   }
 }
 let toastTimer=0;
-function toast(msg){ const el=$("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),1800); }
+function toast(msg){ const el=$("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),2000); }
 function selectTool(t, quiet){
   if (challenge && !(t in budget)) return;
   tool=t;
   for (const k in elBtns) elBtns[k].classList.toggle("on", +k===t);
+  $("elBtn").querySelector(".sw").style.background = INFO[t][2];
+  refreshPalette();
   if (!quiet) toast(`${INFO[t][0]} — ${INFO[t][1]}`);
 }
 function refreshPalette(){
@@ -622,14 +677,27 @@ function refreshPalette(){
       bud.textContent = ok && budget[t]!==Infinity ? budget[t] : "";
     } else { b.classList.remove("disabled"); bud.textContent=""; }
   }
+  const cb = $("elBtn").querySelector(".bud");
+  const show = challenge && budget[tool]!==undefined && budget[tool]!==Infinity;
+  cb.classList.toggle("show", !!show); cb.textContent = show ? budget[tool] : "";
 }
 document.querySelectorAll("[data-shape]").forEach(b=>b.onclick=()=>{
   shape=b.dataset.shape;
   document.querySelectorAll("[data-shape]").forEach(o=>o.classList.toggle("on",o===b));
 });
-const sizeEl=$("size"); sizeEl.value=brush;
-sizeEl.oninput=()=>brush=+sizeEl.value;
-function setRunning(v){ running=v; const p=$("play"); p.textContent = v ? "❚❚ Pause" : "▶ Play"; p.classList.toggle("running",v); }
+const sizeEl=$("size");
+function showSize(){ const d=4+brush*1.7; const i=$("sizeDot").firstElementChild; i.style.width=i.style.height=d+"px"; }
+sizeEl.value=brush; showSize();
+sizeEl.oninput=()=>{ brush=+sizeEl.value; showSize(); };
+
+const ICON_PLAY='<svg viewBox="0 0 24 24"><path d="M7 4.5l13 7.5-13 7.5z"/></svg>';
+const ICON_PAUSE='<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/></svg>';
+function setRunning(v){
+  running=v; const p=$("play");
+  p.innerHTML = v ? ICON_PAUSE : ICON_PLAY;
+  p.setAttribute("aria-label", v ? "Pause" : "Play");
+  p.classList.toggle("paused",!v);
+}
 $("play").onclick=()=>setRunning(!running);
 $("step").onclick=()=>{ setRunning(false); tick(); };
 const SPEEDS=[1,2,4,0.5];
@@ -642,17 +710,32 @@ function setGrav(g){
 $("tiltL").onclick=()=>setGrav(grav-1);
 $("tiltR").onclick=()=>setGrav(grav+1);
 $("rule").onchange=e=>setRule(e.target.value);
-$("clear").onclick=()=>clearWorld();
+$("clear").onclick=()=>{ clearWorld(); closeMenus(); toast("World cleared"); };
 function clearWorld(){ type.fill(E); life.fill(0); lock.fill(0); }
 
-// --- tilt with the phone's motion sensor ---
+// --- screen edges: solid, or open so things fall off and disappear ---
+function applyEdges(){
+  edgesOpen = openEdges && !challenge;
+  $("edgeWall").classList.toggle("on",!openEdges);
+  $("edgeOpen").classList.toggle("on",openEdges);
+  $("edgeHint").textContent = openEdges ? "Anything that leaves the screen is gone for good." : "Things pile up against the edges.";
+}
+function setEdges(v){
+  openEdges=v; applyEdges();
+  try{ localStorage.setItem("sandfall.edges", v?"open":"solid"); }catch(e){}
+}
+$("edgeWall").onclick=()=>setEdges(false);
+$("edgeOpen").onclick=()=>setEdges(true);
+try{ openEdges = localStorage.getItem("sandfall.edges")==="open"; }catch(e){}
+applyEdges();
+
+// --- tilt with the phone's motion sensor (the app is locked to portrait) ---
 let tiltOn=false;
-const canTilt = isTouch && "DeviceMotionEvent" in window;
-if (canTilt) $("tiltPhone").classList.remove("hidden");
+if ("DeviceMotionEvent" in window) $("tiltPhone").classList.remove("hidden");
 function onMotion(ev){
   const a = ev.accelerationIncludingGravity; if (!a || a.x==null) return;
   const gxs = -a.x, gys = a.y;
-  const ang = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI/180;
+  const ang = ((screen.orientation && screen.orientation.angle) || 0) * Math.PI/180;
   const sx = gxs*Math.cos(ang) + gys*Math.sin(ang);
   const sy = -gxs*Math.sin(ang) + gys*Math.cos(ang);
   const m = Math.hypot(sx,sy); if (m < 3.5) return;            // phone lying flat: keep current gravity
@@ -670,7 +753,6 @@ $("tiltPhone").onclick=async()=>{
   $("tiltPhone").textContent = "📱 Tilt phone: " + (tiltOn?"on":"off");
   $("tiltPhone").classList.toggle("on",tiltOn);
   if (tiltOn) addEventListener("devicemotion",onMotion); else removeEventListener("devicemotion",onMotion);
-  try{ window.Android && window.Android.setOrientationLock(tiltOn); }catch(e){}
   toast(tiltOn ? "Tilt your phone to pour the world around" : "Tilt control off");
 };
 
@@ -678,16 +760,21 @@ $("tiltPhone").onclick=async()=>{
 function b64(u8){ let s=""; for(let i=0;i<u8.length;i+=8192) s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192)); return btoa(s); }
 function unb64(s){ const b=atob(s), u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; }
 $("save").onclick=()=>{
-  try{ localStorage.setItem("sandfall.save", JSON.stringify({t:b64(type),g:grav,r:$("rule").value})); toast("World saved"); }
-  catch(e){ toast("Couldn't save here"); }
+  try{ localStorage.setItem("sandfall.save", JSON.stringify({w:W,h:H,t:b64(type),g:grav,r:$("rule").value})); toast("World saved"); }
+  catch(e){ toast("Couldn't save"); }
 };
 $("load").onclick=()=>{
   try{
     const d=JSON.parse(localStorage.getItem("sandfall.save")||"null");
     if(!d){ toast("Nothing saved yet"); return; }
-    const t=unb64(d.t); clearWorld();
-    for(let i=0;i<N;i++) if(t[i]) set(i,t[i]);
-    setGrav(d.g||0); $("rule").value=d.r; setRule(d.r); toast("World loaded");
+    const t=unb64(d.t), sw=d.w||W, sh=d.h||Math.floor(t.length/sw);
+    clearWorld();
+    // a world saved on a different screen shape keeps its bottom-left corner
+    for(let y=0;y<sh;y++) for(let x=0;x<sw;x++){
+      const v=t[y*sw+x]; if(!v) continue;
+      const ny=y+(H-sh); if (x<W && ny>=0 && ny<H) set(ny*W+x,v);
+    }
+    setGrav(d.g||0); $("rule").value=d.r; setRule(d.r); toast("World loaded"); closeMenus();
   }catch(e){ toast("Couldn't load"); }
 };
 
@@ -714,52 +801,43 @@ function lineCells(a,b,fn){
 function commitShape(a,b,t){
   if (shape==="line") lineCells(a,b,(x,y)=>disk(x,y,t));
   else {
-    const x0=Math.min(a.x,b.x),x1=Math.max(a.x,b.x),y0=Math.min(a.y,b.y),y1=Math.max(a.y,b.y);
+    const x0=Math.max(0,Math.min(a.x,b.x)),x1=Math.min(W-1,Math.max(a.x,b.x)),y0=Math.max(0,Math.min(a.y,b.y)),y1=Math.min(H-1,Math.max(a.y,b.y));
     const th=Math.max(1,brush>>1);
     for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++)
       if (shape==="frect" || x-x0<th||x1-x<th||y-y0<th||y1-y<th) paintCell(x,y,t,false);
   }
   refreshPalette();
 }
+let swallow=false;   // a touch that only closed a menu doesn't paint
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 cv.addEventListener("pointerdown",e=>{
   if (!e.isPrimary) return;
+  if (closeMenus()){ swallow=true; return; }
+  swallow=false;
   cv.setPointerCapture(e.pointerId);
-  drawing=true; eraseBtn = e.button===2;
-  const p=gridPos(e); last=p; hover=p;
-  if (shape==="brush"){ disk(p.x,p.y,eraseBtn?E:tool); refreshPalette(); }
+  drawing=true;
+  const p=gridPos(e); last=p;
+  if (shape==="brush"){ disk(p.x,p.y,tool); refreshPalette(); }
   else preview={a:p,b:p};
 });
 cv.addEventListener("pointermove",e=>{
-  if (!e.isPrimary) return;
-  const p=gridPos(e); hover=p;
-  if (!drawing) return;
-  if (shape==="brush"){ const t=eraseBtn?E:tool; lineCells(last,p,(x,y)=>disk(x,y,t)); last=p; refreshPalette(); }
+  if (!e.isPrimary || !drawing) return;
+  const p=gridPos(e);
+  if (shape==="brush"){ lineCells(last,p,(x,y)=>disk(x,y,tool)); last=p; refreshPalette(); }
   else if (preview) preview.b=p;
 });
 function endDraw(e){
   if (e && !e.isPrimary) return;
-  if (drawing && preview) commitShape(preview.a,preview.b,eraseBtn?E:tool);
-  drawing=false; preview=null;
-  if (isTouch) hover=null;
+  if (drawing && preview) commitShape(preview.a,preview.b,tool);
+  drawing=false; preview=null; swallow=false;
 }
 cv.addEventListener("pointerup",endDraw);
-cv.addEventListener("pointercancel",endDraw);
-cv.addEventListener("pointerleave",()=>{ if(!drawing) hover=null; });
-
-addEventListener("keydown",e=>{
-  if (e.target.tagName==="SELECT" || e.target.tagName==="INPUT") return;
-  if (e.code==="Space"){ e.preventDefault(); setRunning(!running); }
-  else if (e.key==="q"||e.key==="Q") setGrav(grav-1);
-  else if (e.key==="e"||e.key==="E") setGrav(grav+1);
-  else if (e.key==="[") { brush=Math.max(0,brush-1); sizeEl.value=brush; }
-  else if (e.key==="]") { brush=Math.min(12,brush+1); sizeEl.value=brush; }
-  else if (e.key in KEYS) selectTool(KEYS[e.key]);
-});
+cv.addEventListener("pointercancel",e=>{ if(!e.isPrimary) return; drawing=false; preview=null; });
 
 // =====================================================================
-//  Challenges
+//  Challenges  (laid out in fractions of the screen so they fit any phone)
 // =====================================================================
+const X = f => Math.round(f*W), Y = f => Math.round(f*H);
 function box(x0,y0,x1,y1,t){ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=idx(x,y); if(i>=0) set(i,t); } }
 function countIn(t,x0,y0,x1,y1){ let n=0; for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) if(type[y*W+x]===t) n++; return n; }
 function countAll(t){ let n=0; for(let i=0;i<N;i++) if(type[i]===t) n++; return n; }
@@ -768,21 +846,29 @@ const CHALLENGES = [
   {
     name:"1 · Into the Basin",
     desc:"The cloud rains in the wrong place. Build walls to steer the water into the basin.",
-    tools:{[WALL]:520,[E]:Infinity}, limit:45*SEC,
-    setup(){ box(16,4,64,6,CLOUD); box(222,108,224,179,WALL); box(292,108,294,179,WALL); },
-    measure(){ const v=countIn(WATER,225,108,291,179); return {v, goal:1500, text:`💧 <b>${v}</b> / 1500`}; },
+    tools:{[WALL]:650,[E]:Infinity}, limit:45*SEC,
+    setup(){
+      box(X(.06),Y(.3),X(.32),Y(.3)+2,CLOUD);
+      this.bx0=X(.64)+3; this.bx1=W-4; this.by0=Y(.62);
+      box(X(.64),this.by0,X(.64)+2,H-1,WALL); box(W-3,this.by0,W-1,H-1,WALL);
+    },
+    measure(){ const v=countIn(WATER,this.bx0,this.by0,this.bx1,H-1); return {v, goal:1500, text:`💧 <b>${v}</b> / 1500`}; },
     ok:m=>m.v>=m.goal,
   },
   {
     name:"2 · Controlled Burn",
-    desc:"Clear all five groves. Only 2 sparks — stone pillars stop the flames. Oil might help them spread.",
-    tools:{[OIL]:1800,[FIRE]:2}, limit:0,
+    desc:"Clear all five groves with only 2 sparks. Stone pillars stop the flames — oil might help them spread.",
+    tools:{[OIL]:1500,[FIRE]:2}, limit:0,
     setup(){
-      box(22,96,25,179,WALL); box(275,96,278,179,WALL);
-      let x=26;
-      for(let g=0;g<5;g++){ box(x,120,x+39,179,PLANT); x+=40; if(g<4){ box(x,120,x+11,179,WALL); x+=12; } }
+      const top=H-46;
+      box(0,top-24,3,H-1,WALL); box(W-4,top-24,W-1,H-1,WALL);
+      const gw=Math.floor((W-8-4*6)/5);
+      let x=4;
+      for(let g=0;g<5;g++){ box(x,top,x+gw-1,H-1,PLANT); x+=gw; if(g<4){ box(x,top,x+5,H-1,WALL); x+=6; } }
+      if (x<W-4) box(x,top,W-5,H-1,WALL);
+      this.start=countAll(PLANT); this.goal=Math.round(this.start*.03);
     },
-    measure(){ const v=countAll(PLANT); return {v, goal:200, start:12000, text:`🌿 <b>${v}</b> left (≤ 200)`}; },
+    measure(){ const v=countAll(PLANT); return {v, goal:this.goal, start:this.start, text:`🌿 <b>${v}</b> left (≤ ${this.goal})`}; },
     ok:m=>m.v<=m.goal,
   },
   {
@@ -790,8 +876,9 @@ const CHALLENGES = [
     desc:"Wipe out every last virus cell with salt. Tilting the world may help.",
     tools:{[SALT]:1200}, limit:0,
     setup(){
-      box(40,30,42,172,WALL); box(258,30,260,172,WALL); box(40,170,260,172,WALL);
-      for(let y=80;y<160;y++) for(let x=60;x<240;x++) if(rnd()<.33) set(y*W+x,VIRUS);
+      const L=X(.12), R=X(.88), bot=H-10;
+      box(L,Y(.22),L+2,bot,WALL); box(R-2,Y(.22),R,bot,WALL); box(L,bot-2,R,bot,WALL);
+      for(let y=bot-112;y<bot-12;y++) for(let x=L+12;x<R-12;x++) if(rnd()<.33) set(y*W+x,VIRUS);
       for(let n=0;n<12;n++) lifeStep();
     },
     measure(){ const v=countAll(VIRUS); return {v, goal:0, text:`🦠 <b>${v}</b> left`}; },
@@ -800,10 +887,10 @@ const CHALLENGES = [
   {
     name:"4 · Green Thumb",
     desc:"Grow 2500 plants from the seeds. The rain is on the wrong side of a magma vent.",
-    tools:{[WALL]:450,[E]:Infinity}, limit:75*SEC,
+    tools:{[WALL]:550,[E]:Infinity}, limit:75*SEC,
     setup(){
-      box(0,170,299,179,SOIL); box(12,4,52,6,CLOUD); box(112,96,122,169,MAGMA);
-      for(let x=200;x<285;x+=2) set(169*W+x,SEED);
+      box(0,H-10,W-1,H-1,SOIL); box(X(.06),Y(.3),X(.3),Y(.3)+2,CLOUD); box(X(.4),Y(.58),X(.4)+8,H-11,MAGMA);
+      for(let x=X(.6);x<W-4;x+=2) set((H-11)*W+x,SEED);
     },
     measure(){ const v=countAll(PLANT); return {v, goal:2500, text:`🌱 <b>${v}</b> / 2500`}; },
     ok:m=>m.v>=m.goal,
@@ -817,7 +904,7 @@ function buildModeMenu(){
   modeSel.value = challenge ? CHALLENGES.indexOf(challenge) : -1;
 }
 buildModeMenu();
-modeSel.onchange=()=>startMode(+modeSel.value);
+modeSel.onchange=()=>{ startMode(+modeSel.value); closeMenus(); };
 
 let sandboxSnapshot=null;
 function startMode(n){
@@ -829,27 +916,27 @@ function startMode(n){
     setRule($("rule").value);
     $("goal").style.display="none";
     $("sandboxOnly").classList.remove("hidden"); $("challengeOnly").classList.add("hidden");
-    refreshPalette(); selectTool(SAND,true); modeSel.value=-1;
+    applyEdges(); refreshPalette(); selectTool(SAND,true); modeSel.value=-1;
     return;
   }
   if (!challenge) sandboxSnapshot = type.slice();
   challenge = CHALLENGES[n];
+  applyEdges();
   setRule("B3/S23"); setGrav(0);
   clearWorld(); challenge.setup();
   for (let i=0;i<N;i++) lock[i] = type[i]!==E ? 1 : 0;
   budget = {...challenge.tools};
   runTicks=0; hold=0; finished=false;
-  $("goal").style.display="block";
+  $("goal").style.display="block"; $("goal").classList.remove("min");
   $("sandboxOnly").classList.add("hidden"); $("challengeOnly").classList.remove("hidden");
   $("goalTitle").textContent=challenge.name;
-  $("goalDesc").textContent=challenge.desc+" Press Play when ready.";
-  refreshPalette();
+  $("goalDesc").textContent=challenge.desc+" Press ▶ when ready.";
   selectTool(+Object.keys(budget).find(k=>+k!==E), true);
   updateGoal();
   modeSel.value=n;
 }
-$("reset").onclick=()=>startMode(CHALLENGES.indexOf(challenge));
-$("goalToggle").onclick=()=>{ const g=$("goal"); g.classList.toggle("min"); $("goalToggle").textContent=g.classList.contains("min")?"Show hint":"Hide hint"; };
+$("reset").onclick=()=>{ startMode(CHALLENGES.indexOf(challenge)); closeMenus(); };
+$("goal").onclick=()=>$("goal").classList.toggle("min");
 $("ovRetry").onclick=()=>startMode(CHALLENGES.indexOf(challenge));
 $("ovNext").onclick=()=>{ const n=CHALLENGES.indexOf(challenge)+1; startMode(n<CHALLENGES.length?n:-1); };
 
@@ -881,6 +968,7 @@ function checkChallenge(){
   }
 }
 function showOverlay(title,text,won){
+  closeMenus();
   $("ovTitle").textContent=title; $("ovText").textContent=text;
   $("ovNext").style.display = won ? "" : "none";
   $("overlay").style.display="flex";
@@ -902,18 +990,21 @@ function loop(now){
 }
 
 function starter(){
-  box(0,172,299,179,SOIL);
-  for (let x=0;x<W;x++){ const h=Math.round(3+3*Math.sin(x/23)+2*Math.sin(x/9)); for(let y=172-h;y<172;y++) set(y*W+x,SOIL); }
-  box(30,6,82,8,CLOUD);
-  box(206,6,236,7,SHAKER);
-  box(120,140,168,166,PLANT);
-  box(252,158,262,168,MAGMA);
-  for(let x=58;x<112;x++) for(let y=140;y<168;y++){ const c=Math.abs(x-85)/27; if (y > 140 + c*c*28 && rnd()<.85) set(y*W+x,SAND); }
-  box(180,120,220,122,WALL); box(180,104,182,121,WALL); box(218,104,220,121,WALL);
-  for(let x=184;x<216;x++) for(let y=112;y<120;y++) if(rnd()<.9) set(y*W+x,OIL);
+  const g=H-8;
+  box(0,g,W-1,H-1,SOIL);
+  for (let x=0;x<W;x++){ const h=Math.round(4+3*Math.sin(x/19)+2*Math.sin(x/7)); for(let y=g-h;y<g;y++) set(y*W+x,SOIL); }
+  box(X(.08),Y(.12),X(.36),Y(.12)+2,CLOUD);
+  box(X(.64),Y(.12),X(.82),Y(.12)+1,SHAKER);
+  box(X(.42),g-34,X(.6),g-8,PLANT);
+  box(X(.86),g-20,X(.93),g-8,MAGMA);
+  const cx=X(.2), hw=X(.14);
+  for(let x=cx-hw;x<cx+hw;x++) for(let y=g-30;y<g-4;y++){ const c=Math.abs(x-cx)/hw; if (y > g-30 + c*c*26 && rnd()<.85) set(y*W+x,SAND); }
+  const cy=Y(.5), c0=X(.58), c1=X(.86);
+  box(c0,cy,c1,cy+2,WALL); box(c0,cy-16,c0+2,cy-1,WALL); box(c1-2,cy-16,c1,cy-1,WALL);
+  for(let x=c0+3;x<c1-2;x++) for(let y=cy-9;y<cy;y++) if(rnd()<.9) set(y*W+x,OIL);
 }
 starter();
-selectTool(SAND,true); refreshPalette(); setGrav(0);
+selectTool(SAND,true); refreshPalette(); setGrav(0); setRunning(false);
 fit();
 requestAnimationFrame(()=>{ fit(); setRunning(true); requestAnimationFrame(loop); });
 </script>

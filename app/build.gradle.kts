@@ -4,21 +4,14 @@ plugins {
 
 android {
     namespace = "com.bribot.sandfall"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.bribot.sandfall"
-        minSdk = 24
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
-    }
-
-    // The game itself lives in /web so it can also be played in a browser.
-    sourceSets {
-        getByName("main") {
-            assets.srcDirs("../web")
-        }
+        minSdk = 26
+        targetSdk = 36
+        versionCode = 2
+        versionName = "2.0"
     }
 
     buildTypes {
