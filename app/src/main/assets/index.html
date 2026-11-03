@@ -180,7 +180,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 // The grid is 180 cells wide and as tall as the screen's shape needs, so the play area fills the whole phone.
 const VW0 = innerWidth || screen.width, VH0 = innerHeight || screen.height;
 const W = 180, H = Math.max(200, Math.min(520, Math.ceil(W * VH0 / VW0))), N = W * H;
-const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17;
+const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18;
 const INFO = [
   ["Eraser","Removes anything.","radial-gradient(circle at 35% 30%,#3a4058,#141826)"],
   ["Wall","Blocks everything.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
@@ -200,6 +200,7 @@ const INFO = [
   ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#e8ff9a,#7ee03a 50%,#2e7a10)"],
   ["Brine","Salty water. Sinks under water, withers plants, kills virus. Boils into salt.","radial-gradient(circle at 35% 30%,#bff3e4,#3f9e98 55%,#1b4d5c)"],
   ["Steam","Floats up, then may rain back down as water.","radial-gradient(circle at 35% 30%,#ffffff,#dde3ee 50%,rgba(150,162,184,.7))"],
+  ["Seeder","Drops seeds that sprout into plants when wet.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
 ];
 const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM].forEach(t=>GRAIN[t]=1);
 const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
@@ -394,6 +395,7 @@ function stepWorld(){
         }
         case CLOUD:  emit(i,x,y,WATER,.06,grav); break;
         case SHAKER: emit(i,x,y,SALT,.05,grav); break;
+        case SEEDER: emit(i,x,y,SEED,.03,grav); break;
         case SPILL:  emit(i,x,y,OIL,.06,grav); break;
         case MAGMA: {
           for (const [dx,dy] of ORTH){
@@ -610,6 +612,14 @@ function paintCells(){
           else { const q=(v+1)*.5; r = 210 + 45*q; g = 50 + 160*q*q; b = 12 + 60*q*q*q; e = 120 + 135*q; }
           break;
         }
+        case SEEDER: {
+          const leaf = (x%4===1 && y%3===1) || (x%4===3 && y%3===2);  // little sprouts on a wooden planter
+          const band = (y%4)===0;
+          if (leaf){ r=96+(sh<<1); g=190+(sh<<1); b=70; e=20; }
+          else { r = band?84:128+(sh>>1); g = band?56:90+(sh>>2); b = band?30:48; }
+          if (open){ r+=24; g+=24; b+=12; }
+          break;
+        }
         case SHAKER: {
           const stripe = ((x+y)>>1)&1;
           r = stripe?196:168; g = stripe?200:172; b = stripe?214:188;
@@ -722,7 +732,7 @@ window.onAndroidBack = ()=>{
 };
 
 const palette = $("palette");
-const groups = [["Elements",[SAND,WATER,BRINE,OIL,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,E]]];
+const groups = [["Elements",[SAND,WATER,BRINE,OIL,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,E]]];
 const elBtns = {};
 for (const [g,list] of groups){
   const h=document.createElement("div"); h.className="cat"; h.textContent=g; palette.appendChild(h);

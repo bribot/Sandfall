@@ -31,7 +31,7 @@ The whole screen is the play area, held upright (portrait).
 | Soil | Solid ground |
 | Virus | Lives by Life rules (B3/S23 by default) in air and water. Eats any plant it touches |
 | Wall | Blocks everything |
-| Cloud / Magma / Shaker / Spill / Toxin | Generators that make water / fire / salt / oil / virus. Magma also sets fire to anything flammable touching it and boils water and brine |
+| Cloud / Magma / Shaker / Spill / Toxin / Seeder | Generators that make water / fire / salt / oil / virus / seeds. Magma also sets fire to anything flammable touching it and boils water and brine |
 
 - **Nature sliders:** *Virus eats plants* goes from never to instantly; *Steam turns to water* goes from about half a second to 30 seconds. Like screen edges, they only apply in the sandbox; challenges use the defaults.
 - **Screen edges:** *Solid* edges act like walls. With *Open* edges, anything that moves off the screen is gone for good. Challenges always use solid edges.
