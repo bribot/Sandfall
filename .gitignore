@@ -7,3 +7,5 @@ local.properties
 *.apk
 *.keystore
 .DS_Store
+*.p12
+*.jks

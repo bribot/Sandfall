@@ -4,7 +4,7 @@ A falling-sand toy and puzzle game for Android. Pour sand, water, oil, salt and 
 
 ## Install
 
-Download `Sandfall.apk` from the latest [Actions build](../../actions) (artifact **Sandfall-apk**) or from a [release](../../releases), then open it on your phone. You may need to allow installs from unknown sources.
+Download **[Sandfall.apk](../../releases/latest/download/Sandfall.apk)** from the [latest release](../../releases/latest) and open it on your phone. You may need to allow installs from unknown sources. Every release is signed with the same key, so newer versions install as updates and keep your saved worlds.
 
 Runs on Android 8.0 and newer, and is built for Android 16 (API 36).
 
@@ -42,5 +42,5 @@ The whole screen is the play area, held upright (portrait).
 The app is a thin WebView wrapper (`app/src/main/java`) around the game, which is one self-contained file: `app/src/main/assets/index.html`.
 
 - **Android Studio:** open the folder and run.
-- **Command line:** `gradle :app:assembleRelease` (needs JDK 17+ and Gradle 8.13 or newer). Every push builds the APK on GitHub Actions. Pushing a `v*` tag also attaches the APK to a GitHub release.
+- **Command line:** `gradle :app:assembleRelease` (needs JDK 17+ and Gradle 8.13 or newer). Every push builds the APK on GitHub Actions. Every push to `main` also publishes a GitHub release with the APK, signed with the key in the `SIGNING_KEYSTORE_BASE64` and `SIGNING_PASSWORD` repository secrets (alias `sandfall`). Without those secrets the build is signed with a throwaway debug key and no release is published.
 - **No Gradle?** `tools/build-apk.sh` builds a debug-signed APK straight from the Android SDK build tools (needs JDK 17+ and the android-36 platform).
