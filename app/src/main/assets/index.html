@@ -173,28 +173,30 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 // The grid is 180 cells wide and as tall as the screen's shape needs, so the play area fills the whole phone.
 const VW0 = innerWidth || screen.width, VH0 = innerHeight || screen.height;
 const W = 180, H = Math.max(200, Math.min(520, Math.ceil(W * VH0 / VW0))), N = W * H;
-const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15;
+const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17;
 const INFO = [
   ["Eraser","Removes anything.","radial-gradient(circle at 35% 30%,#3a4058,#141826)"],
   ["Wall","Blocks everything.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
   ["Sand","Falls and piles up.","radial-gradient(circle at 35% 30%,#ffe7a8,#d9b06a 60%,#a5803f)"],
-  ["Water","Flows. Puts out fire, dissolves salt, erodes soil.","radial-gradient(circle at 35% 30%,#a8dcff,#2f86e6 55%,#174a9c)"],
+  ["Water","Flows. Boils into steam on fire, dissolves salt into brine.","radial-gradient(circle at 35% 30%,#a8dcff,#2f86e6 55%,#174a9c)"],
   ["Oil","Floats on water. Very flammable.","radial-gradient(circle at 35% 30%,#c49052,#5a3416 60%,#2a170a)"],
   ["Fire","Rises and burns out. Burns plants, oil, virus.","radial-gradient(circle at 50% 70%,#fff3a0,#ff9a2a 45%,#c2300c)"],
-  ["Plant","Drinks water and grows.","radial-gradient(circle at 35% 30%,#b8f58a,#36b552 55%,#16692c)"],
+  ["Plant","Drinks water and grows. Brine withers it.","radial-gradient(circle at 35% 30%,#b8f58a,#36b552 55%,#16692c)"],
   ["Seed","Sprouts when wet.","radial-gradient(circle at 35% 30%,#e8c08a,#a6743e 60%,#5f3e1c)"],
-  ["Salt","Dissolves in water. Kills virus.","radial-gradient(circle at 35% 30%,#ffffff,#dfe3ee 55%,#9aa1b5)"],
+  ["Salt","Dissolves in water into brine. Kills virus. Burns yellow.","radial-gradient(circle at 35% 30%,#ffffff,#dfe3ee 55%,#9aa1b5)"],
   ["Soil","Ground. Water erodes it to sand.","radial-gradient(circle at 35% 30%,#a07650,#6a4528 60%,#3a2414)"],
-  ["Virus","Lives by Conway's Life. Infects plants.","radial-gradient(circle at 35% 30%,#ffb0ff,#d040d8 55%,#6a1680)"],
+  ["Virus","Lives by Conway's Life. Eats plants.","radial-gradient(circle at 35% 30%,#ffb0ff,#d040d8 55%,#6a1680)"],
   ["Cloud","Rains water.","radial-gradient(circle at 35% 30%,#ffffff,#cfe0ff 55%,#8aa4d6)"],
-  ["Magma","Spews fire.","radial-gradient(circle at 40% 40%,#ffd060,#ff5a1a 45%,#7a1606)"],
+  ["Magma","Spews fire. Burns what touches it, boils water.","radial-gradient(circle at 40% 40%,#ffd060,#ff5a1a 45%,#7a1606)"],
   ["Shaker","Sprinkles salt.","radial-gradient(circle at 35% 30%,#f2f4fa,#a8aec2 55%,#5e6478)"],
   ["Spill","Leaks oil.","radial-gradient(circle at 35% 30%,#d8a060,#7a4a1c 55%,#3a200a)"],
   ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#e8ff9a,#7ee03a 50%,#2e7a10)"],
+  ["Brine","Salty water. Sinks under water, withers plants, kills virus. Boils into salt.","radial-gradient(circle at 35% 30%,#bff3e4,#3f9e98 55%,#1b4d5c)"],
+  ["Steam","Floats up, then may rain back down as water.","radial-gradient(circle at 35% 30%,#ffffff,#dde3ee 50%,rgba(150,162,184,.7))"],
 ];
-const GRAIN = new Uint8Array(16); [SAND,WATER,OIL,SEED,SALT].forEach(t=>GRAIN[t]=1);
-const DENS = new Float32Array(16); DENS[OIL]=1; DENS[WATER]=2; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
-const FLAMMABLE = new Float32Array(16); FLAMMABLE[PLANT]=0.2; FLAMMABLE[OIL]=0.45; FLAMMABLE[SEED]=0.3; FLAMMABLE[VIRUS]=0.5;
+const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM].forEach(t=>GRAIN[t]=1);
+const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
+const FLAMMABLE = new Float32Array(32); FLAMMABLE[PLANT]=0.2; FLAMMABLE[OIL]=0.45; FLAMMABLE[SEED]=0.3; FLAMMABLE[VIRUS]=0.5;
 
 const type = new Uint8Array(N), shade = new Uint8Array(N), life = new Uint8Array(N);
 const stamp = new Uint16Array(N), lock = new Uint8Array(N), nb = new Uint8Array(N), depth = new Uint8Array(N);
@@ -209,7 +211,7 @@ const rnd = Math.random;
 
 function set(i, t){
   type[i] = t; shade[i] = (rnd()*16)|0;
-  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : 0;
+  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 40 + ((rnd()*90)|0) : 0;
   stamp[i] = tk;
 }
 function vanish(i){ type[i]=E; life[i]=0; }
@@ -222,8 +224,8 @@ function swap(i, j){
 function idx(x,y){ return (x<0||y<0||x>=W||y>=H) ? -1 : y*W+x; }
 function canDisplace(s, o){
   if (o===E) return true;
-  if (o===FIRE) return DENS[s] > 0;
-  if (o===WATER || o===OIL) {
+  if (o===FIRE || o===STEAM) return DENS[s] > 0;
+  if (o===WATER || o===OIL || o===BRINE) {
     if (!(DENS[s] > DENS[o])) return false;
     return rnd() < (s===SALT && o===OIL ? 0.08 : 0.5);
   }
@@ -260,7 +262,7 @@ function liquid(i,x,y){
       const j = idx(cx+DX[k], cy+DY[k]);
       if (j<0){ if (edgesOpen){ vanish(ci); moved=true; } break; }
       const o = type[j];
-      if (o===E || (o!==type[ci] && (o===WATER||o===OIL) && DENS[type[ci]]>DENS[o] && rnd()<.5)) {
+      if (o===E || (o!==type[ci] && (o===WATER||o===OIL||o===BRINE) && DENS[type[ci]]>DENS[o] && rnd()<.5)) {
         swap(ci,j); ci=j; cx+=DX[k]; cy+=DY[k]; moved=true;
         const d = idx(cx+DX[grav], cy+DY[grav]);
         if (d>=0 && type[d]===E) break;
@@ -274,6 +276,16 @@ function emit(i,x,y,t,p,k){
   const j = idx(x+DX[k&7], y+DY[k&7]);
   if (j>=0 && type[j]===E) set(j,t);
 }
+
+// Steam drifts upward, bubbling up through liquids.
+function gas(i,x,y,k){
+  const j = idx(x+DX[k&7], y+DY[k&7]);
+  if (j<0){ if (edgesOpen) vanish(i); return; }
+  const o = type[j];
+  if (o===E || ((o===WATER||o===OIL||o===BRINE) && rnd()<.5)) swap(i,j);
+}
+// A fire that touches salt burns yellow (sodium flame).
+function yellow(j){ shade[j] |= 16; if (life[j]<30) life[j]+=8; }
 
 function stepWorld(){
   tk = ((tk + 1) & 0xffff) || 1;
@@ -299,11 +311,8 @@ function stepWorld(){
             const j=idx(x+dx,y+dy); if(j<0) continue;
             const o=type[j];
             if (o===VIRUS) set(j,E);
-            else if (o===WATER) {
-              const r=rnd();
-              if (r<.01){ set(i,E); gone=true; break; }
-              else if (r<.013){ set(j,E); }
-            }
+            else if (o===FIRE) yellow(j);
+            else if (o===WATER && rnd()<.012){ set(j,BRINE); set(i,E); gone=true; break; }   // dissolves
           }
           if (!gone) powder(i,x,y);
           break;
@@ -312,10 +321,41 @@ function stepWorld(){
           for (const [dx,dy] of ORTH){
             const j=idx(x+dx,y+dy); if(j<0) continue;
             const o=type[j];
-            if (o===FIRE){ set(j,E); if(rnd()<.08){ set(i,E); break; } }
+            if (o===FIRE){ if (rnd()<.5) set(j,E); set(i,STEAM); break; }   // boils, and may put the fire out
             else if (o===SOIL && rnd()<.004) set(j,SAND);
           }
           if (type[i]===WATER) liquid(i,x,y);
+          break;
+        }
+        case BRINE: {
+          let boiled=false;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===FIRE){ yellow(j); emit(i,x,y,STEAM,.6,up); set(i,SALT); boiled=true; break; }   // boils away, leaves salt
+            else if (o===VIRUS && rnd()<.3) set(j,E);
+            else if (o===PLANT && rnd()<.01) set(j,E);                    // withers plants
+          }
+          if (!boiled && rnd()<.04){                                     // magma heats it through a salt crust
+            for (let n=1;n<=12;n++){
+              const j=idx(x+DX[grav]*n,y+DY[grav]*n); if(j<0) break;
+              const o=type[j];
+              if (o===MAGMA){ emit(i,x,y,STEAM,.6,up); set(i,SALT); boiled=true; break; }
+              if (o!==SALT && o!==BRINE) break;
+            }
+          }
+          if (!boiled) liquid(i,x,y);
+          break;
+        }
+        case STEAM: {
+          if (life[i]<=1){ set(i, rnd()<.6 ? WATER : E); break; }      // condenses into rain (or just fades)
+          life[i]--;
+          const r=rnd();
+          gas(i,x,y, r<.55 ? up : r<.7 ? up+1 : r<.85 ? up+7 : r<.93 ? up+2 : up+6);
+          break;
+        }
+        case VIRUS: {
+          for (let k=0;k<8;k++){ const j=idx(x+DX[k],y+DY[k]); if (j>=0 && type[j]===PLANT && rnd()<.5) set(j,VIRUS); }
           break;
         }
         case OIL: liquid(i,x,y); break;
@@ -327,6 +367,7 @@ function stepWorld(){
             const j=idx(x+dx,y+dy); if(j<0) continue;
             const f=FLAMMABLE[type[j]];
             if (f){ fuel=true; if (rnd()<f){ const was=type[j]; set(j,FIRE); if(was===OIL) life[j]+=12; } }
+            else if (type[j]===SALT || type[j]===BRINE) shade[i] |= 16;
           }
           if (fuel && rnd()<.7) break;      // flames cling to whatever they're burning
           const r=rnd();
@@ -344,7 +385,17 @@ function stepWorld(){
         case CLOUD:  emit(i,x,y,WATER,.06,grav); break;
         case SHAKER: emit(i,x,y,SALT,.05,grav); break;
         case SPILL:  emit(i,x,y,OIL,.06,grav); break;
-        case MAGMA:  emit(i,x,y,FIRE,.35,(rnd()*8)|0); break;
+        case MAGMA: {
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (FLAMMABLE[o]) set(j,FIRE);                                // anything that burns catches at once
+            else if (o===WATER && rnd()<.3) set(j,STEAM);
+            else if (o===BRINE && rnd()<.3){ set(j,SALT); emit(i,x,y,STEAM,.5,up); }
+          }
+          emit(i,x,y,FIRE,.35,(rnd()*8)|0);
+          break;
+        }
         case TOXIN:  {
           if (rnd()<.04){ const k=(rnd()*8)|0; const j=idx(x+DX[k],y+DY[k]); if(j>=0&&(type[j]===E||type[j]===WATER)) set(j,VIRUS); }
           break;
@@ -374,7 +425,7 @@ function lifeStep(){
     const t=type[i], n=nb[i];
     if (t===VIRUS){ if(!SURV[n]) set(i,E); }
     else if ((t===E||t===WATER) && BIRTH[n]) set(i,VIRUS);
-    else if (t===PLANT && n>0 && rnd()<.06) set(i,VIRUS);
+    else if (t===PLANT && n>0) set(i,VIRUS);
   }
 }
 
@@ -440,7 +491,7 @@ function paintCells(){
       depth[i] = d;
       const open = above===E;
       const sh = shade[i], hs = HASH[i];
-      let r=0,g=0,b=0,e=0;
+      let r=0,g=0,b=0,e=0,a=255;
       switch (ty){
         case WALL: {
           const row = (y/5)|0;
@@ -481,8 +532,24 @@ function paintCells(){
         case FIRE: {
           let h = (life[i] + (sh&7)) / 34 + SIN[(t*29 + i*7)&255]*.12;
           h = h<0?0:h>1?1:h;
-          r = 200 + 55*h; g = 50 + 200*h*h; b = 10 + 150*h*h*h;
+          if (sh&16){ r = 255; g = 190 + 65*h; b = 40 + 120*h*h; }      // sodium-yellow flame
+          else { r = 200 + 55*h; g = 50 + 200*h*h; b = 10 + 150*h*h*h; }
           e = 255;
+          break;
+        }
+        case BRINE: {
+          const k = Math.min(d,48)/48;
+          const s = SIN[(x*5 + y*3 + t)&255] * 6;
+          r = 42 - 20*k; g = 128 - 50*k + s; b = 140 - 50*k + s;
+          if (open || d===0){ r=150; g=220+s; b=210+s; }
+          else if (d===1){ r=80; g=170+s; b=170+s; }
+          if (hs>246){ r+=40; g+=30; b+=30; }                        // salt specks
+          break;
+        }
+        case STEAM: {
+          const n = SIN[(x*9 + y*5 + t*3)&255];
+          r = 222 + n*14; g = 228 + n*14; b = 240 + n*10;
+          a = 90 + Math.min(life[i],120) + n*20;                      // fades as it cools
           break;
         }
         case PLANT: {
@@ -553,7 +620,7 @@ function paintCells(){
           break;
         }
       }
-      P[o]=r; P[o+1]=g; P[o+2]=b; P[o+3]=255;
+      P[o]=r; P[o+1]=g; P[o+2]=b; P[o+3]=a;
       if (e){ G[o]=r; G[o+1]=g; G[o+2]=b; G[o+3]=e; } else G[o+3]=0;
     }
   }
@@ -646,7 +713,7 @@ window.onAndroidBack = ()=>{
 };
 
 const palette = $("palette");
-const groups = [["Elements",[SAND,WATER,OIL,FIRE,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,E]]];
+const groups = [["Elements",[SAND,WATER,BRINE,OIL,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,E]]];
 const elBtns = {};
 for (const [g,list] of groups){
   const h=document.createElement("div"); h.className="cat"; h.textContent=g; palette.appendChild(h);
@@ -886,8 +953,8 @@ const CHALLENGES = [
   },
   {
     name:"4 · Green Thumb",
-    desc:"Grow 2500 plants from the seeds. The rain is on the wrong side of a magma vent.",
-    tools:{[WALL]:550,[E]:Infinity}, limit:75*SEC,
+    desc:"Grow 2500 plants from the seeds. The rain is on the wrong side of a magma vent — and any plant that touches it goes up in flames.",
+    tools:{[WALL]:650,[E]:Infinity}, limit:75*SEC,
     setup(){
       box(0,H-10,W-1,H-1,SOIL); box(X(.06),Y(.3),X(.3),Y(.3)+2,CLOUD); box(X(.4),Y(.58),X(.4)+8,H-11,MAGMA);
       for(let x=X(.6);x<W-4;x+=2) set((H-11)*W+x,SEED);

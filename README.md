@@ -20,16 +20,18 @@ The whole screen is the play area, held upright (portrait).
 | Element | Behaviour |
 |---|---|
 | Sand | Falls and piles up |
-| Water | Flows. Puts out fire, dissolves salt, erodes soil into sand |
+| Water | Flows. Boils into steam when it touches fire or magma, dissolves salt into brine, erodes soil into sand |
+| Brine | Salty water. Sinks under fresh water, withers plants, kills virus. Boils away into salt (with a yellow flame) |
+| Steam | Floats up, then cools and rains back down as water (or fades away) |
 | Oil | Floats on water, very flammable |
 | Fire | Rises and burns out. Clings to and burns plants, oil, seeds and virus |
-| Plant | Drinks neighbouring water and grows into it |
+| Plant | Drinks neighbouring water and grows into it. Won't drink brine |
 | Seed | Falls. Sprouts into a plant when wet |
-| Salt | Piles up, sinks slowly through oil, dissolves in water, kills virus |
+| Salt | Piles up, sinks slowly through oil, dissolves in water into brine, kills virus, makes flames burn yellow |
 | Soil | Solid ground |
-| Virus | Lives by Life rules (B3/S23 by default) in air and water, and infects plants |
+| Virus | Lives by Life rules (B3/S23 by default) in air and water. Eats any plant it touches |
 | Wall | Blocks everything |
-| Cloud / Magma / Shaker / Spill / Toxin | Generators that make water / fire / salt / oil / virus |
+| Cloud / Magma / Shaker / Spill / Toxin | Generators that make water / fire / salt / oil / virus. Magma also sets fire to anything flammable touching it and boils water and brine |
 
 - **Screen edges:** *Solid* edges act like walls. With *Open* edges, anything that moves off the screen is gone for good. Challenges always use solid edges.
 - **Tilt:** ⟲ ⟳ rotate gravity in 45° steps, or turn on **📱 Tilt phone** so gravity follows the way you hold the device.
