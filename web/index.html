@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0d18">
+<title>Sandfall</title>
+<style>
+:root{
+  --bg:#080b14; --rail:rgba(20,25,42,.82); --tile:rgba(255,255,255,.04); --tile-h:rgba(255,255,255,.09);
+  --line:rgba(255,255,255,.08); --text:#e9ecf5; --dim:#8c95ad; --accent:#7cc8ff; --accent2:#ffb057;
+  --good:#5fe0a0; --bad:#ff7070; --r:12px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font:13px/1.3 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif;user-select:none;-webkit-user-select:none;overscroll-behavior:none}
+body{
+  background:radial-gradient(1200px 600px at 50% -10%, #1a2350 0%, transparent 60%),
+             radial-gradient(900px 500px at 100% 110%, #2a1640 0%, transparent 60%), var(--bg);
+  display:grid;grid-template-columns:auto 1fr auto;gap:8px;
+  padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
+}
+.rail{background:var(--rail);border:1px solid var(--line);border-radius:16px;backdrop-filter:blur(10px);
+  box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+#left{width:148px;padding:10px 8px}
+#right{width:164px;padding:10px;display:flex;flex-direction:column;gap:10px}
+.logo{display:flex;align-items:center;gap:8px;margin:0 2px 8px;font-weight:800;font-size:16px;letter-spacing:.5px}
+.logo b{background:linear-gradient(90deg,#ffd27a,#ff8a4c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo svg{flex:none}
+.cat{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--dim);margin:10px 4px 6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.el{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 2px 6px;border-radius:var(--r);
+  background:var(--tile);border:1px solid transparent;color:var(--text);font:inherit;font-size:11px;cursor:pointer;transition:background .15s,transform .1s,border-color .15s}
+.el:hover{background:var(--tile-h)}
+.el:active{transform:scale(.95)}
+.el.on{border-color:var(--accent);background:rgba(124,200,255,.12);box-shadow:0 0 14px rgba(124,200,255,.25)}
+.el .sw{width:28px;height:28px;border-radius:50%;box-shadow:inset 0 -3px 6px rgba(0,0,0,.35), inset 0 2px 3px rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.4)}
+.el .bud{position:absolute;top:3px;right:5px;font-size:9.5px;color:var(--accent2);font-weight:700}
+.el.disabled{opacity:.18;pointer-events:none}
+button.b,select.b{background:var(--tile);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 6px;font:inherit;cursor:pointer;transition:background .15s}
+button.b:hover{background:var(--tile-h)}
+button.b.on{background:rgba(124,200,255,.16);border-color:var(--accent)}
+select.b{width:100%;appearance:none;-webkit-appearance:none;padding:9px 26px 9px 10px;
+  background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+  background-position:calc(100% - 14px) 50%,calc(100% - 9px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+select.b option{background:#161b2c}
+.row{display:flex;gap:6px}
+.row>*{flex:1}
+#play{height:48px;border-radius:14px;border:none;font-size:15px;font-weight:700;color:#10131c;cursor:pointer;
+  background:linear-gradient(180deg,#ffd27a,#ff9b4c);box-shadow:0 6px 18px rgba(255,150,70,.35)}
+#play.running{background:linear-gradient(180deg,#9fdcff,#5aa8ff);box-shadow:0 6px 18px rgba(90,168,255,.35)}
+.lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:var(--dim);margin-bottom:-4px}
+#tiltRow{align-items:center}
+#gravDial{flex:none;width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#28304d,#141a2c);
+  border:1px solid var(--line);display:grid;place-items:center;font-size:18px}
+#gravDial span{display:block;transition:transform .2s;color:var(--accent2)}
+input[type=range]{width:100%;accent-color:var(--accent)}
+#stage{position:relative;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+canvas#c{display:block;border-radius:14px;touch-action:none;cursor:crosshair;
+  box-shadow:0 0 0 1px rgba(255,255,255,.07), 0 20px 50px rgba(0,0,0,.55), 0 0 60px rgba(90,120,255,.08)}
+#goal{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:min(560px,calc(100% - 24px));display:none;
+  background:rgba(12,15,28,.78);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:14px;padding:8px 12px;pointer-events:auto}
+#goal .t{font-weight:700;font-size:14px}
+#goal .d{color:var(--dim);font-size:12px;margin-top:2px}
+#goal .gr{display:flex;align-items:center;gap:10px;margin-top:6px}
+#bar{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+#bar div{height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#5fe0a0,#b6f36b);transition:width .25s}
+#goal.min .d{display:none}
+#toast{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:rgba(12,15,28,.85);border:1px solid var(--line);
+  border-radius:20px;padding:6px 14px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1}
+#overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.45);backdrop-filter:blur(2px);border-radius:14px}
+#overlay .card{background:rgba(20,25,42,.95);border:1px solid var(--line);border-radius:18px;padding:22px 28px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#overlay h2{margin:0 0 6px;font-size:24px}
+#overlay p{margin:0 0 16px;color:var(--dim)}
+#overlay button{padding:10px 16px}
+.hidden{display:none!important}
+@media (max-height:480px){
+  #left{width:132px;padding:8px 6px}
+  #right{width:148px;padding:8px;gap:7px}
+  .el{padding:5px 2px 4px}
+  .el .sw{width:22px;height:22px}
+  #play{height:40px}
+  button.b,select.b{padding:6px 5px}
+  .logo{margin-bottom:2px}
+}
+@media (orientation:portrait) and (max-width:760px){
+  body{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}
+  #right{width:auto;order:-1;flex-direction:row;flex-wrap:wrap;align-items:center}
+  #right>*{flex:1 1 130px}
+  #right .lbl{display:none}
+  #left{width:auto;max-height:34vh}
+  #left .grid2{grid-template-columns:repeat(auto-fill,minmax(64px,1fr))}
+}
+</style>
+</head>
+<body>
+<aside id="left" class="rail">
+  <div class="logo">
+    <svg width="22" height="22" viewBox="0 0 24 24"><defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd27a"/><stop offset="1" stop-color="#ff8a4c"/></linearGradient></defs>
+      <circle cx="12" cy="4" r="2" fill="url(#lg)"/><circle cx="8" cy="10" r="1.6" fill="url(#lg)"/><circle cx="15" cy="11" r="1.8" fill="url(#lg)"/>
+      <path d="M2 22 Q12 12 22 22Z" fill="url(#lg)"/></svg>
+    <b>Sandfall</b>
+  </div>
+  <div id="palette"></div>
+</aside>
+
+<main id="stage">
+  <canvas id="c"></canvas>
+  <div id="goal">
+    <div class="t" id="goalTitle"></div>
+    <div class="d" id="goalDesc"></div>
+    <div class="gr"><span id="goalText"></span><div id="bar"><div></div></div><span id="timer"></span></div>
+  </div>
+  <div id="toast"></div>
+  <div id="overlay"><div class="card"><h2 id="ovTitle"></h2><p id="ovText"></p>
+    <div class="row"><button class="b" id="ovRetry">Try again</button><button class="b on" id="ovNext">Next ›</button></div></div></div>
+</main>
+
+<aside id="right" class="rail">
+  <select id="mode" class="b" title="Mode"></select>
+  <button id="play">▶ Play</button>
+  <div class="row"><button class="b" id="step" title="One step">Step</button><button class="b" id="speed" title="Speed">1×</button></div>
+  <div class="lbl">Gravity</div>
+  <div class="row" id="tiltRow"><button class="b" id="tiltL" title="Tilt left (Q)">⟲</button><div id="gravDial"><span>↓</span></div><button class="b" id="tiltR" title="Tilt right (E)">⟳</button></div>
+  <button class="b hidden" id="tiltPhone">📱 Tilt phone: off</button>
+  <div class="lbl">Brush</div>
+  <div class="row">
+    <button class="b on" data-shape="brush" title="Brush">✎</button>
+    <button class="b" data-shape="line" title="Line">╱</button>
+    <button class="b" data-shape="rect" title="Box">▢</button>
+    <button class="b" data-shape="frect" title="Filled box">■</button>
+  </div>
+  <input id="size" type="range" min="0" max="12" value="3" title="Brush size">
+  <div id="sandboxOnly" style="display:flex;flex-direction:column;gap:8px">
+    <div class="lbl">World</div>
+    <div class="row"><button class="b" id="save">Save</button><button class="b" id="load">Load</button></div>
+    <button class="b" id="clear">Clear</button>
+    <select id="rule" class="b" title="How virus grows">
+      <option value="B3/S23">Virus: Classic</option>
+      <option value="B36/S23">Virus: HighLife</option>
+      <option value="B3678/S34678">Virus: Day &amp; Night</option>
+      <option value="B3/S12345">Virus: Maze</option>
+      <option value="B2/S">Virus: Seeds</option>
+      <option value="B368/S245">Virus: Morley</option>
+    </select>
+  </div>
+  <div id="challengeOnly" class="hidden" style="display:flex;flex-direction:column;gap:8px">
+    <button class="b" id="reset">↺ Reset level</button>
+    <button class="b" id="goalToggle">Hide hint</button>
+  </div>
+</aside>
+
+<script>
+"use strict";
+// =====================================================================
+//  Simulation
+// =====================================================================
+const W = 300, H = 180, N = W * H;
+const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15;
+const INFO = [
+  ["Eraser","Removes anything. Right-click also erases.","radial-gradient(circle at 35% 30%,#3a4058,#141826)"],
+  ["Wall","Blocks everything.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
+  ["Sand","Falls and piles up.","radial-gradient(circle at 35% 30%,#ffe7a8,#d9b06a 60%,#a5803f)"],
+  ["Water","Flows. Puts out fire, dissolves salt, erodes soil.","radial-gradient(circle at 35% 30%,#a8dcff,#2f86e6 55%,#174a9c)"],
+  ["Oil","Floats on water. Very flammable.","radial-gradient(circle at 35% 30%,#c49052,#5a3416 60%,#2a170a)"],
+  ["Fire","Rises and burns out. Burns plants, oil, virus.","radial-gradient(circle at 50% 70%,#fff3a0,#ff9a2a 45%,#c2300c)"],
+  ["Plant","Drinks water and grows.","radial-gradient(circle at 35% 30%,#b8f58a,#36b552 55%,#16692c)"],
+  ["Seed","Sprouts when wet.","radial-gradient(circle at 35% 30%,#e8c08a,#a6743e 60%,#5f3e1c)"],
+  ["Salt","Dissolves in water. Kills virus.","radial-gradient(circle at 35% 30%,#ffffff,#dfe3ee 55%,#9aa1b5)"],
+  ["Soil","Ground. Water erodes it to sand.","radial-gradient(circle at 35% 30%,#a07650,#6a4528 60%,#3a2414)"],
+  ["Virus","Lives by Conway's Life. Infects plants.","radial-gradient(circle at 35% 30%,#ffb0ff,#d040d8 55%,#6a1680)"],
+  ["Cloud","Rains water.","radial-gradient(circle at 35% 30%,#ffffff,#cfe0ff 55%,#8aa4d6)"],
+  ["Magma","Spews fire.","radial-gradient(circle at 40% 40%,#ffd060,#ff5a1a 45%,#7a1606)"],
+  ["Shaker","Sprinkles salt.","radial-gradient(circle at 35% 30%,#f2f4fa,#a8aec2 55%,#5e6478)"],
+  ["Spill","Leaks oil.","radial-gradient(circle at 35% 30%,#d8a060,#7a4a1c 55%,#3a200a)"],
+  ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#e8ff9a,#7ee03a 50%,#2e7a10)"],
+];
+const KEYS = {"0":E,"1":WALL,"2":SAND,"3":WATER,"4":OIL,"5":FIRE,"6":PLANT,"7":SEED,"8":SALT,"9":SOIL};
+const GEN = new Uint8Array(16); [CLOUD,MAGMA,SHAKER,SPILL,TOXIN].forEach(t=>GEN[t]=1);
+const GRAIN = new Uint8Array(16); [SAND,WATER,OIL,SEED,SALT].forEach(t=>GRAIN[t]=1);
+const DENS = new Float32Array(16); DENS[OIL]=1; DENS[WATER]=2; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
+const FLAMMABLE = new Float32Array(16); FLAMMABLE[PLANT]=0.2; FLAMMABLE[OIL]=0.45; FLAMMABLE[SEED]=0.3; FLAMMABLE[VIRUS]=0.5;
+
+const type = new Uint8Array(N), shade = new Uint8Array(N), life = new Uint8Array(N);
+const stamp = new Uint16Array(N), lock = new Uint8Array(N), nb = new Uint8Array(N), depth = new Uint8Array(N);
+let tk = 1;
+const DX = [0,-1,-1,-1,0,1,1,1], DY = [1,1,0,-1,-1,-1,0,1];   // index 0 = down
+let grav = 0;
+const ORTH = [[1,0],[-1,0],[0,1],[0,-1]];
+const rnd = Math.random;
+
+function set(i, t){
+  type[i] = t; shade[i] = (rnd()*16)|0;
+  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : 0;
+  stamp[i] = tk;
+}
+function swap(i, j){
+  let t=type[i]; type[i]=type[j]; type[j]=t;
+  t=shade[i]; shade[i]=shade[j]; shade[j]=t;
+  t=life[i]; life[i]=life[j]; life[j]=t;
+  stamp[i]=stamp[j]=tk;
+}
+function idx(x,y){ return (x<0||y<0||x>=W||y>=H) ? -1 : y*W+x; }
+function canDisplace(s, o){
+  if (o===E) return true;
+  if (o===FIRE) return DENS[s] > 0;
+  if (o===WATER || o===OIL) {
+    if (!(DENS[s] > DENS[o])) return false;
+    return rnd() < (s===SALT && o===OIL ? 0.08 : 0.5);
+  }
+  return false;
+}
+function tryDir(i,x,y,k){
+  const j = idx(x+DX[k&7], y+DY[k&7]);
+  if (j<0) return -1;
+  if (canDisplace(type[i], type[j])) { swap(i,j); return j; }
+  return -1;
+}
+function tryEmpty(i,x,y,k){
+  const j = idx(x+DX[k&7], y+DY[k&7]);
+  if (j<0 || type[j]!==E) return -1;
+  swap(i,j); return j;
+}
+function powder(i,x,y){
+  if (tryDir(i,x,y,grav)>=0) return;
+  const s = rnd()<.5 ? 1 : -1;
+  if (tryDir(i,x,y,grav+s+8)>=0) return;
+  tryDir(i,x,y,grav-s+8);
+}
+function liquid(i,x,y){
+  if (tryDir(i,x,y,grav)>=0) return;
+  const s = rnd()<.5 ? 1 : -1;
+  if (tryDir(i,x,y,grav+s+8)>=0) return;
+  if (tryDir(i,x,y,grav-s+8)>=0) return;
+  for (const side of [s, -s]) {
+    const k = (grav + 2*side + 8) & 7;
+    let cx=x, cy=y, ci=i, moved=false;
+    for (let n=0; n<4; n++) {
+      const j = idx(cx+DX[k], cy+DY[k]);
+      if (j<0) break;
+      const o = type[j];
+      if (o===E || (o!==type[ci] && (o===WATER||o===OIL) && DENS[type[ci]]>DENS[o] && rnd()<.5)) {
+        swap(ci,j); ci=j; cx+=DX[k]; cy+=DY[k]; moved=true;
+        const d = idx(cx+DX[grav], cy+DY[grav]);
+        if (d>=0 && type[d]===E) break;
+      } else break;
+    }
+    if (moved) return;
+  }
+}
+function emit(i,x,y,t,p,k){
+  if (rnd() >= p) return;
+  const j = idx(x+DX[k&7], y+DY[k&7]);
+  if (j>=0 && type[j]===E) set(j,t);
+}
+
+function stepWorld(){
+  tk = ((tk + 1) & 0xffff) || 1;
+  const gx = DX[grav], gy = DY[grav], up = (grav+4)&7;
+  const y0 = gy>0 ? H-1 : 0, y1 = gy>0 ? -1 : H, ys = gy>0 ? -1 : 1;
+  for (let y=y0; y!==y1; y+=ys) {
+    const xs = gx>0 ? -1 : gx<0 ? 1 : (rnd()<.5 ? 1 : -1);
+    const x0 = xs<0 ? W-1 : 0, x1 = xs<0 ? -1 : W;
+    for (let x=x0; x!==x1; x+=xs) {
+      const i = y*W+x, t = type[i];
+      if (t===E || t===WALL || stamp[i]===tk) continue;
+      switch (t) {
+        case SAND: powder(i,x,y); break;
+        case SEED: {
+          let wet=false;
+          for (const [dx,dy] of ORTH){ const j=idx(x+dx,y+dy); if(j>=0&&type[j]===WATER){wet=true;break;} }
+          if (wet) { set(i,PLANT); break; }
+          powder(i,x,y); break;
+        }
+        case SALT: {
+          let gone=false;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===VIRUS) set(j,E);
+            else if (o===WATER) {
+              const r=rnd();
+              if (r<.01){ set(i,E); gone=true; break; }
+              else if (r<.013){ set(j,E); }
+            }
+          }
+          if (!gone) powder(i,x,y);
+          break;
+        }
+        case WATER: {
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===FIRE){ set(j,E); if(rnd()<.08){ set(i,E); break; } }
+            else if (o===SOIL && rnd()<.004) set(j,SAND);
+          }
+          if (type[i]===WATER) liquid(i,x,y);
+          break;
+        }
+        case OIL: liquid(i,x,y); break;
+        case FIRE: {
+          if (life[i]<=1){ set(i,E); break; }
+          life[i]--;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const f=FLAMMABLE[type[j]];
+            if (f && rnd()<f){ const was=type[j]; set(j,FIRE); if(was===OIL) life[j]+=12; }
+          }
+          const r=rnd();
+          const k = r<.5 ? up : r<.7 ? up+1 : r<.9 ? up+7 : (r<.95 ? up+2 : up+6);
+          tryEmpty(i,x,y,k);
+          break;
+        }
+        case PLANT: {
+          if (rnd()<.15) for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy);
+            if (j>=0 && type[j]===WATER && rnd()<.25){ set(j,PLANT); break; }
+          }
+          break;
+        }
+        case CLOUD:  emit(i,x,y,WATER,.06,grav); break;
+        case SHAKER: emit(i,x,y,SALT,.05,grav); break;
+        case SPILL:  emit(i,x,y,OIL,.06,grav); break;
+        case MAGMA:  emit(i,x,y,FIRE,.35,(rnd()*8)|0); break;
+        case TOXIN:  {
+          if (rnd()<.04){ const k=(rnd()*8)|0; const j=idx(x+DX[k],y+DY[k]); if(j>=0&&(type[j]===E||type[j]===WATER)) set(j,VIRUS); }
+          break;
+        }
+      }
+    }
+  }
+  if (tk % 5 === 0) lifeStep();
+}
+
+let BIRTH = new Uint8Array(9), SURV = new Uint8Array(9);
+function setRule(s){
+  BIRTH = new Uint8Array(9); SURV = new Uint8Array(9);
+  const m = /B(\d*)\/S(\d*)/.exec(s); if (!m) return;
+  for (const c of m[1]) BIRTH[+c]=1;
+  for (const c of m[2]) SURV[+c]=1;
+}
+setRule("B3/S23");
+function lifeStep(){
+  nb.fill(0);
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const t = type[y*W+x];
+    if (t!==VIRUS && t!==TOXIN) continue;
+    for (let k=0;k<8;k++){ const j=idx(x+DX[k],y+DY[k]); if(j>=0) nb[j]++; }
+  }
+  for (let i=0;i<N;i++){
+    const t=type[i], n=nb[i];
+    if (t===VIRUS){ if(!SURV[n]) set(i,E); }
+    else if ((t===E||t===WATER) && BIRTH[n]) set(i,VIRUS);
+    else if (t===PLANT && n>0 && rnd()<.06) set(i,VIRUS);
+  }
+}
+
+// =====================================================================
+//  Rendering
+// =====================================================================
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const simC = document.createElement("canvas"); simC.width=W; simC.height=H;
+const simX = simC.getContext("2d");
+const simImg = simX.createImageData(W,H), P = simImg.data;
+const glowC = document.createElement("canvas"); glowC.width=W; glowC.height=H;
+const glowX = glowC.getContext("2d");
+const glowImg = glowX.createImageData(W,H), G = glowImg.data;
+const blurC = document.createElement("canvas"); blurC.width=W; blurC.height=H;
+const blurX = blurC.getContext("2d");
+const haloC = document.createElement("canvas"); haloC.width=W>>1; haloC.height=H>>1;
+const haloX = haloC.getContext("2d");
+const shadC = document.createElement("canvas"); shadC.width=W; shadC.height=H;
+const shadX = shadC.getContext("2d");
+let bgC = null, vigC = null;
+const SIN = new Float32Array(256); for (let i=0;i<256;i++) SIN[i]=Math.sin(i/256*Math.PI*2);
+const HASH = new Uint8Array(N); for (let i=0;i<N;i++){ let h=(i*2654435761)>>>0; h^=h>>>15; h=Math.imul(h,0x2c1b3c6d)>>>0; HASH[i]=(h>>>8)&255; }
+
+function buildBackdrop(w,h){
+  bgC = document.createElement("canvas"); bgC.width=w; bgC.height=h;
+  const b = bgC.getContext("2d");
+  const g = b.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,"#151c38"); g.addColorStop(.55,"#0d1226"); g.addColorStop(1,"#080a14");
+  b.fillStyle=g; b.fillRect(0,0,w,h);
+  // faint distant specks for depth
+  for (let n=0;n<Math.floor(w*h/2500);n++){
+    const x=Math.random()*w, y=Math.random()*h*0.8, a=Math.random()*.25+.05;
+    b.fillStyle=`rgba(180,200,255,${a})`; b.fillRect(x,y,1.2,1.2);
+  }
+  vigC = document.createElement("canvas"); vigC.width=w; vigC.height=h;
+  const v = vigC.getContext("2d");
+  const r = v.createRadialGradient(w/2,h*.45,Math.min(w,h)*.35,w/2,h/2,Math.max(w,h)*.75);
+  r.addColorStop(0,"rgba(0,0,0,0)"); r.addColorStop(1,"rgba(0,0,0,.5)");
+  v.fillStyle=r; v.fillRect(0,0,w,h);
+}
+
+let frame = 0;
+function paintCells(){
+  const t = frame;
+  const up = (grav+4)&7, ux = DX[up], uy = DY[up];
+  const gx = DX[grav], gy = DY[grav];
+  // iterate so that each cell's "up" neighbour is visited first (for depth)
+  const ya = gy>0 ? 0 : H-1, yb = gy>0 ? H : -1, ysd = gy>0 ? 1 : -1;
+  const xa = gx>0 ? 0 : W-1, xb = gx>0 ? W : -1, xsd = gx>0 ? 1 : -1;
+  for (let y=ya; y!==yb; y+=ysd) {
+    for (let x=xa; x!==xb; x+=xsd) {
+      const i = y*W+x, ty = type[i], o = i<<2;
+      if (ty===E){ P[o+3]=0; G[o+3]=0; depth[i]=0; continue; }
+      const ux2=x+ux, uy2=y+uy;
+      const j = (ux2<0||uy2<0||ux2>=W||uy2>=H) ? -1 : uy2*W+ux2;
+      const above = j<0 ? WALL : type[j];
+      const d = above===ty ? Math.min(255, depth[j]+1) : 0;
+      depth[i] = d;
+      const open = above===E;
+      const sh = shade[i], hs = HASH[i];
+      let r=0,g=0,b=0,e=0;
+      switch (ty){
+        case WALL: {
+          const row = (y/5)|0;
+          const mortar = (y%5===0) || ((x + (row&1)*5) % 10 === 0);
+          const n = (hs&15) - 8;
+          if (mortar){ r=52+n; g=56+n; b=70+n; }
+          else { r=92+n+(sh>>1); g=98+n+(sh>>1); b=118+n+sh; }
+          if (open){ r+=40; g+=42; b+=46; }
+          break;
+        }
+        case SAND: {
+          const n = sh*3 - 22;
+          r=226+n; g=194+n; b=126+n*.8;
+          if (hs<10){ r-=40; g-=40; b-=30; }            // darker grains
+          else if (hs>250){ r=255; g=245; b=210; }       // glints
+          if (open){ r+=18; g+=18; b+=18; }
+          const k=Math.min(d,30)*.9; r-=k; g-=k; b-=k;
+          break;
+        }
+        case WATER: {
+          const k = Math.min(d,48)/48;
+          const s = SIN[(x*7 + y*4 + t*2)&255] * 10 + SIN[(x*3 - t*3 + y*9)&255]*6;
+          r = 34 - 18*k; g = 120 - 55*k + s; b = 228 - 80*k + s*1.4;
+          if (open || d===0){ r=150; g=215+s; b=255; }
+          else if (d===1){ r=70; g=160+s; b=245; }
+          break;
+        }
+        case OIL: {
+          const k = Math.min(d,30)/30;
+          r = 92 - 40*k; g = 56 - 28*k; b = 26 - 12*k;
+          if (open || d===0){
+            const s = SIN[(x*6 - t*2)&255];
+            r = 190 + s*40; g = 130 + SIN[(x*6 - t*2 + 85)&255]*40; b = 70 + SIN[(x*6 - t*2 + 170)&255]*60;
+          }
+          r += sh>>1; g += sh>>2;
+          break;
+        }
+        case FIRE: {
+          let h = (life[i] + (sh&7)) / 34 + SIN[(t*29 + i*7)&255]*.12;
+          h = h<0?0:h>1?1:h;
+          r = 200 + 55*h; g = 50 + 200*h*h; b = 10 + 150*h*h*h;
+          e = 255;
+          break;
+        }
+        case PLANT: {
+          const k = Math.min(d,14)*4;
+          r = 34 + (sh<<1) - k*.4; g = 150 + sh*4 - k; b = 52 + sh - k*.3;
+          if (open){
+            r += 40; g += 45; b += 10;
+            if (hs<6){ r=255; g=150; b=200; }           // pink blossom
+            else if (hs>250){ r=255; g=225; b=90; }    // yellow blossom
+          }
+          break;
+        }
+        case SEED: {
+          r = 176 + sh*2; g = 128 + sh; b = 70;
+          if (hs&1){ r-=40; g-=34; b-=24; }
+          break;
+        }
+        case SALT: {
+          const n = sh - 8;
+          r = 228+n; g = 230+n; b = 238+n;
+          if (((x*13 + y*7 + (t>>2)) % 71) === 0){ r=g=b=255; e=140; }
+          break;
+        }
+        case SOIL: {
+          r = 104 + (sh-8)*2; g = 70 + (sh-8); b = 44;
+          if (hs>232){ r=150; g=114; b=80; }
+          else if (hs<18){ r=64; g=40; b=24; }
+          if (open){ r = 90 + (sh<<1); g = 128 + (sh<<1); b = 54; }           // moss on top
+          else if (d<2 && above!==SOIL){ r+=10; g+=8; }
+          const k=Math.min(d,30)*.8; r-=k; g-=k*.7; b-=k*.5;
+          break;
+        }
+        case VIRUS: {
+          const p = (SIN[(t*5 + (x+y)*9)&255] + 1) * .5;
+          r = 170 + 80*p; g = 40 + 70*p; b = 200 + 55*p;
+          e = 90 + 70*p;
+          break;
+        }
+        case CLOUD: {
+          const n = SIN[(x*5 + t)&255]*SIN[(y*23 + (t<<1) + x)&255];
+          r = 210 + n*30 + (sh>>1); g = 218 + n*28 + (sh>>1); b = 245 + n*10;
+          if (open){ r+=20; g+=20; b+=10; }
+          e = 25;
+          break;
+        }
+        case MAGMA: {
+          const v = (SIN[(x*11 + t*2)&255] + SIN[(y*13 - t*3 + x*3)&255]) * .5;
+          if (v < -0.45){ r=96; g=26; b=18; e=60; }
+          else { const q=(v+1)*.5; r = 210 + 45*q; g = 50 + 160*q*q; b = 12 + 60*q*q*q; e = 120 + 135*q; }
+          break;
+        }
+        case SHAKER: {
+          const stripe = ((x+y)>>1)&1;
+          r = stripe?196:168; g = stripe?200:172; b = stripe?214:188;
+          if ((x%3===0) && (y%3===0)){ r=70; g=74; b=88; }
+          break;
+        }
+        case SPILL: {
+          const band = (y%6)<1;
+          r = band?70:132+(sh>>1); g = band?44:86+(sh>>2); b = band?20:40;
+          break;
+        }
+        case TOXIN: {
+          const hz = (((x+y)>>2)&1);
+          const p = (SIN[(t*4 + x*3)&255] + 1) * .5;
+          if (hz){ r=40; g=56; b=24; e=0; }
+          else { r = 110 + 60*p; g = 210 + 40*p; b = 40 + 30*p; e = 80 + 60*p; }
+          break;
+        }
+      }
+      P[o]=r; P[o+1]=g; P[o+2]=b; P[o+3]=255;
+      if (e){ G[o]=r; G[o+1]=g; G[o+2]=b; G[o+3]=e; } else G[o+3]=0;
+    }
+  }
+}
+
+function render(){
+  frame++;
+  paintCells();
+  simX.putImageData(simImg,0,0);
+  glowX.putImageData(glowImg,0,0);
+  const cw = cv.width, ch = cv.height;
+  ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+  ctx.drawImage(bgC,0,0);
+  // soft shadow of everything for depth
+  shadX.clearRect(0,0,W,H); shadX.filter="blur(1.2px) brightness(0)"; shadX.drawImage(simC,0,0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.globalAlpha = .45;
+  ctx.drawImage(shadC, cw/W*0.7, ch/H*1.1, cw, ch);
+  ctx.globalAlpha = 1;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(simC,0,0,cw,ch);
+  // glow: a tight bloom and a wide halo, added on top
+  blurX.clearRect(0,0,W,H); blurX.filter="blur(1.5px)"; blurX.drawImage(glowC,0,0);
+  haloX.clearRect(0,0,haloC.width,haloC.height); haloX.filter="blur(3px)"; haloX.drawImage(glowC,0,0,haloC.width,haloC.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.globalCompositeOperation = "lighter";
+  ctx.globalAlpha = .75; ctx.drawImage(blurC,0,0,cw,ch);
+  ctx.globalAlpha = .6;  ctx.drawImage(haloC,0,0,cw,ch);
+  ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+  ctx.drawImage(vigC,0,0);
+  // tool preview
+  const s = cw / W;
+  if (preview){
+    ctx.strokeStyle="rgba(255,255,255,.8)"; ctx.lineWidth=Math.max(1,s*.5); ctx.setLineDash([s*2,s*2]);
+    const {a,b}=preview; ctx.beginPath();
+    if (shape==="line"){ ctx.moveTo((a.x+.5)*s,(a.y+.5)*s); ctx.lineTo((b.x+.5)*s,(b.y+.5)*s); }
+    else ctx.rect(Math.min(a.x,b.x)*s, Math.min(a.y,b.y)*s, (Math.abs(a.x-b.x)+1)*s, (Math.abs(a.y-b.y)+1)*s);
+    ctx.stroke(); ctx.setLineDash([]);
+  } else if (hover && shape==="brush" && !isTouch){
+    ctx.strokeStyle="rgba(255,255,255,.45)"; ctx.lineWidth=Math.max(1,s*.4); ctx.beginPath();
+    ctx.arc((hover.x+.5)*s,(hover.y+.5)*s,(brush+.5)*s,0,Math.PI*2); ctx.stroke();
+  }
+}
+
+function fit(){
+  const st = document.getElementById("stage").getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio||1, 2.5);
+  let k = Math.min(st.width*dpr/W, st.height*dpr/H);
+  if (k >= 2) k = Math.floor(k);
+  const pw = Math.max(W, Math.round(W*k)), ph = Math.max(H, Math.round(H*k));
+  if (cv.width!==pw || cv.height!==ph){ cv.width=pw; cv.height=ph; buildBackdrop(pw,ph); }
+  cv.style.width=(pw/dpr)+"px"; cv.style.height=(ph/dpr)+"px";
+}
+addEventListener("resize",fit);
+
+// =====================================================================
+//  UI
+// =====================================================================
+const isTouch = matchMedia("(pointer:coarse)").matches;
+let tool = SAND, shape = "brush", brush = isTouch ? 4 : 3, running = false, speed = 1, acc = 0;
+let hover = null, preview = null, drawing = false, last = null, eraseBtn = false;
+let challenge = null, budget = {}, runTicks = 0, hold = 0, finished = false;
+const $ = id => document.getElementById(id);
+
+const palette = $("palette");
+const groups = [["Elements",[SAND,WATER,OIL,FIRE,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,E]]];
+const elBtns = {};
+for (const [g,list] of groups){
+  const h=document.createElement("div"); h.className="cat"; h.textContent=g; palette.appendChild(h);
+  const grid=document.createElement("div"); grid.className="grid2"; palette.appendChild(grid);
+  for (const t of list){
+    const b=document.createElement("button"); b.className="el";
+    b.innerHTML=`<span class="sw" style="background:${INFO[t][2]}"></span><span>${INFO[t][0]}</span><span class="bud"></span>`;
+    b.onclick=()=>selectTool(t);
+    b.title=INFO[t][1];
+    grid.appendChild(b); elBtns[t]=b;
+  }
+}
+let toastTimer=0;
+function toast(msg){ const el=$("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),1800); }
+function selectTool(t, quiet){
+  if (challenge && !(t in budget)) return;
+  tool=t;
+  for (const k in elBtns) elBtns[k].classList.toggle("on", +k===t);
+  if (!quiet) toast(`${INFO[t][0]} — ${INFO[t][1]}`);
+}
+function refreshPalette(){
+  for (const k in elBtns){
+    const t=+k, b=elBtns[k], bud=b.querySelector(".bud");
+    if (challenge){
+      const ok = t in budget;
+      b.classList.toggle("disabled", !ok);
+      bud.textContent = ok && budget[t]!==Infinity ? budget[t] : "";
+    } else { b.classList.remove("disabled"); bud.textContent=""; }
+  }
+}
+document.querySelectorAll("[data-shape]").forEach(b=>b.onclick=()=>{
+  shape=b.dataset.shape;
+  document.querySelectorAll("[data-shape]").forEach(o=>o.classList.toggle("on",o===b));
+});
+const sizeEl=$("size"); sizeEl.value=brush;
+sizeEl.oninput=()=>brush=+sizeEl.value;
+function setRunning(v){ running=v; const p=$("play"); p.textContent = v ? "❚❚ Pause" : "▶ Play"; p.classList.toggle("running",v); }
+$("play").onclick=()=>setRunning(!running);
+$("step").onclick=()=>{ setRunning(false); tick(); };
+const SPEEDS=[1,2,4,0.5];
+$("speed").onclick=()=>{ speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length]; $("speed").textContent=(speed===.5?"½":speed)+"×"; };
+function setGrav(g){
+  grav=(g+8)&7;
+  const ang=Math.atan2(DY[grav],DX[grav])*180/Math.PI-90;
+  $("gravDial").firstElementChild.style.transform=`rotate(${ang}deg)`;
+}
+$("tiltL").onclick=()=>setGrav(grav-1);
+$("tiltR").onclick=()=>setGrav(grav+1);
+$("rule").onchange=e=>setRule(e.target.value);
+$("clear").onclick=()=>clearWorld();
+function clearWorld(){ type.fill(E); life.fill(0); lock.fill(0); }
+
+// --- tilt with the phone's motion sensor ---
+let tiltOn=false;
+const canTilt = isTouch && "DeviceMotionEvent" in window;
+if (canTilt) $("tiltPhone").classList.remove("hidden");
+function onMotion(ev){
+  const a = ev.accelerationIncludingGravity; if (!a || a.x==null) return;
+  const gxs = -a.x, gys = a.y;
+  const ang = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI/180;
+  const sx = gxs*Math.cos(ang) + gys*Math.sin(ang);
+  const sy = -gxs*Math.sin(ang) + gys*Math.cos(ang);
+  const m = Math.hypot(sx,sy); if (m < 3.5) return;            // phone lying flat: keep current gravity
+  const nx=sx/m, ny=sy/m;
+  const dot = k => (DX[k]*nx + DY[k]*ny) / Math.hypot(DX[k],DY[k]);
+  let best=grav, bd=dot(grav)+0.08;                             // hysteresis
+  for (let k=0;k<8;k++){ const v=dot(k); if (v>bd){ bd=v; best=k; } }
+  if (best!==grav) setGrav(best);
+}
+$("tiltPhone").onclick=async()=>{
+  if (!tiltOn && typeof DeviceMotionEvent.requestPermission==="function"){
+    try{ if (await DeviceMotionEvent.requestPermission()!=="granted") return; }catch(e){ return; }
+  }
+  tiltOn=!tiltOn;
+  $("tiltPhone").textContent = "📱 Tilt phone: " + (tiltOn?"on":"off");
+  $("tiltPhone").classList.toggle("on",tiltOn);
+  if (tiltOn) addEventListener("devicemotion",onMotion); else removeEventListener("devicemotion",onMotion);
+  try{ window.Android && window.Android.setOrientationLock(tiltOn); }catch(e){}
+  toast(tiltOn ? "Tilt your phone to pour the world around" : "Tilt control off");
+};
+
+// --- save / load (sandbox) ---
+function b64(u8){ let s=""; for(let i=0;i<u8.length;i+=8192) s+=String.fromCharCode.apply(null,u8.subarray(i,i+8192)); return btoa(s); }
+function unb64(s){ const b=atob(s), u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; }
+$("save").onclick=()=>{
+  try{ localStorage.setItem("sandfall.save", JSON.stringify({t:b64(type),g:grav,r:$("rule").value})); toast("World saved"); }
+  catch(e){ toast("Couldn't save here"); }
+};
+$("load").onclick=()=>{
+  try{
+    const d=JSON.parse(localStorage.getItem("sandfall.save")||"null");
+    if(!d){ toast("Nothing saved yet"); return; }
+    const t=unb64(d.t); clearWorld();
+    for(let i=0;i<N;i++) if(t[i]) set(i,t[i]);
+    setGrav(d.g||0); $("rule").value=d.r; setRule(d.r); toast("World loaded");
+  }catch(e){ toast("Couldn't load"); }
+};
+
+// --- painting ---
+function gridPos(e){
+  const r=cv.getBoundingClientRect();
+  return { x: Math.floor((e.clientX-r.left)/r.width*W), y: Math.floor((e.clientY-r.top)/r.height*H) };
+}
+function paintCell(x,y,t,sparse){
+  const i=idx(x,y); if(i<0 || lock[i]) return;
+  if (type[i]===t) return;
+  if (t!==E && sparse && GRAIN[t] && rnd()<.35) return;
+  if (challenge && t!==E){ if(!(budget[t]>0)) return; budget[t]--; }
+  if (t===E){ type[i]=E; life[i]=0; } else set(i,t);
+}
+function disk(cx,cy,t){
+  const r=brush, r2=(r+.5)*(r+.5);
+  for(let dy=-r;dy<=r;dy++) for(let dx=-r;dx<=r;dx++) if(dx*dx+dy*dy<=r2) paintCell(cx+dx,cy+dy,t,true);
+}
+function lineCells(a,b,fn){
+  let x=a.x,y=a.y; const dx=Math.abs(b.x-x), dy=-Math.abs(b.y-y), sx=x<b.x?1:-1, sy=y<b.y?1:-1; let err=dx+dy;
+  for(;;){ fn(x,y); if(x===b.x&&y===b.y) break; const e2=2*err; if(e2>=dy){err+=dy;x+=sx;} if(e2<=dx){err+=dx;y+=sy;} }
+}
+function commitShape(a,b,t){
+  if (shape==="line") lineCells(a,b,(x,y)=>disk(x,y,t));
+  else {
+    const x0=Math.min(a.x,b.x),x1=Math.max(a.x,b.x),y0=Math.min(a.y,b.y),y1=Math.max(a.y,b.y);
+    const th=Math.max(1,brush>>1);
+    for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++)
+      if (shape==="frect" || x-x0<th||x1-x<th||y-y0<th||y1-y<th) paintCell(x,y,t,false);
+  }
+  refreshPalette();
+}
+cv.addEventListener("contextmenu",e=>e.preventDefault());
+cv.addEventListener("pointerdown",e=>{
+  if (!e.isPrimary) return;
+  cv.setPointerCapture(e.pointerId);
+  drawing=true; eraseBtn = e.button===2;
+  const p=gridPos(e); last=p; hover=p;
+  if (shape==="brush"){ disk(p.x,p.y,eraseBtn?E:tool); refreshPalette(); }
+  else preview={a:p,b:p};
+});
+cv.addEventListener("pointermove",e=>{
+  if (!e.isPrimary) return;
+  const p=gridPos(e); hover=p;
+  if (!drawing) return;
+  if (shape==="brush"){ const t=eraseBtn?E:tool; lineCells(last,p,(x,y)=>disk(x,y,t)); last=p; refreshPalette(); }
+  else if (preview) preview.b=p;
+});
+function endDraw(e){
+  if (e && !e.isPrimary) return;
+  if (drawing && preview) commitShape(preview.a,preview.b,eraseBtn?E:tool);
+  drawing=false; preview=null;
+  if (isTouch) hover=null;
+}
+cv.addEventListener("pointerup",endDraw);
+cv.addEventListener("pointercancel",endDraw);
+cv.addEventListener("pointerleave",()=>{ if(!drawing) hover=null; });
+
+addEventListener("keydown",e=>{
+  if (e.target.tagName==="SELECT" || e.target.tagName==="INPUT") return;
+  if (e.code==="Space"){ e.preventDefault(); setRunning(!running); }
+  else if (e.key==="q"||e.key==="Q") setGrav(grav-1);
+  else if (e.key==="e"||e.key==="E") setGrav(grav+1);
+  else if (e.key==="[") { brush=Math.max(0,brush-1); sizeEl.value=brush; }
+  else if (e.key==="]") { brush=Math.min(12,brush+1); sizeEl.value=brush; }
+  else if (e.key in KEYS) selectTool(KEYS[e.key]);
+});
+
+// =====================================================================
+//  Challenges
+// =====================================================================
+function box(x0,y0,x1,y1,t){ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=idx(x,y); if(i>=0) set(i,t); } }
+function countIn(t,x0,y0,x1,y1){ let n=0; for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) if(type[y*W+x]===t) n++; return n; }
+function countAll(t){ let n=0; for(let i=0;i<N;i++) if(type[i]===t) n++; return n; }
+const SEC = 60;
+const CHALLENGES = [
+  {
+    name:"1 · Into the Basin",
+    desc:"The cloud rains in the wrong place. Build walls to steer the water into the basin.",
+    tools:{[WALL]:520,[E]:Infinity}, limit:45*SEC,
+    setup(){ box(16,4,64,6,CLOUD); box(222,108,224,179,WALL); box(292,108,294,179,WALL); },
+    measure(){ const v=countIn(WATER,225,108,291,179); return {v, goal:1500, text:`💧 <b>${v}</b> / 1500`}; },
+    ok:m=>m.v>=m.goal,
+  },
+  {
+    name:"2 · Controlled Burn",
+    desc:"Clear all five groves. Only 2 sparks — stone pillars stop the flames. Oil might help them spread.",
+    tools:{[OIL]:1800,[FIRE]:2}, limit:0,
+    setup(){
+      box(22,96,25,179,WALL); box(275,96,278,179,WALL);
+      let x=26;
+      for(let g=0;g<5;g++){ box(x,120,x+39,179,PLANT); x+=40; if(g<4){ box(x,120,x+11,179,WALL); x+=12; } }
+    },
+    measure(){ const v=countAll(PLANT); return {v, goal:200, start:12000, text:`🌿 <b>${v}</b> left (≤ 200)`}; },
+    ok:m=>m.v<=m.goal,
+  },
+  {
+    name:"3 · Quarantine",
+    desc:"Wipe out every last virus cell with salt. Tilting the world may help.",
+    tools:{[SALT]:1200}, limit:0,
+    setup(){
+      box(40,30,42,172,WALL); box(258,30,260,172,WALL); box(40,170,260,172,WALL);
+      for(let y=80;y<160;y++) for(let x=60;x<240;x++) if(rnd()<.33) set(y*W+x,VIRUS);
+      for(let n=0;n<12;n++) lifeStep();
+    },
+    measure(){ const v=countAll(VIRUS); return {v, goal:0, text:`🦠 <b>${v}</b> left`}; },
+    ok:m=>m.v===0,
+  },
+  {
+    name:"4 · Green Thumb",
+    desc:"Grow 2500 plants from the seeds. The rain is on the wrong side of a magma vent.",
+    tools:{[WALL]:450,[E]:Infinity}, limit:75*SEC,
+    setup(){
+      box(0,170,299,179,SOIL); box(12,4,52,6,CLOUD); box(112,96,122,169,MAGMA);
+      for(let x=200;x<285;x+=2) set(169*W+x,SEED);
+    },
+    measure(){ const v=countAll(PLANT); return {v, goal:2500, text:`🌱 <b>${v}</b> / 2500`}; },
+    ok:m=>m.v>=m.goal,
+  },
+];
+let solved = {};
+try{ solved = JSON.parse(localStorage.getItem("sandfall.solved")||"{}"); }catch(e){}
+const modeSel=$("mode");
+function buildModeMenu(){
+  modeSel.innerHTML=`<option value="-1">🏖 Sandbox</option>`+CHALLENGES.map((c,i)=>`<option value="${i}">${solved[i]?"⭐":"🧩"} ${c.name}</option>`).join("");
+  modeSel.value = challenge ? CHALLENGES.indexOf(challenge) : -1;
+}
+buildModeMenu();
+modeSel.onchange=()=>startMode(+modeSel.value);
+
+let sandboxSnapshot=null;
+function startMode(n){
+  setRunning(false);
+  $("overlay").style.display="none";
+  if (n<0){
+    challenge=null; clearWorld();
+    if (sandboxSnapshot){ for(let i=0;i<N;i++) if(sandboxSnapshot[i]) set(i,sandboxSnapshot[i]); }
+    setRule($("rule").value);
+    $("goal").style.display="none";
+    $("sandboxOnly").classList.remove("hidden"); $("challengeOnly").classList.add("hidden");
+    refreshPalette(); selectTool(SAND,true); modeSel.value=-1;
+    return;
+  }
+  if (!challenge) sandboxSnapshot = type.slice();
+  challenge = CHALLENGES[n];
+  setRule("B3/S23"); setGrav(0);
+  clearWorld(); challenge.setup();
+  for (let i=0;i<N;i++) lock[i] = type[i]!==E ? 1 : 0;
+  budget = {...challenge.tools};
+  runTicks=0; hold=0; finished=false;
+  $("goal").style.display="block";
+  $("sandboxOnly").classList.add("hidden"); $("challengeOnly").classList.remove("hidden");
+  $("goalTitle").textContent=challenge.name;
+  $("goalDesc").textContent=challenge.desc+" Press Play when ready.";
+  refreshPalette();
+  selectTool(+Object.keys(budget).find(k=>+k!==E), true);
+  updateGoal();
+  modeSel.value=n;
+}
+$("reset").onclick=()=>startMode(CHALLENGES.indexOf(challenge));
+$("goalToggle").onclick=()=>{ const g=$("goal"); g.classList.toggle("min"); $("goalToggle").textContent=g.classList.contains("min")?"Show hint":"Hide hint"; };
+$("ovRetry").onclick=()=>startMode(CHALLENGES.indexOf(challenge));
+$("ovNext").onclick=()=>{ const n=CHALLENGES.indexOf(challenge)+1; startMode(n<CHALLENGES.length?n:-1); };
+
+function updateGoal(){
+  if (!challenge) return;
+  const m=challenge.measure();
+  $("goalText").innerHTML=m.text;
+  let p;
+  if (m.start!==undefined) p=(m.start-m.v)/(m.start-m.goal);
+  else if (m.goal===0) p = m.v===0 ? 1 : 0;
+  else p=m.v/m.goal;
+  document.querySelector("#bar div").style.width=Math.max(0,Math.min(100,p*100))+"%";
+  $("timer").textContent = challenge.limit ? `⏱ ${Math.max(0,Math.ceil((challenge.limit-runTicks)/SEC))}s` : `⏱ ${Math.floor(runTicks/SEC)}s`;
+  return m;
+}
+function checkChallenge(){
+  if (!challenge || finished) return;
+  const m=updateGoal();
+  if (challenge.ok(m)) hold+=10; else hold=0;
+  if (hold>=60){
+    finished=true; setRunning(false);
+    const n=CHALLENGES.indexOf(challenge);
+    solved[n]=1; try{ localStorage.setItem("sandfall.solved",JSON.stringify(solved)); }catch(e){}
+    buildModeMenu();
+    showOverlay("Solved! ⭐", `Done in ${Math.floor(runTicks/SEC)} seconds.`, true);
+  } else if (challenge.limit && runTicks>=challenge.limit){
+    finished=true; setRunning(false);
+    showOverlay("Out of time ⏱", "Tweak your build and try again.", false);
+  }
+}
+function showOverlay(title,text,won){
+  $("ovTitle").textContent=title; $("ovText").textContent=text;
+  $("ovNext").style.display = won ? "" : "none";
+  $("overlay").style.display="flex";
+}
+
+// =====================================================================
+//  Main loop
+// =====================================================================
+function tick(){
+  stepWorld();
+  if (challenge && !finished){ runTicks++; if (runTicks%10===0) checkChallenge(); }
+}
+let lastT = performance.now();
+function loop(now){
+  const dt = Math.min(100, now - lastT); lastT = now;
+  if (running){ acc += speed * dt / (1000/60); let n=0; while(acc>=1 && n<8){ tick(); acc--; n++; } if (acc>4) acc=0; }
+  render();
+  requestAnimationFrame(loop);
+}
+
+function starter(){
+  box(0,172,299,179,SOIL);
+  for (let x=0;x<W;x++){ const h=Math.round(3+3*Math.sin(x/23)+2*Math.sin(x/9)); for(let y=172-h;y<172;y++) set(y*W+x,SOIL); }
+  box(30,6,82,8,CLOUD);
+  box(206,6,236,7,SHAKER);
+  box(120,140,168,166,PLANT);
+  box(252,158,262,168,MAGMA);
+  for(let x=58;x<112;x++) for(let y=140;y<168;y++){ const c=Math.abs(x-85)/27; if (y > 140 + c*c*28 && rnd()<.85) set(y*W+x,SAND); }
+  box(180,120,220,122,WALL); box(180,104,182,121,WALL); box(218,104,220,121,WALL);
+  for(let x=184;x<216;x++) for(let y=112;y<120;y++) if(rnd()<.9) set(y*W+x,OIL);
+}
+starter();
+selectTool(SAND,true); refreshPalette(); setGrav(0);
+fit();
+requestAnimationFrame(()=>{ fit(); setRunning(true); requestAnimationFrame(loop); });
+</script>
+</body>
+</html>
