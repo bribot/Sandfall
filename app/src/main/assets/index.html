@@ -200,7 +200,7 @@ const INFO = [
   ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#e8ff9a,#7ee03a 50%,#2e7a10)"],
   ["Brine","Salty water. Sinks under water, withers plants, kills virus. Boils into salt.","radial-gradient(circle at 35% 30%,#bff3e4,#3f9e98 55%,#1b4d5c)"],
   ["Steam","Floats up, then may rain back down as water.","radial-gradient(circle at 35% 30%,#ffffff,#dde3ee 50%,rgba(150,162,184,.7))"],
-  ["Seeder","Drops seeds that sprout into plants when wet.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
+  ["Seeder","Grows plants when water touches it.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
 ];
 const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM].forEach(t=>GRAIN[t]=1);
 const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
@@ -395,7 +395,13 @@ function stepWorld(){
         }
         case CLOUD:  emit(i,x,y,WATER,.06,grav); break;
         case SHAKER: emit(i,x,y,SALT,.05,grav); break;
-        case SEEDER: emit(i,x,y,SEED,.03,grav); break;
+        case SEEDER: {                                                   // grows plants into water that touches it
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy);
+            if (j>=0 && type[j]===WATER && rnd()<.3) set(j,PLANT);
+          }
+          break;
+        }
         case SPILL:  emit(i,x,y,OIL,.06,grav); break;
         case MAGMA: {
           for (const [dx,dy] of ORTH){
