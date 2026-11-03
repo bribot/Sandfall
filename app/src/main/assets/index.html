@@ -86,6 +86,8 @@ select.b option{background:#161b2c}
   border:1px solid var(--line);display:grid;place-items:center;font-size:19px}
 #gravDial span{display:block;transition:transform .2s;color:var(--accent2)}
 .sizeRow{margin-top:8px}
+.slab{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:2px 2px -6px;font-size:12px}
+.slab b{font-weight:600;color:var(--accent2);font-size:12px;white-space:nowrap}
 .sizeRow input{flex:1 1 auto}
 #sizeDot{flex:none;width:26px;height:26px;display:grid;place-items:center}
 #sizeDot i{display:block;border-radius:50%;background:var(--text)}
@@ -146,6 +148,11 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
     <div class="sub" id="edgeHint">Things pile up against the edges.</div>
     <div class="lbl">World</div>
     <div class="row"><button class="b" id="save">Save</button><button class="b" id="load">Load</button><button class="b" id="clear">Clear</button></div>
+    <div class="lbl">Nature</div>
+    <div class="slab"><span>Virus eats plants</span><b id="virusVal"></b></div>
+    <input id="virusEat" type="range" min="0" max="10" step="1" aria-label="How fast virus eats plants">
+    <div class="slab"><span>Steam turns to water</span><b id="steamVal"></b></div>
+    <input id="steamTime" type="range" min="0" max="9" step="1" aria-label="How long until steam turns to water">
     <select id="rule" class="b" aria-label="How virus grows">
       <option value="B3/S23">Virus: Classic</option>
       <option value="B36/S23">Virus: HighLife</option>
@@ -205,13 +212,15 @@ const DX = [0,-1,-1,-1,0,1,1,1], DY = [1,1,0,-1,-1,-1,0,1];   // index 0 = down
 let grav = 0;
 let openEdges = false;   // the player's choice (sandbox)
 let edgesOpen = false;   // what the simulation uses right now (challenges always have solid edges)
+let virusP = .5;         // chance per tick that virus eats a plant it touches
+let steamDec = 1.76;     // steam "heat" lost per tick (bigger = turns to water sooner)
 const ORTH = [[1,0],[-1,0],[0,1],[0,-1]];
 const OUT = -2;          // a move that carried the cell off the screen
 const rnd = Math.random;
 
 function set(i, t){
   type[i] = t; shade[i] = (rnd()*16)|0;
-  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 40 + ((rnd()*90)|0) : 0;
+  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 100 + ((rnd()*100)|0) : 0;
   stamp[i] = tk;
 }
 function vanish(i){ type[i]=E; life[i]=0; }
@@ -348,14 +357,15 @@ function stepWorld(){
           break;
         }
         case STEAM: {
-          if (life[i]<=1){ set(i, rnd()<.6 ? WATER : E); break; }      // condenses into rain (or just fades)
-          life[i]--;
+          const dec = (steamDec|0) + (rnd() < steamDec%1 ? 1 : 0);
+          if (life[i]<=dec){ set(i, rnd()<.6 ? WATER : E); break; }    // condenses into rain (or just fades)
+          life[i]-=dec;
           const r=rnd();
           gas(i,x,y, r<.55 ? up : r<.7 ? up+1 : r<.85 ? up+7 : r<.93 ? up+2 : up+6);
           break;
         }
         case VIRUS: {
-          for (let k=0;k<8;k++){ const j=idx(x+DX[k],y+DY[k]); if (j>=0 && type[j]===PLANT && rnd()<.5) set(j,VIRUS); }
+          for (let k=0;k<8;k++){ const j=idx(x+DX[k],y+DY[k]); if (j>=0 && type[j]===PLANT && rnd()<virusP) set(j,VIRUS); }
           break;
         }
         case OIL: liquid(i,x,y); break;
@@ -425,7 +435,6 @@ function lifeStep(){
     const t=type[i], n=nb[i];
     if (t===VIRUS){ if(!SURV[n]) set(i,E); }
     else if ((t===E||t===WATER) && BIRTH[n]) set(i,VIRUS);
-    else if (t===PLANT && n>0) set(i,VIRUS);
   }
 }
 
@@ -549,7 +558,7 @@ function paintCells(){
         case STEAM: {
           const n = SIN[(x*9 + y*5 + t*3)&255];
           r = 222 + n*14; g = 228 + n*14; b = 240 + n*10;
-          a = 90 + Math.min(life[i],120) + n*20;                      // fades as it cools
+          a = 80 + Math.min(life[i],200)*.6 + n*20;                      // fades as it cools
           break;
         }
         case PLANT: {
@@ -783,6 +792,7 @@ function clearWorld(){ type.fill(E); life.fill(0); lock.fill(0); }
 // --- screen edges: solid, or open so things fall off and disappear ---
 function applyEdges(){
   edgesOpen = openEdges && !challenge;
+  applyNature();
   $("edgeWall").classList.toggle("on",!openEdges);
   $("edgeOpen").classList.toggle("on",openEdges);
   $("edgeHint").textContent = openEdges ? "Anything that leaves the screen is gone for good." : "Things pile up against the edges.";
@@ -794,6 +804,28 @@ function setEdges(v){
 $("edgeWall").onclick=()=>setEdges(false);
 $("edgeOpen").onclick=()=>setEdges(true);
 try{ openEdges = localStorage.getItem("sandfall.edges")==="open"; }catch(e){}
+
+// --- nature sliders (sandbox only; challenges use the defaults) ---
+const VIRUS_DEF = 9, STEAM_SECS = [0.5,1,1.5,2,3,5,8,12,20,30], STEAM_DEF = 2;
+let virusLevel = VIRUS_DEF, steamLevel = STEAM_DEF;
+try{
+  const v = localStorage.getItem("sandfall.virusEat"), st = localStorage.getItem("sandfall.steamTime");
+  if (v!==null) virusLevel = Math.max(0,Math.min(10,+v||0));
+  if (st!==null) steamLevel = Math.max(0,Math.min(9,+st||0));
+}catch(e){}
+const virusChance = k => k<=0 ? 0 : Math.pow(.5, 10-k);       // 10 = always, 9 = half the time, ... 1 = rarely
+const fmtSec = t => (t<1 ? t.toFixed(1) : t>=10 ? Math.round(t) : t.toFixed(t%1 ? 1 : 0)) + " s";
+function applyNature(){
+  const vk = challenge ? VIRUS_DEF : virusLevel, sk = challenge ? STEAM_DEF : steamLevel;
+  virusP = virusChance(vk);
+  steamDec = 150 / (STEAM_SECS[sk]*60);                          // a steam cell starts with ~150 heat
+  $("virusEat").value = virusLevel; $("steamTime").value = steamLevel;
+  const p = virusChance(virusLevel);
+  $("virusVal").textContent = p===0 ? "never" : p>=.25 ? "instantly" : "in ~" + fmtSec(1/(p*60));
+  $("steamVal").textContent = "after ~" + fmtSec(STEAM_SECS[steamLevel]);
+}
+$("virusEat").oninput=()=>{ virusLevel=+$("virusEat").value; applyNature(); try{ localStorage.setItem("sandfall.virusEat",virusLevel); }catch(e){} };
+$("steamTime").oninput=()=>{ steamLevel=+$("steamTime").value; applyNature(); try{ localStorage.setItem("sandfall.steamTime",steamLevel); }catch(e){} };
 applyEdges();
 
 // --- tilt with the phone's motion sensor (the app is locked to portrait) ---

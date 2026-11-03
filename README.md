@@ -13,7 +13,7 @@ Runs on Android 8.0 and newer, and is built for Android 16 (API 36).
 The whole screen is the play area, held upright (portrait).
 
 - **Bottom left:** the elements menu. Pick an element, and choose a brush (draw, line, box, filled box) and its size.
-- **Bottom right:** the options menu: sandbox or challenges, gravity, tilt with your phone, screen edges, save/load/clear, and how the virus grows.
+- **Bottom right:** the options menu: sandbox or challenges, gravity, tilt with your phone, screen edges, save/load/clear, how fast virus eats plants, how long steam takes to turn back into water, and how the virus grows.
 - **Top:** pause/play, step one frame, and speed (1×, 2×, 4×, ½×).
 - **Back button / gesture:** closes an open menu.
 
@@ -33,6 +33,7 @@ The whole screen is the play area, held upright (portrait).
 | Wall | Blocks everything |
 | Cloud / Magma / Shaker / Spill / Toxin | Generators that make water / fire / salt / oil / virus. Magma also sets fire to anything flammable touching it and boils water and brine |
 
+- **Nature sliders:** *Virus eats plants* goes from never to instantly; *Steam turns to water* goes from about half a second to 30 seconds. Like screen edges, they only apply in the sandbox; challenges use the defaults.
 - **Screen edges:** *Solid* edges act like walls. With *Open* edges, anything that moves off the screen is gone for good. Challenges always use solid edges.
 - **Tilt:** ⟲ ⟳ rotate gravity in 45° steps, or turn on **📱 Tilt phone** so gravity follows the way you hold the device.
 - **Challenges:** pick a puzzle in the options menu. Each one gives you a limited supply of certain elements to reach a goal. Tap the goal card to hide or show the hint.
