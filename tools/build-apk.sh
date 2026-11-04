@@ -28,13 +28,13 @@ sed 's|<manifest |<manifest package="com.bribot.sandfall" |' app/src/main/Androi
 "$BT/aapt2" compile --dir app/src/main/res -o "$OUT/res.zip"
 "$BT/aapt2" link -o "$OUT/unsigned.apk" -I "$JAR" \
   --manifest "$OUT/AndroidManifest.xml" -R "$OUT/res.zip" -A app/src/main/assets \
-  --min-sdk-version 24 --target-sdk-version "$API" \
+  --min-sdk-version 26 --target-sdk-version "$API" \
   --version-code 2 --version-name 2.0 --java "$OUT/gen" --auto-add-overlay
 
 "${JBIN}javac" --release 17 -nowarn -classpath "$JAR" -d "$OUT/classes" \
   $(find app/src/main/java "$OUT/gen" -name '*.java')
 
-"${JBIN}java" -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 --release --min-api 24 --lib "$JAR" --output "$OUT/dex" $(find "$OUT/classes" -name '*.class')
+"${JBIN}java" -cp "$BT/lib/d8.jar" com.android.tools.r8.D8 --release --min-api 26 --lib "$JAR" --output "$OUT/dex" $(find "$OUT/classes" -name '*.class')
 (cd "$OUT/dex" && "$BT/aapt" add ../unsigned.apk classes.dex >/dev/null)
 
 "$BT/zipalign" -f 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"

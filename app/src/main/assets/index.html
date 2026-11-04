@@ -102,7 +102,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 #toast{position:absolute;bottom:calc(var(--ib) + 96px);left:50%;transform:translateX(-50%);background:rgba(12,15,28,.85);border:1px solid var(--line);
   border-radius:20px;padding:7px 14px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 170px);text-align:center;z-index:8}
 #toast.show{opacity:1}
-#overlay{position:absolute;top:0;right:0;bottom:0;left:0;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.45);z-index:9}
+#overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.45);z-index:9}
 #overlay .card{border-radius:20px;padding:22px 26px;text-align:center;width:min(320px,calc(100% - 40px))}
 #overlay h2{margin:0 0 6px;font-size:24px}
 #overlay p{margin:0 0 16px;color:var(--dim)}
@@ -998,20 +998,15 @@ function onMotion(ev){
   for (let k=0;k<8;k++){ const v=dot(k); if (v>bd){ bd=v; best=k; } }
   if (best!==grav) setGrav(best);
 }
-function toggleTilt(){
+$("tiltPhone").onclick=async()=>{
+  if (!tiltOn && typeof DeviceMotionEvent.requestPermission==="function"){
+    try{ if (await DeviceMotionEvent.requestPermission()!=="granted") return; }catch(e){ return; }
+  }
   tiltOn=!tiltOn;
   $("tiltPhone").textContent = "📱 Tilt phone: " + (tiltOn?"on":"off");
   $("tiltPhone").classList.toggle("on",tiltOn);
   if (tiltOn) addEventListener("devicemotion",onMotion); else removeEventListener("devicemotion",onMotion);
   toast(tiltOn ? "Tilt your phone to pour the world around" : "Tilt control off");
-}
-// (written without async/await so the game still runs on older Android WebViews)
-$("tiltPhone").onclick=()=>{
-  if (!tiltOn && typeof DeviceMotionEvent.requestPermission==="function"){
-    DeviceMotionEvent.requestPermission().then(r=>{ if (r==="granted") toggleTilt(); }).catch(()=>{});
-    return;
-  }
-  toggleTilt();
 };
 
 // --- save / load (sandbox) ---
@@ -1202,7 +1197,7 @@ function startMode(n){
   setRule("B3/S23"); setGrav(0);
   clearWorld(); challenge.setup();
   for (let i=0;i<N;i++) lock[i] = type[i]!==E ? 1 : 0;
-  budget = Object.assign({}, challenge.tools);
+  budget = {...challenge.tools};
   runTicks=0; hold=0; finished=false;
   $("goal").style.display="block"; $("goal").classList.remove("min");
   $("sandboxOnly").classList.add("hidden"); $("challengeOnly").classList.remove("hidden");
