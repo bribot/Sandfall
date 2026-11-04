@@ -12,10 +12,12 @@ Runs on Android 8.0 and newer, and is built for Android 16 (API 36).
 
 The whole screen is the play area, held upright (portrait).
 
-- **Bottom left:** the elements menu. Pick an element, and choose a brush (draw, line, box, filled box) and its size.
-- **Bottom right:** the options menu: sandbox or challenges, gravity, tilt with your phone, screen edges, save/load/clear, how fast virus eats plants, how long steam takes to turn back into water and how much of it does, and how the virus grows.
+- **Elements bubble** (starts bottom left): the elements menu. Pick an element, and choose a brush (draw, line, box, filled box) and its size.
+- **Options bubble** (starts bottom right): the options menu: sandbox or challenges, gravity, tilt with your phone, screen edges, save/load/clear, how fast virus eats plants, how long steam takes to turn back into water and how much of it does, and how the virus grows.
 - **Top:** pause/play, step one frame, and speed (1×, 2×, 4×, ½×).
-- **Back button / gesture:** closes an open menu.
+- **Floating bubbles:** drag either round button anywhere; it drifts to the nearest side and its menu opens beside it. Positions are remembered.
+- **Back button / gesture:** closes an open menu. With no menu open, press back twice to exit. There's also an **Exit** button at the bottom of the options menu.
+- **Auto-save:** the sandbox is saved whenever you leave the app (and every 20 seconds) and comes back the next time you open it. Save/Load is a separate slot.
 
 | Element | Behaviour |
 |---|---|

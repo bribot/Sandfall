@@ -12,6 +12,7 @@ import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -55,6 +56,7 @@ public class MainActivity extends Activity {
                 sendInsets();
             }
         });
+        web.addJavascriptInterface(new Bridge(), "Android");
         web.setOnApplyWindowInsetsListener((v, in) -> {
             readInsets(in);
             sendInsets();
@@ -160,6 +162,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onPause() {
+        web.evaluateJavascript("window.autosave&&autosave()", null);   // keep the sandbox if Android closes the app later
         web.onPause();
         web.pauseTimers();
         super.onPause();
@@ -176,6 +179,15 @@ public class MainActivity extends Activity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         web.saveState(outState);
+    }
+
+    /** Called from JavaScript as window.Android.* */
+    private class Bridge {
+        /** The Exit button in the options menu. */
+        @JavascriptInterface
+        public void exit() {
+            runOnUiThread(MainActivity.this::finishAndRemoveTask);
+        }
     }
 
     @Override
