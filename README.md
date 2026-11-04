@@ -24,14 +24,15 @@ The whole screen is the play area, held upright (portrait).
 | Brine | Salty water. Sinks under fresh water, withers plants, kills virus. Boils away into salt (with a yellow flame) |
 | Steam | Floats up, then cools and rains back down as water (or fades away) |
 | Oil | Floats on water, very flammable |
+| Acid | Sinks in water. Dissolves salt into nothing, turns brine back into water, slowly eats sand, soil, plants, seeds and virus (never walls). Gets used up as it eats, and water slowly dilutes it |
 | Fire | Rises and burns out. Clings to and burns plants, oil, seeds and virus |
 | Plant | Drinks neighbouring water and grows into it. Won't drink brine |
 | Seed | Falls. Sprouts into a plant when wet |
-| Salt | Piles up, sinks slowly through oil, dissolves in water into brine, kills virus, makes flames burn yellow |
+| Salt | Piles up, sinks slowly through oil, dissolves in water into brine, kills virus, makes flames burn yellow, melts away on magma |
 | Soil | Solid ground |
 | Virus | Lives by Life rules (B3/S23 by default) in air and water. Eats any plant it touches |
 | Wall | Blocks everything |
-| Cloud / Magma / Shaker / Spill / Toxin | Generators that make water / fire / salt / oil / virus. Magma also sets fire to anything flammable touching it and boils water and brine |
+| Cloud / Magma / Shaker / Spill / Toxin | Generators that make water / fire / salt / oil / virus. Magma also sets fire to anything flammable touching it, boils water and brine, and melts salt |
 | Seeder | Drops nothing. Water that touches it turns into plants, which then keep growing into nearby water |
 
 - **Nature sliders:** *Virus eats plants* goes from never to instantly; *Steam turns to water* goes from about half a second to 30 seconds. Like screen edges, they only apply in the sandbox; challenges use the defaults.

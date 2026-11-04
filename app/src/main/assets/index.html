@@ -180,7 +180,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 // The grid is 180 cells wide and as tall as the screen's shape needs, so the play area fills the whole phone.
 const VW0 = innerWidth || screen.width, VH0 = innerHeight || screen.height;
 const W = 180, H = Math.max(200, Math.min(520, Math.ceil(W * VH0 / VW0))), N = W * H;
-const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18;
+const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19;
 const INFO = [
   ["Eraser","Removes anything.","radial-gradient(circle at 35% 30%,#3a4058,#141826)"],
   ["Wall","Blocks everything.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
@@ -190,20 +190,21 @@ const INFO = [
   ["Fire","Rises and burns out. Burns plants, oil, virus.","radial-gradient(circle at 50% 70%,#fff3a0,#ff9a2a 45%,#c2300c)"],
   ["Plant","Drinks water and grows. Brine withers it.","radial-gradient(circle at 35% 30%,#b8f58a,#36b552 55%,#16692c)"],
   ["Seed","Sprouts when wet.","radial-gradient(circle at 35% 30%,#e8c08a,#a6743e 60%,#5f3e1c)"],
-  ["Salt","Dissolves in water into brine. Kills virus. Burns yellow.","radial-gradient(circle at 35% 30%,#ffffff,#dfe3ee 55%,#9aa1b5)"],
+  ["Salt","Dissolves in water into brine. Kills virus. Burns yellow. Melts on magma.","radial-gradient(circle at 35% 30%,#ffffff,#dfe3ee 55%,#9aa1b5)"],
   ["Soil","Ground. Water erodes it to sand.","radial-gradient(circle at 35% 30%,#a07650,#6a4528 60%,#3a2414)"],
   ["Virus","Lives by Conway's Life. Eats plants.","radial-gradient(circle at 35% 30%,#ffb0ff,#d040d8 55%,#6a1680)"],
   ["Cloud","Rains water.","radial-gradient(circle at 35% 30%,#ffffff,#cfe0ff 55%,#8aa4d6)"],
-  ["Magma","Spews fire. Burns what touches it, boils water.","radial-gradient(circle at 40% 40%,#ffd060,#ff5a1a 45%,#7a1606)"],
+  ["Magma","Spews fire. Burns what touches it, boils water, melts salt.","radial-gradient(circle at 40% 40%,#ffd060,#ff5a1a 45%,#7a1606)"],
   ["Shaker","Sprinkles salt.","radial-gradient(circle at 35% 30%,#f2f4fa,#a8aec2 55%,#5e6478)"],
   ["Spill","Leaks oil.","radial-gradient(circle at 35% 30%,#d8a060,#7a4a1c 55%,#3a200a)"],
   ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#e8ff9a,#7ee03a 50%,#2e7a10)"],
   ["Brine","Salty water. Sinks under water, withers plants, kills virus. Boils into salt.","radial-gradient(circle at 35% 30%,#bff3e4,#3f9e98 55%,#1b4d5c)"],
   ["Steam","Floats up, then may rain back down as water.","radial-gradient(circle at 35% 30%,#ffffff,#dde3ee 50%,rgba(150,162,184,.7))"],
   ["Seeder","Grows plants when water touches it.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
+  ["Acid","Dissolves salt into nothing. Eats sand, soil and plants. Water dilutes it.","radial-gradient(circle at 35% 30%,#f4ffb0,#a8e030 50%,#4a7a08)"],
 ];
-const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM].forEach(t=>GRAIN[t]=1);
-const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
+const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM,ACID].forEach(t=>GRAIN[t]=1);
+const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
 const FLAMMABLE = new Float32Array(32); FLAMMABLE[PLANT]=0.2; FLAMMABLE[OIL]=0.45; FLAMMABLE[SEED]=0.3; FLAMMABLE[VIRUS]=0.5;
 
 const type = new Uint8Array(N), shade = new Uint8Array(N), life = new Uint8Array(N);
@@ -235,7 +236,7 @@ function idx(x,y){ return (x<0||y<0||x>=W||y>=H) ? -1 : y*W+x; }
 function canDisplace(s, o){
   if (o===E) return true;
   if (o===FIRE || o===STEAM) return DENS[s] > 0;
-  if (o===WATER || o===OIL || o===BRINE) {
+  if (o===WATER || o===OIL || o===BRINE || o===ACID) {
     if (!(DENS[s] > DENS[o])) return false;
     return rnd() < (s===SALT && o===OIL ? 0.08 : 0.5);
   }
@@ -272,7 +273,7 @@ function liquid(i,x,y){
       const j = idx(cx+DX[k], cy+DY[k]);
       if (j<0){ if (edgesOpen){ vanish(ci); moved=true; } break; }
       const o = type[j];
-      if (o===E || (o!==type[ci] && (o===WATER||o===OIL||o===BRINE) && DENS[type[ci]]>DENS[o] && rnd()<.5)) {
+      if (o===E || (o!==type[ci] && (o===WATER||o===OIL||o===BRINE||o===ACID) && DENS[type[ci]]>DENS[o] && rnd()<.5)) {
         swap(ci,j); ci=j; cx+=DX[k]; cy+=DY[k]; moved=true;
         const d = idx(cx+DX[grav], cy+DY[grav]);
         if (d>=0 && type[d]===E) break;
@@ -292,7 +293,7 @@ function gas(i,x,y,k){
   const j = idx(x+DX[k&7], y+DY[k&7]);
   if (j<0){ if (edgesOpen) vanish(i); return; }
   const o = type[j];
-  if (o===E || ((o===WATER||o===OIL||o===BRINE) && rnd()<.5)) swap(i,j);
+  if (o===E || ((o===WATER||o===OIL||o===BRINE||o===ACID) && rnd()<.5)) swap(i,j);
 }
 // A fire that touches salt burns yellow (sodium flame).
 function yellow(j){ shade[j] |= 16; if (life[j]<30) life[j]+=8; }
@@ -335,6 +336,21 @@ function stepWorld(){
             else if (o===SOIL && rnd()<.004) set(j,SAND);
           }
           if (type[i]===WATER) liquid(i,x,y);
+          break;
+        }
+        case ACID: {
+          let used=false;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            let ate=false;
+            if (o===SALT) ate=true;                                        // salt dissolves into nothing
+            else if (o===BRINE && rnd()<.2){ set(j,WATER); if (rnd()<.5){ set(i,E); used=true; break; } continue; }   // takes the salt out
+            else if ((o===SAND||o===SOIL||o===PLANT||o===SEED||o===VIRUS) && rnd()<.02) ate=true;
+            else if (o===WATER && rnd()<.001){ set(i,WATER); used=true; break; }   // diluted
+            if (ate){ set(j,E); if (rnd()<.5){ set(i,E); used=true; break; } }    // each bite may use the acid up
+          }
+          if (!used) liquid(i,x,y);
           break;
         }
         case BRINE: {
@@ -410,6 +426,7 @@ function stepWorld(){
             if (FLAMMABLE[o]) set(j,FIRE);                                // anything that burns catches at once
             else if (o===WATER && rnd()<.3) set(j,STEAM);
             else if (o===BRINE && rnd()<.3){ set(j,SALT); emit(i,x,y,STEAM,.5,up); }
+            else if (o===SALT && rnd()<.2) set(j,E);                      // melts away
           }
           emit(i,x,y,FIRE,.35,(rnd()*8)|0);
           break;
@@ -552,6 +569,15 @@ function paintCells(){
           if (sh&16){ r = 255; g = 190 + 65*h; b = 40 + 120*h*h; }      // sodium-yellow flame
           else { r = 200 + 55*h; g = 50 + 200*h*h; b = 10 + 150*h*h*h; }
           e = 255;
+          break;
+        }
+        case ACID: {
+          const k = Math.min(d,40)/40;
+          const s = SIN[(x*6 + y*5 + t*3)&255] * 8;
+          r = 150 - 60*k; g = 225 - 70*k + s; b = 40 - 20*k;
+          if (open || d===0){ r=214; g=255; b=120; }
+          if (((x*7 + y*13 + (t>>1)) % 47) === 0){ r=235; g=255; b=200; }   // fizz
+          e = 40;
           break;
         }
         case BRINE: {
@@ -738,7 +764,7 @@ window.onAndroidBack = ()=>{
 };
 
 const palette = $("palette");
-const groups = [["Elements",[SAND,WATER,BRINE,OIL,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,E]]];
+const groups = [["Elements",[SAND,WATER,BRINE,OIL,ACID,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,E]]];
 const elBtns = {};
 for (const [g,list] of groups){
   const h=document.createElement("div"); h.className="cat"; h.textContent=g; palette.appendChild(h);
