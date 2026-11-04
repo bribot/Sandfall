@@ -301,11 +301,33 @@ function emit(i,x,y,t,p,k){
 }
 
 // Steam drifts upward, bubbling up through liquids.
+// Returns true if the steam moved (or left the screen).
 function gas(i,x,y,k){
   const j = idx(x+DX[k&7], y+DY[k&7]);
-  if (j<0){ if (edgesOpen) vanish(i); return; }
+  if (j<0){ if (edgesOpen){ vanish(i); return true; } return false; }
   const o = type[j];
-  if (o===E || ((o===WATER||o===OIL||o===BRINE||o===ACID) && rnd()<.5)) swap(i,j);
+  if (o===E || ((o===WATER||o===OIL||o===BRINE||o===ACID) && rnd()<.5)){ swap(i,j); return true; }
+  return false;
+}
+// Steam spreads like a gas: it rises, but also drifts sideways up to 3 cells at a time,
+// sliding along ceilings (water flowing on a floor, upside down) so it fills spaces.
+function steamMove(i,x,y,up){
+  const s = rnd()<.5 ? 1 : -1, r = rnd();
+  if (r<.45 && gas(i,x,y,up)) return;
+  if (r<.75 && (gas(i,x,y,up+s) || gas(i,x,y,up-s+8))) return;
+  for (const side of [s,-s]){
+    const k = (grav + 2*side + 8) & 7;
+    let ci=i, cx=x, cy=y, moved=false;
+    for (let n=0; n<3; n++){
+      const nx=cx+DX[k], ny=cy+DY[k], j=idx(nx,ny);
+      if (j<0){ if (edgesOpen){ vanish(ci); moved=true; } break; }
+      if (type[j]!==E) break;
+      swap(ci,j); ci=j; cx=nx; cy=ny; moved=true;
+      const a=idx(cx+DX[up], cy+DY[up]);
+      if (a>=0 && type[a]===E && rnd()<.5) break;                    // open air above: may rise again next frame
+    }
+    if (moved) return;
+  }
 }
 // A fire that touches salt burns yellow (sodium flame).
 function yellow(j){ shade[j] |= 16; if (life[j]<30) life[j]+=8; }
@@ -395,8 +417,7 @@ function stepWorld(){
             if (j>=0 && type[j]===PLANT && rnd()<.1){ set(i,PLANT); grew=true; break; }
           }
           if (grew) break;
-          const r=rnd();
-          gas(i,x,y, r<.55 ? up : r<.7 ? up+1 : r<.85 ? up+7 : r<.93 ? up+2 : up+6);
+          steamMove(i,x,y,up);
           break;
         }
         case VIRUS: {

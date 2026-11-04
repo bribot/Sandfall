@@ -24,7 +24,7 @@ The whole screen is the play area, held upright (portrait).
 | Sand | Falls and piles up |
 | Water | Flows. Boils into steam when it touches fire or magma, dissolves salt into brine, erodes soil into sand |
 | Brine | Salty water. Sinks under fresh water, withers plants, kills virus. Boils away into salt (with a yellow flame) |
-| Steam | Floats up, then cools and rains back down as water (or fades away). Plants it touches may grow into it |
+| Steam | Floats up and spreads out like a gas, sliding along ceilings, then cools and rains back down as water (or fades away). Plants it touches may grow into it |
 | Oil | Floats on water, very flammable |
 | Acid | Sinks in water. Dissolves salt into nothing, turns brine back into water, slowly eats sand, soil, plants, seeds and virus (never walls). Gets used up as it eats, and water slowly dilutes it |
 | Fire | Rises and burns out. Clings to and burns plants, oil, seeds and virus |
