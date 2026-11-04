@@ -180,7 +180,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 // The grid is 180 cells wide and as tall as the screen's shape needs, so the play area fills the whole phone.
 const VW0 = innerWidth || screen.width, VH0 = innerHeight || screen.height;
 const W = 180, H = Math.max(200, Math.min(520, Math.ceil(W * VH0 / VW0))), N = W * H;
-const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19;
+const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20;
 const INFO = [
   ["Eraser","Removes anything.","radial-gradient(circle at 35% 30%,#3a4058,#141826)"],
   ["Wall","Blocks everything.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
@@ -202,6 +202,7 @@ const INFO = [
   ["Steam","Floats up, then may rain back down as water.","radial-gradient(circle at 35% 30%,#ffffff,#dde3ee 50%,rgba(150,162,184,.7))"],
   ["Seeder","Grows plants when water touches it.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
   ["Acid","Dissolves salt into nothing. Eats sand, soil and plants. Water dilutes it.","radial-gradient(circle at 35% 30%,#f4ffb0,#a8e030 50%,#4a7a08)"],
+  ["Vat","Drips acid.","radial-gradient(circle at 35% 30%,#d8ff70,#5a6a3a 50%,#23281c)"],
 ];
 const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM,ACID].forEach(t=>GRAIN[t]=1);
 const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
@@ -411,6 +412,7 @@ function stepWorld(){
         }
         case CLOUD:  emit(i,x,y,WATER,.06,grav); break;
         case SHAKER: emit(i,x,y,SALT,.05,grav); break;
+        case VAT:    emit(i,x,y,ACID,.05,grav); break;
         case SEEDER: {                                                   // grows plants into water that touches it
           for (const [dx,dy] of ORTH){
             const j=idx(x+dx,y+dy);
@@ -644,6 +646,13 @@ function paintCells(){
           else { const q=(v+1)*.5; r = 210 + 45*q; g = 50 + 160*q*q; b = 12 + 60*q*q*q; e = 120 + 135*q; }
           break;
         }
+        case VAT: {
+          const rim = (y%5)===0;                                      // dark steel drum with glowing acid seams
+          r = rim?44:62+(sh>>1); g = rim?50:70+(sh>>1); b = rim?40:52;
+          if (!rim && (x%6)===0){ const p=(SIN[(t*3 + y*11)&255]+1)*.5; r=150+50*p; g=220+35*p; b=50; e=60+50*p; }
+          if (open){ r+=20; g+=24; b+=14; }
+          break;
+        }
         case SEEDER: {
           const leaf = (x%4===1 && y%3===1) || (x%4===3 && y%3===2);  // little sprouts on a wooden planter
           const band = (y%4)===0;
@@ -764,7 +773,7 @@ window.onAndroidBack = ()=>{
 };
 
 const palette = $("palette");
-const groups = [["Elements",[SAND,WATER,BRINE,OIL,ACID,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,E]]];
+const groups = [["Elements",[SAND,WATER,BRINE,OIL,ACID,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,VAT,E]]];
 const elBtns = {};
 for (const [g,list] of groups){
   const h=document.createElement("div"); h.className="cat"; h.textContent=g; palette.appendChild(h);
