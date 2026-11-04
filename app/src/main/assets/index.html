@@ -201,7 +201,7 @@ const INFO = [
   ["Spill","Leaks oil.","radial-gradient(circle at 35% 30%,#d8a060,#7a4a1c 55%,#3a200a)"],
   ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#e8ff9a,#7ee03a 50%,#2e7a10)"],
   ["Brine","Salty water. Sinks under water, withers plants, kills virus. Boils into salt.","radial-gradient(circle at 35% 30%,#bff3e4,#3f9e98 55%,#1b4d5c)"],
-  ["Steam","Floats up, then may rain back down as water.","radial-gradient(circle at 35% 30%,#ffffff,#dde3ee 50%,rgba(150,162,184,.7))"],
+  ["Steam","Floats up, then may rain back down as water. Plants it touches may grow into it.","radial-gradient(circle at 35% 30%,#ffffff,#dde3ee 50%,rgba(150,162,184,.7))"],
   ["Seeder","Grows plants when water touches it.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
   ["Acid","Dissolves salt into nothing. Eats sand, soil and plants. Water dilutes it.","radial-gradient(circle at 35% 30%,#f4ffb0,#a8e030 50%,#4a7a08)"],
   ["Vat","Drips acid.","radial-gradient(circle at 35% 30%,#d8ff70,#5a6a3a 50%,#23281c)"],
@@ -381,6 +381,12 @@ function stepWorld(){
           const dec = (steamDec|0) + (rnd() < steamDec%1 ? 1 : 0);
           if (life[i]<=dec){ set(i, rnd()<steamWater ? WATER : E); break; }   // condenses into rain (or just fades)
           life[i]-=dec;
+          let grew=false;
+          for (const [dx,dy] of ORTH){                                   // plants can drink the steam and grow into it
+            const j=idx(x+dx,y+dy);
+            if (j>=0 && type[j]===PLANT && rnd()<.1){ set(i,PLANT); grew=true; break; }
+          }
+          if (grew) break;
           const r=rnd();
           gas(i,x,y, r<.55 ? up : r<.7 ? up+1 : r<.85 ? up+7 : r<.93 ? up+2 : up+6);
           break;
