@@ -16,6 +16,7 @@ The whole screen is the play area, held upright (portrait).
 - **Options bubble** (starts bottom right): the options menu: sandbox or challenges, gravity, tilt with your phone, screen edges, save/load/clear, how fast virus eats plants, how long steam takes to turn back into water and how much of it does, and how the virus grows.
 - **Top:** pause/play, step one frame, and speed (1×, 2×, 4×, ½×).
 - **Floating bubbles:** drag either round button anywhere; it drifts to the nearest side and its menu opens beside it. Positions are remembered.
+- **Holding the phone sideways:** the game stays portrait, but the interface turns to stay upright. Menus open in the middle of the screen using the long side, and the play/step/speed buttons move to the edge that is on top.
 - **Back button / gesture:** closes an open menu. With no menu open, press back twice to exit. There's also an **Exit** button at the bottom of the options menu.
 - **Auto-save:** the sandbox is saved whenever you leave the app (and every 20 seconds) and comes back the next time you open it. Save/Load is a separate slot.
 
