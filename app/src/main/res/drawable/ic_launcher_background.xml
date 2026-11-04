@@ -3,8 +3,8 @@
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <!-- night sky -->
-    <path android:pathData="M0,0h108v108h-108z">
+    <!-- night sky, stars and a warm glow behind the globe -->
+    <path android:fillType="evenOdd" android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
             <gradient android:type="linear" android:startX="0" android:startY="0" android:endX="0" android:endY="108">
                 <item android:offset="0" android:color="#FF1D2A63"/>
@@ -13,22 +13,22 @@
             </gradient>
         </aapt:attr>
     </path>
-    <!-- warm glow behind the dune -->
-    <path android:pathData="M0,0h108v108h-108z">
+    <path android:fillType="evenOdd" android:fillColor="#C8D6FF" android:fillAlpha="0.7" android:pathData="M18,22h1.6v1.6h-1.6z"/>
+    <path android:fillType="evenOdd" android:fillColor="#C8D6FF" android:fillAlpha="0.7" android:pathData="M30,14h1.6v1.6h-1.6z"/>
+    <path android:fillType="evenOdd" android:fillColor="#C8D6FF" android:fillAlpha="0.7" android:pathData="M80,16h1.6v1.6h-1.6z"/>
+    <path android:fillType="evenOdd" android:fillColor="#C8D6FF" android:fillAlpha="0.7" android:pathData="M88,30h1.6v1.6h-1.6z"/>
+    <path android:fillType="evenOdd" android:fillColor="#C8D6FF" android:fillAlpha="0.7" android:pathData="M26,44h1.6v1.6h-1.6z"/>
+    <path android:fillType="evenOdd" android:fillColor="#C8D6FF" android:fillAlpha="0.7" android:pathData="M90,50h1.6v1.6h-1.6z"/>
+    <path android:fillType="evenOdd" android:fillColor="#C8D6FF" android:fillAlpha="0.7" android:pathData="M66,10h1.6v1.6h-1.6z"/>
+    <path android:fillType="evenOdd" android:fillColor="#C8D6FF" android:fillAlpha="0.7" android:pathData="M44,24h1.6v1.6h-1.6z"/>
+    <path android:fillType="evenOdd" android:fillColor="#C8D6FF" android:fillAlpha="0.7" android:pathData="M16,66h1.6v1.6h-1.6z"/>
+    <path android:fillType="evenOdd" android:fillColor="#C8D6FF" android:fillAlpha="0.7" android:pathData="M92,72h1.6v1.6h-1.6z"/>
+    <path android:fillType="evenOdd" android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
-            <gradient android:type="radial" android:centerX="54" android:centerY="68" android:gradientRadius="40">
-                <item android:offset="0" android:color="#8CFF9A4C"/>
-                <item android:offset="1" android:color="#00FF9A4C"/>
+            <gradient android:type="radial" android:centerX="54" android:centerY="50" android:gradientRadius="40">
+                <item android:offset="0" android:color="#4CFFC070"/>
+                <item android:offset="1" android:color="#00FFC070"/>
             </gradient>
         </aapt:attr>
     </path>
-    <!-- stars -->
-    <path android:fillColor="#B3C8D6FF" android:pathData="M18,22h1.6v1.6h-1.6z"/>
-    <path android:fillColor="#B3C8D6FF" android:pathData="M30,14h1.6v1.6h-1.6z"/>
-    <path android:fillColor="#B3C8D6FF" android:pathData="M80,16h1.6v1.6h-1.6z"/>
-    <path android:fillColor="#B3C8D6FF" android:pathData="M88,30h1.6v1.6h-1.6z"/>
-    <path android:fillColor="#B3C8D6FF" android:pathData="M26,44h1.6v1.6h-1.6z"/>
-    <path android:fillColor="#B3C8D6FF" android:pathData="M90,50h1.6v1.6h-1.6z"/>
-    <path android:fillColor="#B3C8D6FF" android:pathData="M66,10h1.6v1.6h-1.6z"/>
-    <path android:fillColor="#B3C8D6FF" android:pathData="M44,24h1.6v1.6h-1.6z"/>
 </vector>
