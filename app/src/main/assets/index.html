@@ -153,6 +153,8 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
     <input id="virusEat" type="range" min="0" max="10" step="1" aria-label="How fast virus eats plants">
     <div class="slab"><span>Steam turns to water</span><b id="steamVal"></b></div>
     <input id="steamTime" type="range" min="0" max="9" step="1" aria-label="How long until steam turns to water">
+    <div class="slab"><span>Steam that becomes water</span><b id="steamPctVal"></b></div>
+    <input id="steamPct" type="range" min="0" max="100" step="10" aria-label="Percentage of steam that turns back into water">
     <select id="rule" class="b" aria-label="How virus grows">
       <option value="B3/S23">Virus: Classic</option>
       <option value="B36/S23">Virus: HighLife</option>
@@ -217,6 +219,7 @@ let openEdges = false;   // the player's choice (sandbox)
 let edgesOpen = false;   // what the simulation uses right now (challenges always have solid edges)
 let virusP = .5;         // chance per tick that virus eats a plant it touches
 let steamDec = 1.76;     // steam "heat" lost per tick (bigger = turns to water sooner)
+let steamWater = .6;     // chance a cooled steam cell becomes water (otherwise it vanishes)
 const ORTH = [[1,0],[-1,0],[0,1],[0,-1]];
 const OUT = -2;          // a move that carried the cell off the screen
 const rnd = Math.random;
@@ -376,7 +379,7 @@ function stepWorld(){
         }
         case STEAM: {
           const dec = (steamDec|0) + (rnd() < steamDec%1 ? 1 : 0);
-          if (life[i]<=dec){ set(i, rnd()<.6 ? WATER : E); break; }    // condenses into rain (or just fades)
+          if (life[i]<=dec){ set(i, rnd()<steamWater ? WATER : E); break; }   // condenses into rain (or just fades)
           life[i]-=dec;
           const r=rnd();
           gas(i,x,y, r<.55 ? up : r<.7 ? up+1 : r<.85 ? up+7 : r<.93 ? up+2 : up+6);
@@ -857,12 +860,14 @@ $("edgeOpen").onclick=()=>setEdges(true);
 try{ openEdges = localStorage.getItem("sandfall.edges")==="open"; }catch(e){}
 
 // --- nature sliders (sandbox only; challenges use the defaults) ---
-const VIRUS_DEF = 9, STEAM_SECS = [0.5,1,1.5,2,3,5,8,12,20,30], STEAM_DEF = 2;
-let virusLevel = VIRUS_DEF, steamLevel = STEAM_DEF;
+const VIRUS_DEF = 9, STEAM_SECS = [0.5,1,1.5,2,3,5,8,12,20,30], STEAM_DEF = 2, STEAM_PCT_DEF = 60;
+let virusLevel = VIRUS_DEF, steamLevel = STEAM_DEF, steamPct = STEAM_PCT_DEF;
 try{
   const v = localStorage.getItem("sandfall.virusEat"), st = localStorage.getItem("sandfall.steamTime");
   if (v!==null) virusLevel = Math.max(0,Math.min(10,+v||0));
   if (st!==null) steamLevel = Math.max(0,Math.min(9,+st||0));
+  const sp = localStorage.getItem("sandfall.steamPct");
+  if (sp!==null) steamPct = Math.max(0,Math.min(100,Math.round((+sp||0)/10)*10));
 }catch(e){}
 const virusChance = k => k<=0 ? 0 : Math.pow(.5, 10-k);       // 10 = always, 9 = half the time, ... 1 = rarely
 const fmtSec = t => (t<1 ? t.toFixed(1) : t>=10 ? Math.round(t) : t.toFixed(t%1 ? 1 : 0)) + " s";
@@ -870,12 +875,15 @@ function applyNature(){
   const vk = challenge ? VIRUS_DEF : virusLevel, sk = challenge ? STEAM_DEF : steamLevel;
   virusP = virusChance(vk);
   steamDec = 150 / (STEAM_SECS[sk]*60);                          // a steam cell starts with ~150 heat
+  steamWater = (challenge ? STEAM_PCT_DEF : steamPct) / 100;
+  $("steamPct").value = steamPct; $("steamPctVal").textContent = steamPct + "%";
   $("virusEat").value = virusLevel; $("steamTime").value = steamLevel;
   const p = virusChance(virusLevel);
   $("virusVal").textContent = p===0 ? "never" : p>=.25 ? "instantly" : "in ~" + fmtSec(1/(p*60));
   $("steamVal").textContent = "after ~" + fmtSec(STEAM_SECS[steamLevel]);
 }
 $("virusEat").oninput=()=>{ virusLevel=+$("virusEat").value; applyNature(); try{ localStorage.setItem("sandfall.virusEat",virusLevel); }catch(e){} };
+$("steamPct").oninput=()=>{ steamPct=+$("steamPct").value; applyNature(); try{ localStorage.setItem("sandfall.steamPct",steamPct); }catch(e){} };
 $("steamTime").oninput=()=>{ steamLevel=+$("steamTime").value; applyNature(); try{ localStorage.setItem("sandfall.steamTime",steamLevel); }catch(e){} };
 applyEdges();
 
