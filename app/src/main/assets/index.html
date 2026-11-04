@@ -55,6 +55,8 @@ button{font:inherit;color:inherit}
 #elBtn .bud{position:absolute;top:-4px;right:-4px;min-width:22px;padding:2px 5px;border-radius:11px;background:var(--accent2);color:#1a1206;font-size:11px;font-weight:800;display:none}
 #elBtn .bud.show{display:block}
 #optBtn svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:2}
+.b svg.ic{width:18px;height:18px;vertical-align:-4px;margin-right:4px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.b svg.ic.solo{margin-right:0;width:20px;height:20px}
 .corner.open{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,200,255,.35),0 8px 28px rgba(0,0,0,.35)}
 
 /* --- menus --- */
@@ -144,11 +146,11 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 <div id="optMenu" class="menu glass">
   <select id="mode" class="b" aria-label="Mode"></select>
   <div class="lbl">Gravity</div>
-  <div class="row"><button class="b" id="tiltL" aria-label="Tilt left">⟲</button><div id="gravDial"><span>↓</span></div><button class="b" id="tiltR" aria-label="Tilt right">⟳</button></div>
+  <div class="row"><button class="b" id="tiltL" aria-label="Tilt left"><svg class="ic solo" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4.5v5h5"/><path d="M5.2 14.5a7.5 7.5 0 1 0 1.6-7.9L4 9.5"/></svg></button><div id="gravDial"><span>↓</span></div><button class="b" id="tiltR" aria-label="Tilt right"><svg class="ic solo" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4.5v5h-5"/><path d="M18.8 14.5a7.5 7.5 0 1 1-1.6-7.9L20 9.5"/></svg></button></div>
   <button class="b hidden" id="tiltPhone">📱 Tilt phone: off</button>
   <div id="sandboxOnly" style="display:flex;flex-direction:column;gap:9px">
     <div class="lbl">Screen edges</div>
-    <div class="row"><button class="b on" id="edgeWall">▣ Solid</button><button class="b" id="edgeOpen">⬚ Open</button></div>
+    <div class="row"><button class="b on" id="edgeWall"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8.5" y="8.5" width="7" height="7" rx="1" fill="currentColor" stroke="none"/></svg>Solid</button><button class="b" id="edgeOpen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="3.2 2.6"/></svg>Open</button></div>
     <div class="sub" id="edgeHint">Things pile up against the edges.</div>
     <div class="lbl">World</div>
     <div class="row"><button class="b" id="save">Save</button><button class="b" id="load">Load</button><button class="b" id="clear">Clear</button></div>
@@ -172,7 +174,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
     <button class="b" id="reset">↺ Reset level</button>
     <div class="sub">Tap the goal card to show or hide the hint.</div>
   </div>
-  <button class="b" id="exitBtn">⏻ Exit</button>
+  <button class="b" id="exitBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v8"/><path d="M6.6 7.2a7.6 7.6 0 1 0 10.8 0"/></svg>Exit</button>
   <div class="sub">Your sandbox is saved automatically. Drag the round buttons to move them.</div>
 </div>
 
@@ -205,7 +207,7 @@ const INFO = [
   ["Magma","Spews fire. Burns what touches it, boils water, melts salt.","radial-gradient(circle at 40% 40%,#ffd060,#ff5a1a 45%,#7a1606)"],
   ["Shaker","Sprinkles salt.","radial-gradient(circle at 35% 30%,#f2f4fa,#a8aec2 55%,#5e6478)"],
   ["Spill","Leaks oil.","radial-gradient(circle at 35% 30%,#d8a060,#7a4a1c 55%,#3a200a)"],
-  ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#e8ff9a,#7ee03a 50%,#2e7a10)"],
+  ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#f2a6ff,#a426c8 50%,#3e0a52)"],
   ["Brine","Salty water. Sinks under water, withers plants, kills virus. Boils into salt.","radial-gradient(circle at 35% 30%,#bff3e4,#3f9e98 55%,#1b4d5c)"],
   ["Steam","Floats up, then may rain back down as water. Plants it touches may grow into it.","radial-gradient(circle at 35% 30%,#ffffff,#dde3ee 50%,rgba(150,162,184,.7))"],
   ["Seeder","Grows plants when water touches it.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
@@ -690,8 +692,8 @@ function paintCells(){
         case TOXIN: {
           const hz = (((x+y)>>2)&1);
           const p = (SIN[(t*4 + x*3)&255] + 1) * .5;
-          if (hz){ r=40; g=56; b=24; e=0; }
-          else { r = 110 + 60*p; g = 210 + 40*p; b = 40 + 30*p; e = 80 + 60*p; }
+          if (hz){ r=58; g=16; b=72; e=0; }                                // dark violet hazard stripes
+          else { r = 150 + 70*p; g = 30 + 40*p; b = 180 + 60*p; e = 80 + 60*p; }   // glowing purple, like the virus it breeds
           break;
         }
       }
