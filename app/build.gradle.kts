@@ -8,7 +8,7 @@ android {
 
     defaultConfig {
         applicationId = "com.bribot.sandfall"
-        minSdk = 26
+        minSdk = 24
         targetSdk = 36
         // Each CI build gets a higher version code, so it installs as an update.
         val buildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0

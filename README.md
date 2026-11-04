@@ -6,7 +6,7 @@ A falling-sand toy and puzzle game for Android. Pour sand, water, oil, salt and 
 
 Download **[Sandfall.apk](../../releases/latest/download/Sandfall.apk)** from the [latest release](../../releases/latest) and open it on your phone. You may need to allow installs from unknown sources. Every release is signed with the same key, so newer versions install as updates and keep your saved worlds.
 
-Runs on Android 8.0 and newer, and is built for Android 16 (API 36).
+Runs on Android 7.0 and newer (phones and tablets), and is built for Android 16 (API 36). On Android 7, keep **Android System WebView** (or Chrome) updated from the Play Store, since the game runs inside it.
 
 ## How to play
 
