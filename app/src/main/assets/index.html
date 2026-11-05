@@ -96,7 +96,9 @@ body.land #optMenu .lbl{margin-top:4px}
 .sl{display:flex;flex-direction:column;gap:9px}
 body.land .brushRows{display:flex;gap:6px}
 body.land .brushRows .row{flex:1;margin-top:0!important}
-body.land #optMenu .sl{break-inside:avoid;margin-bottom:9px}
+body.land #optMenu .sl{break-inside:avoid;margin-bottom:6px;gap:2px}
+body.land #optMenu input[type=range]{height:26px}
+body.land #exitNote{display:none}
 body.land #optMenu > button.b,body.land #sandboxOnly > button.b,body.land #challengeOnly > button.b,body.land #optMenu select.b{display:block;width:100%}
 body.land #optMenu > .mclose{display:grid;width:30px}
 /* sideways options: fixed column starts, and the item that starts the last column leaves room for the x */
@@ -239,6 +241,10 @@ body.land .sl,body.land .sizeRow{touch-action:none}
       <div class="slab"><span>Fungus grows</span><b id="fungusVal"></b></div>
       <input id="fungusSpeed" type="range" min="0" max="5" step="1" aria-label="How fast fungus grows">
     </div>
+    <div class="sl">
+      <div class="slab"><span>Mushrooms eat plants</span><b id="eatVal"></b></div>
+      <input id="fungusEat" type="range" min="0" max="5" step="1" aria-label="How fast mushrooms eat plants">
+    </div>
     <select id="rule" class="b" aria-label="How virus grows">
       <option value="B3/S23">Virus: Classic</option>
       <option value="B36/S23">Virus: HighLife</option>
@@ -253,7 +259,7 @@ body.land .sl,body.land .sizeRow{touch-action:none}
     <div class="sub">Tap the goal card to show or hide the hint.</div>
   </div>
   <button class="b" id="exitBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v8"/><path d="M6.6 7.2a7.6 7.6 0 1 0 10.8 0"/></svg>Exit</button>
-  <div class="sub">Your sandbox is saved automatically. Drag the round buttons to move them.</div>
+  <div class="sub" id="exitNote">Your sandbox is saved automatically. Drag the round buttons to move them.</div>
 </div>
 
 <div id="toast"></div>
@@ -308,6 +314,7 @@ let openEdges = false;   // the player's choice (sandbox)
 let edgesOpen = false;   // what the simulation uses right now (challenges always have solid edges)
 let virusP = .5;         // chance per tick that virus eats a plant it touches
 let fungusK = 1;         // fungus growth speed multiplier (Nature slider)
+let eatK = .15;          // how fast mushrooms eat plants (Nature slider)
 let steamDec = 1.76;     // steam "heat" lost per tick (bigger = turns to water sooner)
 let steamWater = .6;     // chance a cooled steam cell becomes water (otherwise it vanishes)
 const ORTH = [[1,0],[-1,0],[0,1],[0,-1]];
@@ -524,7 +531,7 @@ function stepWorld(){
               const j=idx(x+dx,y+dy); if(j<0) continue;
               const o=type[j];
               if ((o===SALT||o===BRINE) && rnd()<.03){ set(i,E); break; }           // salt slowly kills it
-              const g = o===STEAM ? .45 : o===PLANT||o===SEED ? .12 : o===VIRUS ? .2 : o===WATER ? .006 : 0;
+              const g = o===STEAM ? .45 : o===PLANT||o===SEED ? .12*eatK : o===VIRUS ? .2 : o===WATER ? .006 : 0;
               if (g && rnd() < g*fungusK) set(j,FUNGUS);                             // grows into steam, eats plants & virus
             }
             if (type[i]===FUNGUS && fungusK>0 && rnd() < .004*fungusK){            // puffs out a spore into open air
@@ -1195,6 +1202,8 @@ const VIRUS_DEF = 9, STEAM_SECS = [0.5,1,1.5,2,3,5,8,12,20,30], STEAM_DEF = 2, S
 let virusLevel = VIRUS_DEF, steamLevel = STEAM_DEF, steamPct = STEAM_PCT_DEF;
 const FUNGUS_K = [0,.25,.5,1,2,4], FUNGUS_NAMES = ["never","very slowly","slowly","normally","fast","very fast"], FUNGUS_DEF = 3;
 let fungusLevel = FUNGUS_DEF;
+const EAT_K = [0,.04,.15,.35,.65,1], EAT_NAMES = ["never","very slowly","slowly","steadily","fast","very fast"], EAT_DEF = 2;
+let eatLevel = EAT_DEF;
 try{
   const v = localStorage.getItem("sandfall.virusEat"), st = localStorage.getItem("sandfall.steamTime");
   if (v!==null) virusLevel = Math.max(0,Math.min(10,+v||0));
@@ -1203,6 +1212,8 @@ try{
   if (sp!==null) steamPct = Math.max(0,Math.min(100,Math.round((+sp||0)/10)*10));
   const fs = localStorage.getItem("sandfall.fungus");
   if (fs!==null) fungusLevel = Math.max(0,Math.min(5,+fs||0));
+  const fe = localStorage.getItem("sandfall.fungusEat");
+  if (fe!==null) eatLevel = Math.max(0,Math.min(5,+fe||0));
 }catch(e){}
 const virusChance = k => k<=0 ? 0 : Math.pow(.5, 10-k);       // 10 = always, 9 = half the time, ... 1 = rarely
 const fmtSec = t => (t<1 ? t.toFixed(1) : t>=10 ? Math.round(t) : t.toFixed(t%1 ? 1 : 0)) + " s";
@@ -1213,6 +1224,8 @@ function applyNature(){
   steamWater = (challenge ? STEAM_PCT_DEF : steamPct) / 100;
   $("steamPct").value = steamPct; $("steamPctVal").textContent = steamPct + "%";
   fungusK = FUNGUS_K[challenge ? FUNGUS_DEF : fungusLevel];
+  eatK = EAT_K[challenge ? EAT_DEF : eatLevel];
+  $("fungusEat").value = eatLevel; $("eatVal").textContent = EAT_NAMES[eatLevel];
   $("fungusSpeed").value = fungusLevel; $("fungusVal").textContent = FUNGUS_NAMES[fungusLevel];
   $("virusEat").value = virusLevel; $("steamTime").value = steamLevel;
   const p = virusChance(virusLevel);
@@ -1220,6 +1233,7 @@ function applyNature(){
   $("steamVal").textContent = "after ~" + fmtSec(STEAM_SECS[steamLevel]);
 }
 $("virusEat").oninput=()=>{ virusLevel=+$("virusEat").value; applyNature(); try{ localStorage.setItem("sandfall.virusEat",virusLevel); }catch(e){} };
+$("fungusEat").oninput=()=>{ eatLevel=+$("fungusEat").value; applyNature(); try{ localStorage.setItem("sandfall.fungusEat",eatLevel); }catch(e){} };
 $("fungusSpeed").oninput=()=>{ fungusLevel=+$("fungusSpeed").value; applyNature(); try{ localStorage.setItem("sandfall.fungus",fungusLevel); }catch(e){} };
 $("steamPct").oninput=()=>{ steamPct=+$("steamPct").value; applyNature(); try{ localStorage.setItem("sandfall.steamPct",steamPct); }catch(e){} };
 $("steamTime").oninput=()=>{ steamLevel=+$("steamTime").value; applyNature(); try{ localStorage.setItem("sandfall.steamTime",steamLevel); }catch(e){} };
