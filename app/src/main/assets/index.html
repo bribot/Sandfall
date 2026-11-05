@@ -17,7 +17,11 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
   font:13px/1.3 system-ui,Roboto,"Segoe UI",sans-serif;user-select:none;-webkit-user-select:none;overscroll-behavior:none;touch-action:none}
-canvas#c{position:absolute;left:0;top:0;display:block;touch-action:none}
+canvas#c{position:absolute;left:0;top:0;display:block;touch-action:none;transform-origin:0 0}
+canvas#c.zoomed{image-rendering:pixelated}
+#elBtn .hand{display:none;font-size:30px;line-height:1}
+#elBtn.panning .sw{display:none}
+#elBtn.panning .hand{display:block}
 button{font:inherit;color:inherit}
 .glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px) saturate(1.3);-webkit-backdrop-filter:blur(10px) saturate(1.3);
   box-shadow:0 8px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08)}
@@ -76,7 +80,7 @@ body.menuopen #goal{opacity:0;pointer-events:none}   /* keep the goal card from 
 
 /* --- phone held sideways: the app stays portrait, but the interface turns to stay upright --- */
 :root{--r:0deg}
-.fab,#elBtn .sw,#optBtn svg,#overlay .card{rotate:var(--r);transition:rotate .3s}
+.fab,#elBtn .sw,#elBtn .hand,#optBtn svg,#overlay .card{rotate:var(--r);transition:rotate .3s}
 body.land #top{left:auto;top:50%;transform:translateY(-50%);flex-direction:column}
 body.land[data-rot="90"] #top{right:calc(var(--ir) + 10px)}
 body.land[data-rot="-90"] #top{left:calc(var(--il) + 10px);flex-direction:column-reverse}
@@ -101,6 +105,18 @@ body.land #optMenu:has(#sandboxOnly.hidden) #exitBtn{break-before:column;width:c
 body.land #elMenu .cat:not(:first-child){margin-top:8px}
 body.land #elMenu .el{padding:6px 0 4px}
 body.land #elMenu .sw{width:28px;height:28px}
+body.land #elMenu .sizeRow{margin-top:2px}
+body.land #elMenu .b{min-height:38px;padding:8px 6px}
+@media (max-width:390px){                                    /* small phones held sideways: tighter elements menu */
+  body.land #elMenu{padding:8px 10px}
+  body.land #elMenu .cat{margin:0 2px 4px}
+  body.land #elMenu .cat:not(:first-child){margin-top:5px}
+  body.land #elMenu #palette .cat:first-child{margin-bottom:8px}
+  body.land #elMenu .grid4{gap:4px}
+  body.land #elMenu .el{padding:4px 0 3px;gap:2px;font-size:10px}
+  body.land #elMenu .sw{width:22px;height:22px}
+  body.land #elMenu .b{min-height:32px;padding:6px 4px}
+}
 .el{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0 6px;border-radius:14px;
   background:var(--tile);border:1px solid transparent;font-size:11px;cursor:pointer}
 .el:active{transform:scale(.94)}
@@ -157,6 +173,7 @@ body.land .sl,body.land .sizeRow{touch-action:none}
   <button class="fab" id="play" aria-label="Pause"></button>
   <button class="fab" id="step" aria-label="One step"><svg viewBox="0 0 24 24"><path d="M5 5l10 7-10 7z"/><rect x="16" y="5" width="3" height="14" rx="1"/></svg></button>
   <button class="fab" id="speed" aria-label="Speed">1×</button>
+  <button class="fab hidden" id="zoomReset" aria-label="Zoom out"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l5 5M7.5 10.5h6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
   <button class="fab" id="undo" aria-label="Undo" disabled><svg viewBox="0 0 24 24"><path d="M9 7L4.5 11.5 9 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11.5h9a5 5 0 0 1 0 10h-3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
 </div>
 
@@ -166,7 +183,7 @@ body.land .sl,body.land .sizeRow{touch-action:none}
   <div class="gr"><span id="goalText"></span><div id="bar"><div></div></div><span id="timer"></span></div>
 </div>
 
-<button class="corner glass" id="elBtn" aria-label="Elements"><span class="sw"></span><span class="bud"></span></button>
+<button class="corner glass" id="elBtn" aria-label="Elements"><span class="sw"></span><span class="hand">✋</span><span class="bud"></span></button>
 <button class="corner glass" id="optBtn" aria-label="Options">
   <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>
 </button>
@@ -183,6 +200,9 @@ body.land .sl,body.land .sizeRow{touch-action:none}
     <div class="row">
       <button class="b" data-shape="rect">▢ Box</button>
       <button class="b" data-shape="frect">■ Fill</button>
+    </div>
+    <div class="row">
+      <button class="b" data-shape="pan">✋ Move &amp; zoom</button>
     </div>
   </div>
   <div class="row sizeRow"><span id="sizeDot"><i></i></span><input id="size" type="range" min="0" max="12" value="4" aria-label="Brush size"></div>
@@ -1025,6 +1045,7 @@ function toast(msg){ const el=$("toast"); el.textContent=msg; el.classList.add("
 function selectTool(t, quiet){
   if (challenge && !(t in budget)) return;
   tool=t;
+  if (shape==="pan") setShape("brush");          // picking an element means you want to draw again
   for (const k in elBtns) elBtns[k].classList.toggle("on", +k===t);
   $("elBtn").querySelector(".sw").style.background = INFO[t][2];
   refreshPalette();
@@ -1043,9 +1064,14 @@ function refreshPalette(){
   const show = challenge && budget[tool]!==undefined && budget[tool]!==Infinity;
   cb.classList.toggle("show", !!show); cb.textContent = show ? budget[tool] : "";
 }
+function setShape(sh){
+  shape=sh;
+  document.querySelectorAll("[data-shape]").forEach(o=>o.classList.toggle("on",o.dataset.shape===sh));
+  $("elBtn").classList.toggle("panning", sh==="pan");
+}
 document.querySelectorAll("[data-shape]").forEach(b=>b.onclick=()=>{
-  shape=b.dataset.shape;
-  document.querySelectorAll("[data-shape]").forEach(o=>o.classList.toggle("on",o===b));
+  setShape(b.dataset.shape);
+  if (shape==="pan"){ closeMenus(); toast("Move & zoom: drag to move, pinch to zoom, double-tap to reset"); }
 });
 const sizeEl=$("size");
 function showSize(){ const d=4+brush*1.7; const i=$("sizeDot").firstElementChild; i.style.width=i.style.height=d+"px"; }
@@ -1238,9 +1264,68 @@ function commitShape(a,b,t){
   }
   refreshPalette();
 }
+// --- Move & zoom tool: one finger pans, two fingers pinch-zoom (1x-8x), double-tap resets ---
+let vz=1, vtx=0, vty=0, pinch=null, panLast=null, lastTap=0, tapMoved=false, tapStart=null;
+const ptrs=new Map();
+function baseRect(){ return { L:parseFloat(cv.style.left)||0, T:parseFloat(cv.style.top)||0,
+                             w:parseFloat(cv.style.width)||innerWidth, h:parseFloat(cv.style.height)||innerHeight }; }
+function applyView(){
+  const b=baseRect();
+  vz=Math.max(1, Math.min(8, vz));
+  vtx=Math.min(0, Math.max(b.w - b.w*vz, vtx));            // never pan past the edge of the world
+  vty=Math.min(0, Math.max(b.h - b.h*vz, vty));
+  const z = vz > 1.001;
+  cv.style.transform = z ? `translate(${vtx}px,${vty}px) scale(${vz})` : "";
+  cv.classList.toggle("zoomed", z);
+  $("zoomReset").classList.toggle("hidden", !z);
+}
+function resetView(){ vz=1; vtx=vty=0; applyView(); }
+$("zoomReset").onclick=()=>resetView();
+addEventListener("resize",()=>applyView());
+function startPinch(){
+  const [a,b]=[...ptrs.values()];
+  pinch={ d0:Math.hypot(a.x-b.x,a.y-b.y)||1, mx:(a.x+b.x)/2, my:(a.y+b.y)/2, z0:vz, tx0:vtx, ty0:vty };
+}
+function viewDown(e){
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  try{ cv.setPointerCapture(e.pointerId); }catch(err){}
+  if (ptrs.size===2){ startPinch(); panLast=null; tapMoved=true; }
+  else if (ptrs.size===1){ panLast={x:e.clientX,y:e.clientY}; tapStart={x:e.clientX,y:e.clientY}; tapMoved=false; }
+}
+function viewMove(e){
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if (ptrs.size>=2 && pinch){
+    const [a,b]=[...ptrs.values()], B=baseRect();
+    const d=Math.hypot(a.x-b.x,a.y-b.y), mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+    const ux=(pinch.mx - B.L - pinch.tx0)/pinch.z0, uy=(pinch.my - B.T - pinch.ty0)/pinch.z0;   // world point under the fingers
+    vz=Math.max(1, Math.min(8, pinch.z0*d/pinch.d0));
+    vtx=mx - B.L - ux*vz; vty=my - B.T - uy*vz;
+    applyView();
+  } else if (panLast){
+    vtx+=e.clientX-panLast.x; vty+=e.clientY-panLast.y; panLast={x:e.clientX,y:e.clientY};
+    if (tapStart && Math.hypot(e.clientX-tapStart.x, e.clientY-tapStart.y) > 8) tapMoved=true;
+    applyView();
+  }
+}
+function viewUp(e){
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.delete(e.pointerId);
+  if (ptrs.size<2) pinch=null;
+  if (ptrs.size===1){ const [a]=[...ptrs.values()]; panLast={x:a.x,y:a.y}; }
+  if (ptrs.size===0){
+    panLast=null;
+    if (!tapMoved && e.type==="pointerup"){
+      const now=Date.now();
+      if (now-lastTap < 320){ resetView(); lastTap=0; } else lastTap=now;
+    }
+  }
+}
+
 let swallow=false;   // a touch that only closed a menu doesn't paint
 cv.addEventListener("contextmenu",e=>e.preventDefault());
 cv.addEventListener("pointerdown",e=>{
+  if (shape==="pan"){ if (e.isPrimary && closeMenus()) return; viewDown(e); return; }
   if (!e.isPrimary) return;
   if (closeMenus()){ swallow=true; return; }
   swallow=false;
@@ -1251,6 +1336,7 @@ cv.addEventListener("pointerdown",e=>{
   else preview={a:p,b:p};
 });
 cv.addEventListener("pointermove",e=>{
+  if (ptrs.size){ viewMove(e); return; }
   if (!e.isPrimary || !drawing) return;
   const p=gridPos(e);
   if (shape==="brush"){ lineCells(last,p,(x,y)=>disk(x,y,tool)); last=p; refreshPalette(); }
@@ -1261,8 +1347,8 @@ function endDraw(e){
   if (drawing && preview) commitShape(preview.a,preview.b,tool);
   drawing=false; preview=null; swallow=false;
 }
-cv.addEventListener("pointerup",endDraw);
-cv.addEventListener("pointercancel",e=>{ if(!e.isPrimary) return; drawing=false; preview=null; });
+cv.addEventListener("pointerup",e=>{ if (ptrs.size){ viewUp(e); return; } endDraw(e); });
+cv.addEventListener("pointercancel",e=>{ if (ptrs.size){ viewUp(e); return; } if(!e.isPrimary) return; drawing=false; preview=null; });
 
 // =====================================================================
 //  Challenges  (laid out in fractions of the screen so they fit any phone)
