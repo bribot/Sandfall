@@ -40,6 +40,8 @@ button{font:inherit;color:inherit}
 #bar{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}
 #bar div{height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#5fe0a0,#b6f36b);transition:width .25s}
 #goal.min .d{display:none}
+#goal{transition:opacity .16s}
+body.menuopen #goal{opacity:0;pointer-events:none}   /* keep the goal card from showing through an open menu */
 
 /* --- corner buttons --- */
 .corner{position:absolute;bottom:calc(var(--ib) + 18px);width:62px;height:62px;border-radius:50%;z-index:6;cursor:pointer;padding:0;
@@ -89,7 +91,12 @@ body.land .brushRows{display:flex;gap:6px}
 body.land .brushRows .row{flex:1;margin-top:0!important}
 body.land #optMenu .sl{break-inside:avoid;margin-bottom:9px}
 body.land #optMenu > button.b,body.land #sandboxOnly > button.b,body.land #challengeOnly > button.b,body.land #optMenu select.b{display:block;width:100%}
-body.land #optMenu > .mclose{display:grid;width:30px;right:auto;left:calc(12px + (100% - 52px)/3 - 30px)}   /* top-right of the first column, beside the mode menu */
+body.land #optMenu > .mclose{display:grid;width:30px}
+/* sideways options: fixed column starts, and the item that starts the last column leaves room for the x */
+body.land #worldLbl{break-before:column}
+body.land #steamPctBox{break-before:column;margin-right:40px}
+body.land #challengeOnly:not(.hidden){break-before:column}
+body.land #optMenu:has(#sandboxOnly.hidden) #exitBtn{break-before:column;width:calc(100% - 40px)}
 body.land #elMenu .cat:not(:first-child){margin-top:8px}
 body.land #elMenu .el{padding:6px 0 4px}
 body.land #elMenu .sw{width:28px;height:28px}
@@ -189,7 +196,7 @@ body.land .sl,body.land .sizeRow{touch-action:none}
     <div class="lbl">Screen edges</div>
     <div class="row"><button class="b on" id="edgeWall"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8.5" y="8.5" width="7" height="7" rx="1" fill="currentColor" stroke="none"/></svg>Solid</button><button class="b" id="edgeOpen"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="3.2 2.6"/></svg>Open</button></div>
     <div class="sub" id="edgeHint">Things pile up against the edges.</div>
-    <div class="lbl">World</div>
+    <div class="lbl" id="worldLbl">World</div>
     <div class="row"><button class="b" id="save">Save</button><button class="b" id="load">Load</button><button class="b" id="clear">Clear</button></div>
     <div class="lbl">Nature</div>
     <div class="sl">
@@ -200,7 +207,7 @@ body.land .sl,body.land .sizeRow{touch-action:none}
       <div class="slab"><span>Steam turns to water</span><b id="steamVal"></b></div>
       <input id="steamTime" type="range" min="0" max="9" step="1" aria-label="How long until steam turns to water">
     </div>
-    <div class="sl">
+    <div class="sl" id="steamPctBox">
       <div class="slab"><span>Steam that becomes water</span><b id="steamPctVal"></b></div>
       <input id="steamPct" type="range" min="0" max="100" step="10" aria-label="Percentage of steam that turns back into water">
     </div>
@@ -844,10 +851,12 @@ function openMenu(name){
     if (on) placeMenu(k);
     menus[k][0].classList.toggle("open",on); menus[k][1].classList.toggle("open",on);
   }
+  document.body.classList.toggle("menuopen", Object.keys(menus).some(k=>menus[k][1].classList.contains("open")));
 }
 function closeMenus(){
   let was=false;
   for (const k in menus){ if (menus[k][1].classList.contains("open")) was=true; menus[k][0].classList.remove("open"); menus[k][1].classList.remove("open"); }
+  document.body.classList.remove("menuopen");
   return was;
 }
 // --- floating bubbles: drag the two round buttons anywhere; they drift to the nearest side ---
