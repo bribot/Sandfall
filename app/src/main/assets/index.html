@@ -89,6 +89,7 @@ body.land .brushRows{display:flex;gap:6px}
 body.land .brushRows .row{flex:1;margin-top:0!important}
 body.land #optMenu .sl{break-inside:avoid;margin-bottom:9px}
 body.land #optMenu > button.b,body.land #sandboxOnly > button.b,body.land #challengeOnly > button.b,body.land #optMenu select.b{display:block;width:100%}
+body.land #optMenu > .mclose{display:grid;width:30px;right:auto;left:calc(12px + (100% - 52px)/3 - 30px)}   /* top-right of the first column, beside the mode menu */
 body.land #elMenu .cat:not(:first-child){margin-top:8px}
 body.land #elMenu .el{padding:6px 0 4px}
 body.land #elMenu .sw{width:28px;height:28px}
@@ -120,6 +121,16 @@ select.b option{background:#161b2c}
 #sizeDot{flex:none;width:26px;height:26px;display:grid;place-items:center}
 #sizeDot i{display:block;border-radius:50%;background:var(--text)}
 input[type=range]{width:100%;accent-color:var(--accent);height:30px}
+/* little x to close a menu */
+.mclose{position:absolute;top:7px;right:7px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.08);
+  display:grid;place-items:center;padding:0;cursor:pointer;z-index:1}
+.mclose:active{background:var(--tile-h)}
+.mclose svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}
+#elMenu #palette .cat:first-child{margin-bottom:12px}
+#mode{width:calc(100% - 40px)!important}
+/* sideways, the game drags the sliders itself (Android's own dragging ignores the turn) */
+body.land .menu input[type=range]{pointer-events:none}
+body.land .sl,body.land .sizeRow{touch-action:none}
 
 #toast{position:absolute;bottom:calc(var(--ib) + 96px);left:50%;transform:translateX(-50%);background:rgba(12,15,28,.85);border:1px solid var(--line);
   border-radius:20px;padding:7px 14px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 170px);text-align:center;z-index:8}
@@ -152,6 +163,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 </button>
 
 <div id="elMenu" class="menu glass">
+  <button class="mclose" aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div id="palette"></div>
   <div class="cat">Brush</div>
   <div class="brushRows">
@@ -168,6 +180,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 </div>
 
 <div id="optMenu" class="menu glass">
+  <button class="mclose" aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <select id="mode" class="b" aria-label="Mode"></select>
   <div class="lbl">Gravity</div>
   <div class="row"><button class="b" id="tiltL" aria-label="Tilt left"><svg class="ic solo" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4.5v5h5"/><path d="M5.2 14.5a7.5 7.5 0 1 0 1.6-7.9L4 9.5"/></svg></button><div id="gravDial"><span>↓</span></div><button class="b" id="tiltR" aria-label="Tilt right"><svg class="ic solo" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4.5v5h-5"/><path d="M18.8 14.5a7.5 7.5 0 1 1-1.6-7.9L20 9.5"/></svg></button></div>
@@ -922,8 +935,30 @@ function applyRot(r){
   document.body.dataset.rot = r; document.body.classList.toggle("land", r!==0);
   document.documentElement.style.setProperty("--r", r+"deg");
   for (const k in menus) if (menus[k][1].classList.contains("open")) placeMenu(k);
-  placeGoal();
+  placeGoal(); setGrav(grav);
 }
+document.querySelectorAll(".mclose").forEach(b=>b.onclick=()=>closeMenus());
+// Sliders inside a turned menu: drag along the slider's turned length.
+document.querySelectorAll(".menu input[type=range]").forEach(inp=>{
+  const host=inp.parentElement; let pid=null;
+  const setFrom=e=>{
+    const r=inp.getBoundingClientRect();
+    let t = uiRot===90 ? (e.clientY-r.top)/r.height : (r.bottom-e.clientY)/r.height;   // min end is at the top when turned +90
+    t=Math.max(0,Math.min(1,t));
+    const min=+inp.min||0, max=+inp.max||100, step=+inp.step||1;
+    const v=Math.round((min+t*(max-min))/step)*step;
+    if (+inp.value!==v){ inp.value=v; inp.dispatchEvent(new Event("input",{bubbles:true})); }
+  };
+  host.addEventListener("pointerdown",e=>{
+    if (!uiRot) return;
+    const r=inp.getBoundingClientRect();
+    if (e.clientX<r.left-16 || e.clientX>r.right+16 || e.clientY<r.top-10 || e.clientY>r.bottom+10) return;
+    pid=e.pointerId; try{ host.setPointerCapture(pid); }catch(err){} e.preventDefault(); setFrom(e);
+  });
+  host.addEventListener("pointermove",e=>{ if (e.pointerId===pid) setFrom(e); });
+  const end=e=>{ if (e.pointerId===pid) pid=null; };
+  host.addEventListener("pointerup",end); host.addEventListener("pointercancel",end);
+});
 function placeGoal(){
   const g=$("goal"), st=g.style;
   if (!uiRot){ st.left=st.top=st.width=st.transform=""; return; }
@@ -1021,7 +1056,8 @@ $("speed").onclick=()=>{ speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length]; 
 function setGrav(g){
   grav=(g+8)&7;
   const ang=Math.atan2(DY[grav],DX[grav])*180/Math.PI-90;
-  $("gravDial").firstElementChild.style.transform=`rotate(${ang}deg)`;
+  // when the interface is turned sideways, undo that turn so the arrow points where gravity really goes
+  $("gravDial").firstElementChild.style.transform=`rotate(${ang-uiRot}deg)`;
 }
 $("tiltL").onclick=()=>setGrav(grav-1);
 $("tiltR").onclick=()=>setGrav(grav+1);
