@@ -292,7 +292,7 @@ const INFO = [
   ["Acid","Dissolves salt into nothing. Eats sand, soil and plants. Water dilutes it.","radial-gradient(circle at 35% 30%,#f4ffb0,#a8e030 50%,#4a7a08)"],
   ["Vat","Drips acid.","radial-gradient(circle at 35% 30%,#d8ff70,#5a6a3a 50%,#23281c)"],
   ["Spores","Float in the air. Turn steam into fungus and may sprout mushrooms on plants. Killed by fire, water, acid and salt.","radial-gradient(circle at 35% 30%,#fff4ff,#d7c2ec 45%,#8a74a8 80%)"],
-  ["Fungus","Grows into steam, eats plants and virus, slowly grows into water. Glows. Burns.","radial-gradient(circle at 35% 30%,#d8fff0,#5ed6b0 45%,#7a5a3e 80%)"],
+  ["Fungus","Grows into steam, eats plants and virus, slowly grows into water. Glows. Burns.","radial-gradient(circle at 35% 30%,#ffb2a6,#d8302a 45%,#8e8c94 82%)"],
   ["Mycelium","Indestructible. Releases spores into the air.","radial-gradient(circle at 35% 30%,#fffaf0,#c9b9a0 40%,#4a3a30 80%)"],
 ];
 const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM,ACID,SPORE].forEach(t=>GRAIN[t]=1);
@@ -812,13 +812,13 @@ function paintCells(){
         case FUNGUS: {
           const k=Math.min(d,14)*3.2;
           const streak = ((x*7 + (HASH[x]>>4)) % 5);                                   // vertical stalk fibres
-          r = 196 - streak*9 + (sh>>2) - k; g = 168 - streak*8 + (sh>>2) - k; b = 150 - streak*6 - k*.6;
-          if (hs<10){ r-=30; g-=34; b-=20; }                                               // darker gills
-          if (open || d<2){                                                                // glowing caps
+          r = 172 - streak*9 + (sh>>2) - k; g = 170 - streak*9 + (sh>>2) - k; b = 176 - streak*8 - k;   // gray stalks
+          if (hs<10){ r-=30; g-=30; b-=28; }                                               // darker gills
+          if (open || d<3){                                                                // red caps with white spots
             const p=(SIN[(t*2 + x*9 + y*5)&255]+1)*.5;
-            r = 70 + 50*p; g = 220 + 35*p; b = 180 + 40*p; e = 70 + 50*p;
-            if (hs<28){ r=240; g=250; b=235; }
-          } else e = 18;
+            r = 205 + 35*p; g = 38 + 22*p; b = 36 + 18*p; e = 30 + 30*p;
+            if (hs<28){ r=246; g=238; b=232; e=20; }
+          } else e = 0;
           break;
         }
         case MYCELIUM: {
