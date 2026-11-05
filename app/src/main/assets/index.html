@@ -545,7 +545,7 @@ function stepWorld(){
             if (hot && rnd()<.6){ set(i,E); break; }
           }
           if (life[i]===0 && fungusK>0 && rnd() < .004){                          // starving: dies, leaving soil, nothing or (rarely) a seed
-            const r=rnd(); set(i, r<.5 ? SOIL : r<.92 ? E : SEED); break;
+            const r=rnd(); set(i, r<.7 ? E : r<.93 ? SOIL : SEED); break;   // nothing 70%, soil 23%, seed 7%
           }
           if (rnd()<.35){
             for (const [dx,dy] of ORTH){
