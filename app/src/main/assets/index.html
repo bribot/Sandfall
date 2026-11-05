@@ -29,6 +29,7 @@ button{font:inherit;color:inherit}
   box-shadow:0 4px 16px rgba(0,0,0,.35);transition:transform .1s,background .15s;font-weight:700;font-size:14px}
 .fab:active{transform:scale(.9)}
 .fab svg{width:20px;height:20px;fill:currentColor}
+.fab:disabled{opacity:.35}
 #play.paused{background:rgba(255,176,87,.35);border-color:rgba(255,190,120,.6)}
 
 /* --- challenge goal --- */
@@ -156,6 +157,7 @@ body.land .sl,body.land .sizeRow{touch-action:none}
   <button class="fab" id="play" aria-label="Pause"></button>
   <button class="fab" id="step" aria-label="One step"><svg viewBox="0 0 24 24"><path d="M5 5l10 7-10 7z"/><rect x="16" y="5" width="3" height="14" rx="1"/></svg></button>
   <button class="fab" id="speed" aria-label="Speed">1×</button>
+  <button class="fab" id="undo" aria-label="Undo" disabled><svg viewBox="0 0 24 24"><path d="M9 7L4.5 11.5 9 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11.5h9a5 5 0 0 1 0 10h-3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
 </div>
 
 <div id="goal" class="glass">
@@ -1071,7 +1073,7 @@ function setGrav(g){
 $("tiltL").onclick=()=>setGrav(grav-1);
 $("tiltR").onclick=()=>setGrav(grav+1);
 $("rule").onchange=e=>setRule(e.target.value);
-$("clear").onclick=()=>{ clearWorld(); closeMenus(); toast("World cleared"); };
+$("clear").onclick=()=>{ pushUndo(); clearWorld(); closeMenus(); toast("World cleared — Undo brings it back"); };
 function clearWorld(){ type.fill(E); life.fill(0); lock.fill(0); }
 
 // --- screen edges: solid, or open so things fall off and disappear ---
@@ -1167,7 +1169,7 @@ $("load").onclick=()=>{
   try{
     const d=JSON.parse(localStorage.getItem("sandfall.save")||"null");
     if(!d){ toast("Nothing saved yet"); return; }
-    applyWorld(d); toast("World loaded"); closeMenus();
+    pushUndo(); applyWorld(d); toast("World loaded"); closeMenus();
   }catch(e){ toast("Couldn't load"); }
 };
 // The sandbox is saved whenever the app is left (and every 20 s), and restored on the next start.
@@ -1185,6 +1187,26 @@ function restoreAutosave(){
 document.addEventListener("visibilitychange",()=>{ if (document.hidden) autosave(); });
 addEventListener("pagehide",()=>autosave());
 setInterval(()=>autosave(), 20000);
+
+// --- undo: snapshots taken just before each stroke, Clear and Load (last 20) ---
+const UNDO_MAX = 20;
+let undoStack = [];
+function pushUndo(){
+  undoStack.push({ t:type.slice(), s:shade.slice(), l:life.slice(), g:grav,
+                   b: challenge ? Object.assign({}, budget) : null, rt: runTicks });
+  if (undoStack.length > UNDO_MAX) undoStack.shift();
+  $("undo").disabled = false;
+}
+function undo(){
+  const u = undoStack.pop(); if (!u) return;
+  type.set(u.t); shade.set(u.s); life.set(u.l); setGrav(u.g);
+  if (challenge && u.b){ budget = u.b; runTicks = u.rt; hold = 0; finished = false; $("overlay").style.display="none"; updateGoal(); }
+  refreshPalette();
+  $("undo").disabled = undoStack.length===0;
+  toast(undoStack.length ? `Undone (${undoStack.length} more)` : "Undone");
+}
+function resetUndo(){ undoStack = []; $("undo").disabled = true; }
+$("undo").onclick=()=>undo();
 
 // --- painting ---
 function gridPos(e){
@@ -1222,8 +1244,8 @@ cv.addEventListener("pointerdown",e=>{
   if (!e.isPrimary) return;
   if (closeMenus()){ swallow=true; return; }
   swallow=false;
-  cv.setPointerCapture(e.pointerId);
-  drawing=true;
+  try{ cv.setPointerCapture(e.pointerId); }catch(err){}
+  drawing=true; pushUndo();
   const p=gridPos(e); last=p;
   if (shape==="brush"){ disk(p.x,p.y,tool); refreshPalette(); }
   else preview={a:p,b:p};
@@ -1316,7 +1338,7 @@ modeSel.onchange=()=>{ startMode(+modeSel.value); closeMenus(); };
 
 let sandboxSnapshot=null;
 function startMode(n){
-  setRunning(false);
+  setRunning(false); resetUndo();
   $("overlay").style.display="none";
   if (n<0){
     challenge=null; clearWorld();

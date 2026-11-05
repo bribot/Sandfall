@@ -14,7 +14,7 @@ The whole screen is the play area, held upright (portrait).
 
 - **Elements bubble** (starts bottom left): the elements menu. Pick an element, and choose a brush (draw, line, box, filled box) and its size.
 - **Options bubble** (starts bottom right): the options menu: sandbox or challenges, gravity, tilt with your phone, screen edges, save/load/clear, how fast virus eats plants, how long steam takes to turn back into water and how much of it does, and how the virus grows.
-- **Top:** pause/play, step one frame, and speed (1×, 2×, 4×, ½×).
+- **Top:** pause/play, step one frame, speed (1×, 2×, 4×, ½×) and **undo**. Undo takes the world back to just before your last stroke (or Clear/Load), up to 20 steps; in a challenge it also gives back the elements that stroke used.
 - **Floating bubbles:** drag either round button anywhere; it drifts to the nearest side and its menu opens beside it. Positions are remembered.
 - **Holding the phone sideways:** the game stays portrait, but the interface turns to stay upright. Menus open in the middle of the screen using the long side, and the play/step/speed buttons move to the edge that is on top.
 - **Back button / gesture:** closes an open menu. With no menu open, press back twice to exit. There's also an **Exit** button at the bottom of the options menu.
