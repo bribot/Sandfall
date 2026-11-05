@@ -298,7 +298,7 @@ const INFO = [
   ["Acid","Dissolves salt into nothing. Eats sand, soil and plants. Water dilutes it.","radial-gradient(circle at 35% 30%,#f4ffb0,#a8e030 50%,#4a7a08)"],
   ["Vat","Drips acid.","radial-gradient(circle at 35% 30%,#d8ff70,#5a6a3a 50%,#23281c)"],
   ["Spores","Float in the air. Turn steam into fungus and may sprout mushrooms on plants. Killed by fire, water, acid and salt.","radial-gradient(circle at 35% 30%,#fff4ff,#d7c2ec 45%,#8a74a8 80%)"],
-  ["Fungus","Grows into steam, eats plants and virus, slowly grows into water. Glows. Burns.","radial-gradient(circle at 35% 30%,#ffb2a6,#d8302a 45%,#8e8c94 82%)"],
+  ["Fungus","Grows into steam, eats plants and virus, slowly grows into water. Withers into soil without food. Heat dries it out.","radial-gradient(circle at 35% 30%,#ffb2a6,#d8302a 45%,#8e8c94 82%)"],
   ["Mycelium","Indestructible. Releases spores into the air.","radial-gradient(circle at 35% 30%,#fffaf0,#c9b9a0 40%,#4a3a30 80%)"],
 ];
 const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM,ACID,SPORE].forEach(t=>GRAIN[t]=1);
@@ -315,6 +315,7 @@ let edgesOpen = false;   // what the simulation uses right now (challenges alway
 let virusP = .5;         // chance per tick that virus eats a plant it touches
 let fungusK = 1;         // fungus growth speed multiplier (Nature slider)
 let eatK = .15;          // how fast mushrooms eat plants (Nature slider)
+const FUNGUS_REACH = 30; // fungus stays alive up to this many cells from food
 let steamDec = 1.76;     // steam "heat" lost per tick (bigger = turns to water sooner)
 let steamWater = .6;     // chance a cooled steam cell becomes water (otherwise it vanishes)
 const ORTH = [[1,0],[-1,0],[0,1],[0,-1]];
@@ -323,7 +324,7 @@ const rnd = Math.random;
 
 function set(i, t){
   type[i] = t; shade[i] = (rnd()*16)|0;
-  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 100 + ((rnd()*100)|0) : t===SPORE ? 150 + ((rnd()*100)|0) : 0;
+  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 100 + ((rnd()*100)|0) : t===SPORE ? 150 + ((rnd()*100)|0) : t===FUNGUS ? FUNGUS_REACH : 0;
   stamp[i] = tk;
 }
 function vanish(i){ type[i]=E; life[i]=0; }
@@ -526,6 +527,24 @@ function stepWorld(){
           break;
         }
         case FUNGUS: {
+          // Food energy: full when touching steam, water, plants, seeds or virus, passed along the colony
+          // one step weaker per cell. Fungus cut off from food withers into soil.
+          let fed=false, best=0;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===STEAM||o===WATER||o===PLANT||o===SEED||o===VIRUS) fed=true;
+            else if (o===FUNGUS && life[j]>best) best=life[j];
+          }
+          life[i] = fed ? FUNGUS_REACH : best>0 ? best-1 : 0;
+          if (rnd()<.08){                                                          // heat nearby dries it out
+            let hot=false;
+            for (let dy=-3; dy<=3 && !hot; dy++) for (let dx=-3; dx<=3; dx++){
+              const j=idx(x+dx,y+dy); if (j>=0 && (type[j]===FIRE||type[j]===MAGMA)){ hot=true; break; }
+            }
+            if (hot && rnd()<.6){ set(i,E); break; }
+          }
+          if (life[i]===0 && fungusK>0 && rnd() < .004){ set(i,SOIL); break; }   // starving: crumbles into soil
           if (rnd()<.35){
             for (const [dx,dy] of ORTH){
               const j=idx(x+dx,y+dy); if(j<0) continue;
