@@ -76,7 +76,9 @@ body.menuopen #goal{opacity:0;pointer-events:none}   /* keep the goal card from 
 #optMenu.open{display:flex}
 .cat{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--dim);margin:2px 2px 7px}
 .cat:not(:first-child){margin-top:12px}
-.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.grid4{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.grid4 .sw{width:28px;height:28px}
+.grid4 .el{font-size:10.5px;padding:7px 0 5px}
 
 /* --- phone held sideways: the app stays portrait, but the interface turns to stay upright --- */
 :root{--r:0deg}
@@ -85,7 +87,7 @@ body.land #top{left:auto;top:50%;transform:translateY(-50%);flex-direction:colum
 body.land[data-rot="90"] #top{right:calc(var(--ir) + 10px)}
 body.land[data-rot="-90"] #top{left:calc(var(--il) + 10px);flex-direction:column-reverse}
 body.land #toast{top:50%;bottom:auto;transform:translate(-50%,-50%) rotate(var(--r));max-width:min(420px,calc(100vh - 60px))}
-body.land .grid4{grid-template-columns:repeat(8,1fr)}
+body.land .grid4{grid-template-columns:repeat(9,1fr)}
 body.land #optMenu.open{display:block;column-count:3;column-gap:14px}
 body.land #optMenu > *,body.land #sandboxOnly > *,body.land #challengeOnly > *{break-inside:avoid;margin-bottom:9px}
 body.land #sandboxOnly:not(.hidden),body.land #challengeOnly:not(.hidden){display:block!important}
@@ -233,6 +235,10 @@ body.land .sl,body.land .sizeRow{touch-action:none}
       <div class="slab"><span>Steam that becomes water</span><b id="steamPctVal"></b></div>
       <input id="steamPct" type="range" min="0" max="100" step="10" aria-label="Percentage of steam that turns back into water">
     </div>
+    <div class="sl">
+      <div class="slab"><span>Fungus grows</span><b id="fungusVal"></b></div>
+      <input id="fungusSpeed" type="range" min="0" max="5" step="1" aria-label="How fast fungus grows">
+    </div>
     <select id="rule" class="b" aria-label="How virus grows">
       <option value="B3/S23">Virus: Classic</option>
       <option value="B36/S23">Virus: HighLife</option>
@@ -262,7 +268,7 @@ body.land .sl,body.land .sizeRow{touch-action:none}
 // The grid is 180 cells wide and as tall as the screen's shape needs, so the play area fills the whole phone.
 const VW0 = innerWidth || screen.width, VH0 = innerHeight || screen.height;
 const W = 180, H = Math.max(200, Math.min(520, Math.ceil(W * VH0 / VW0))), N = W * H;
-const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20;
+const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20,SPORE=21,FUNGUS=22,MYCELIUM=23;
 const INFO = [
   ["Eraser","Removes anything.","radial-gradient(circle at 35% 30%,#3a4058,#141826)"],
   ["Wall","Blocks everything.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
@@ -285,10 +291,13 @@ const INFO = [
   ["Seeder","Grows plants when water touches it.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
   ["Acid","Dissolves salt into nothing. Eats sand, soil and plants. Water dilutes it.","radial-gradient(circle at 35% 30%,#f4ffb0,#a8e030 50%,#4a7a08)"],
   ["Vat","Drips acid.","radial-gradient(circle at 35% 30%,#d8ff70,#5a6a3a 50%,#23281c)"],
+  ["Spores","Float in the air. Turn steam into fungus. Killed by fire, water, acid and salt.","radial-gradient(circle at 35% 30%,#fff4ff,#d7c2ec 45%,#8a74a8 80%)"],
+  ["Fungus","Grows into steam, eats plants and virus, slowly grows into water. Glows. Burns.","radial-gradient(circle at 35% 30%,#d8fff0,#5ed6b0 45%,#7a5a3e 80%)"],
+  ["Mycelium","Indestructible. Releases spores into the air.","radial-gradient(circle at 35% 30%,#fffaf0,#c9b9a0 40%,#4a3a30 80%)"],
 ];
-const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM,ACID].forEach(t=>GRAIN[t]=1);
+const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM,ACID,SPORE].forEach(t=>GRAIN[t]=1);
 const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
-const FLAMMABLE = new Float32Array(32); FLAMMABLE[PLANT]=0.2; FLAMMABLE[OIL]=0.45; FLAMMABLE[SEED]=0.3; FLAMMABLE[VIRUS]=0.5;
+const FLAMMABLE = new Float32Array(32); FLAMMABLE[PLANT]=0.2; FLAMMABLE[OIL]=0.45; FLAMMABLE[SEED]=0.3; FLAMMABLE[VIRUS]=0.5; FLAMMABLE[FUNGUS]=0.25; FLAMMABLE[SPORE]=0.6;
 
 const type = new Uint8Array(N), shade = new Uint8Array(N), life = new Uint8Array(N);
 const stamp = new Uint16Array(N), lock = new Uint8Array(N), nb = new Uint8Array(N), depth = new Uint8Array(N);
@@ -298,6 +307,7 @@ let grav = 0;
 let openEdges = false;   // the player's choice (sandbox)
 let edgesOpen = false;   // what the simulation uses right now (challenges always have solid edges)
 let virusP = .5;         // chance per tick that virus eats a plant it touches
+let fungusK = 1;         // fungus growth speed multiplier (Nature slider)
 let steamDec = 1.76;     // steam "heat" lost per tick (bigger = turns to water sooner)
 let steamWater = .6;     // chance a cooled steam cell becomes water (otherwise it vanishes)
 const ORTH = [[1,0],[-1,0],[0,1],[0,-1]];
@@ -306,7 +316,7 @@ const rnd = Math.random;
 
 function set(i, t){
   type[i] = t; shade[i] = (rnd()*16)|0;
-  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 100 + ((rnd()*100)|0) : 0;
+  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 100 + ((rnd()*100)|0) : t===SPORE ? 150 + ((rnd()*100)|0) : 0;
   stamp[i] = tk;
 }
 function vanish(i){ type[i]=E; life[i]=0; }
@@ -319,7 +329,7 @@ function swap(i, j){
 function idx(x,y){ return (x<0||y<0||x>=W||y>=H) ? -1 : y*W+x; }
 function canDisplace(s, o){
   if (o===E) return true;
-  if (o===FIRE || o===STEAM) return DENS[s] > 0;
+  if (o===FIRE || o===STEAM || o===SPORE) return DENS[s] > 0;
   if (o===WATER || o===OIL || o===BRINE || o===ACID) {
     if (!(DENS[s] > DENS[o])) return false;
     return rnd() < (s===SALT && o===OIL ? 0.08 : 0.5);
@@ -452,7 +462,7 @@ function stepWorld(){
             let ate=false;
             if (o===SALT) ate=true;                                        // salt dissolves into nothing
             else if (o===BRINE && rnd()<.2){ set(j,WATER); if (rnd()<.5){ set(i,E); used=true; break; } continue; }   // takes the salt out
-            else if ((o===SAND||o===SOIL||o===PLANT||o===SEED||o===VIRUS) && rnd()<.02) ate=true;
+            else if ((o===SAND||o===SOIL||o===PLANT||o===SEED||o===VIRUS||o===FUNGUS||o===SPORE) && rnd()<.02) ate=true;
             else if (o===WATER && rnd()<.001){ set(i,WATER); used=true; break; }   // diluted
             if (ate){ set(j,E); if (rnd()<.5){ set(i,E); used=true; break; } }    // each bite may use the acid up
           }
@@ -490,6 +500,43 @@ function stepWorld(){
           }
           if (grew) break;
           steamMove(i,x,y,up);
+          break;
+        }
+        case SPORE: {
+          // floats on the air; turns steam into fungus; dies to fire, magma, water, acid, salt and brine; fades with time
+          let gone=false;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===STEAM){ set(j,FUNGUS); set(i,FUNGUS); gone=true; break; }
+            if (o===FIRE||o===MAGMA||o===WATER||o===ACID||o===SALT||o===BRINE){ set(i,E); gone=true; break; }
+          }
+          if (gone) break;
+          if (rnd()<.2){ if (life[i]<=1){ set(i,E); break; } life[i]--; }   // a spore lasts roughly 10-20 s
+          const r=rnd();
+          if (r<.3) gas(i,x,y,grav); else if (r<.42) gas(i,x,y,up); else if (r<.62) gas(i,x,y,grav+2); else if (r<.82) gas(i,x,y,grav+6);
+          break;
+        }
+        case FUNGUS: {
+          if (rnd()<.35){
+            for (const [dx,dy] of ORTH){
+              const j=idx(x+dx,y+dy); if(j<0) continue;
+              const o=type[j];
+              if ((o===SALT||o===BRINE) && rnd()<.03){ set(i,E); break; }           // salt slowly kills it
+              const g = o===STEAM ? .45 : o===PLANT||o===SEED ? .12 : o===VIRUS ? .2 : o===WATER ? .006 : 0;
+              if (g && rnd() < g*fungusK) set(j,FUNGUS);                             // grows into steam, eats plants & virus
+            }
+            if (type[i]===FUNGUS && fungusK>0 && rnd() < .004*fungusK){            // puffs out a spore into open air
+              const k=up + (((rnd()*3)|0)-1);
+              const j=idx(x+DX[(k+8)&7], y+DY[(k+8)&7]);
+              if (j>=0 && type[j]===E) set(j,SPORE);
+            }
+          }
+          break;
+        }
+        case MYCELIUM: {
+          const k=up + (((rnd()*3)|0)-1);
+          emit(i,x,y,SPORE,.025,(k+8)&7);
           break;
         }
         case VIRUS: {
@@ -754,6 +801,30 @@ function paintCells(){
           const v = (SIN[(x*11 + t*2)&255] + SIN[(y*13 - t*3 + x*3)&255]) * .5;
           if (v < -0.45){ r=96; g=26; b=18; e=60; }
           else { const q=(v+1)*.5; r = 210 + 45*q; g = 50 + 160*q*q; b = 12 + 60*q*q*q; e = 120 + 135*q; }
+          break;
+        }
+        case SPORE: {
+          const p=(SIN[(t*6 + i*13)&255]+1)*.5;
+          r = 225 + 25*p; g = 205 + 30*p; b = 240; a = 150 + 80*p; e = 40 + 40*p;       // faint glowing dust
+          break;
+        }
+        case FUNGUS: {
+          const k=Math.min(d,14)*3.2;
+          const streak = ((x*7 + (HASH[x]>>4)) % 5);                                   // vertical stalk fibres
+          r = 196 - streak*9 + (sh>>2) - k; g = 168 - streak*8 + (sh>>2) - k; b = 150 - streak*6 - k*.6;
+          if (hs<10){ r-=30; g-=34; b-=20; }                                               // darker gills
+          if (open || d<2){                                                                // glowing caps
+            const p=(SIN[(t*2 + x*9 + y*5)&255]+1)*.5;
+            r = 70 + 50*p; g = 220 + 35*p; b = 180 + 40*p; e = 70 + 50*p;
+            if (hs<28){ r=240; g=250; b=235; }
+          } else e = 18;
+          break;
+        }
+        case MYCELIUM: {
+          const thread = ((x*3 + y*5 + (hs>>5)) % 7 === 0) || ((x + y*2) % 9 === 0);
+          if (thread){ const p=(SIN[(t*2 + x*5 + y*3)&255]+1)*.5; r=235; g=228; b=214; e=20+30*p; }
+          else { r=62+(sh>>2); g=50+(sh>>2); b=46; }
+          if (open){ r+=18; g+=16; b+=14; }
           break;
         }
         case VAT: {
@@ -1028,7 +1099,7 @@ $("exitBtn").onclick=()=>{
 };
 
 const palette = $("palette");
-const groups = [["Elements",[SAND,WATER,BRINE,OIL,ACID,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,VAT,E]]];
+const groups = [["Elements",[SAND,WATER,BRINE,OIL,ACID,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,SPORE,FUNGUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,VAT,MYCELIUM,E]]];
 const elBtns = {};
 for (const [g,list] of groups){
   const h=document.createElement("div"); h.className="cat"; h.textContent=g; palette.appendChild(h);
@@ -1121,12 +1192,16 @@ try{ openEdges = localStorage.getItem("sandfall.edges")==="open"; }catch(e){}
 // --- nature sliders (sandbox only; challenges use the defaults) ---
 const VIRUS_DEF = 9, STEAM_SECS = [0.5,1,1.5,2,3,5,8,12,20,30], STEAM_DEF = 2, STEAM_PCT_DEF = 60;
 let virusLevel = VIRUS_DEF, steamLevel = STEAM_DEF, steamPct = STEAM_PCT_DEF;
+const FUNGUS_K = [0,.25,.5,1,2,4], FUNGUS_NAMES = ["never","very slowly","slowly","normally","fast","very fast"], FUNGUS_DEF = 3;
+let fungusLevel = FUNGUS_DEF;
 try{
   const v = localStorage.getItem("sandfall.virusEat"), st = localStorage.getItem("sandfall.steamTime");
   if (v!==null) virusLevel = Math.max(0,Math.min(10,+v||0));
   if (st!==null) steamLevel = Math.max(0,Math.min(9,+st||0));
   const sp = localStorage.getItem("sandfall.steamPct");
   if (sp!==null) steamPct = Math.max(0,Math.min(100,Math.round((+sp||0)/10)*10));
+  const fs = localStorage.getItem("sandfall.fungus");
+  if (fs!==null) fungusLevel = Math.max(0,Math.min(5,+fs||0));
 }catch(e){}
 const virusChance = k => k<=0 ? 0 : Math.pow(.5, 10-k);       // 10 = always, 9 = half the time, ... 1 = rarely
 const fmtSec = t => (t<1 ? t.toFixed(1) : t>=10 ? Math.round(t) : t.toFixed(t%1 ? 1 : 0)) + " s";
@@ -1136,12 +1211,15 @@ function applyNature(){
   steamDec = 150 / (STEAM_SECS[sk]*60);                          // a steam cell starts with ~150 heat
   steamWater = (challenge ? STEAM_PCT_DEF : steamPct) / 100;
   $("steamPct").value = steamPct; $("steamPctVal").textContent = steamPct + "%";
+  fungusK = FUNGUS_K[challenge ? FUNGUS_DEF : fungusLevel];
+  $("fungusSpeed").value = fungusLevel; $("fungusVal").textContent = FUNGUS_NAMES[fungusLevel];
   $("virusEat").value = virusLevel; $("steamTime").value = steamLevel;
   const p = virusChance(virusLevel);
   $("virusVal").textContent = p===0 ? "never" : p>=.25 ? "instantly" : "in ~" + fmtSec(1/(p*60));
   $("steamVal").textContent = "after ~" + fmtSec(STEAM_SECS[steamLevel]);
 }
 $("virusEat").oninput=()=>{ virusLevel=+$("virusEat").value; applyNature(); try{ localStorage.setItem("sandfall.virusEat",virusLevel); }catch(e){} };
+$("fungusSpeed").oninput=()=>{ fungusLevel=+$("fungusSpeed").value; applyNature(); try{ localStorage.setItem("sandfall.fungus",fungusLevel); }catch(e){} };
 $("steamPct").oninput=()=>{ steamPct=+$("steamPct").value; applyNature(); try{ localStorage.setItem("sandfall.steamPct",steamPct); }catch(e){} };
 $("steamTime").oninput=()=>{ steamLevel=+$("steamTime").value; applyNature(); try{ localStorage.setItem("sandfall.steamTime",steamLevel); }catch(e){} };
 applyEdges();

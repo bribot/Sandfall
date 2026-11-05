@@ -14,7 +14,7 @@ The whole screen is the play area, held upright (portrait).
 
 - **Elements bubble** (starts bottom left): the elements menu. Pick an element, and choose a brush (draw, line, box, filled box) and its size.
 - **Move & zoom** (in the brush section): drag with one finger to move around, pinch to zoom in up to 8×, double-tap to zoom back out. The zoom stays when you go back to drawing, so you can draw precisely; the magnifier button in the top bar zooms back out.
-- **Options bubble** (starts bottom right): the options menu: sandbox or challenges, gravity, tilt with your phone, screen edges, save/load/clear, how fast virus eats plants, how long steam takes to turn back into water and how much of it does, and how the virus grows.
+- **Options bubble** (starts bottom right): the options menu: sandbox or challenges, gravity, tilt with your phone, screen edges, save/load/clear, how fast virus eats plants, how fast fungus grows, how long steam takes to turn back into water and how much of it does, and how the virus grows.
 - **Top:** pause/play, step one frame, speed (1×, 2×, 4×, ½×) and **undo**. Undo takes the world back to just before your last stroke (or Clear/Load), up to 20 steps; in a challenge it also gives back the elements that stroke used.
 - **Floating bubbles:** drag either round button anywhere; it drifts to the nearest side and its menu opens beside it. Positions are remembered.
 - **Holding the phone sideways:** the game stays portrait, but the interface turns to stay upright. Menus open in the middle of the screen using the long side, and the play/step/speed buttons move to the edge that is on top.
@@ -35,9 +35,12 @@ The whole screen is the play area, held upright (portrait).
 | Salt | Piles up, sinks slowly through oil, dissolves in water into brine, kills virus, makes flames burn yellow, melts away on magma |
 | Soil | Solid ground |
 | Virus | Lives by Life rules (B3/S23 by default) in air and water. Eats any plant it touches |
+| Spores | Float in the air and slowly sink; fade after 10-20 s. Turn steam they touch into fungus. Killed by fire, magma, water, acid, salt and brine |
+| Fungus | Glowing mushrooms. Grows into steam, eats plants, seeds and virus, slowly grows into water (water doesn't kill it). Puffs out spores into open air. Burns; acid eats it; salt and brine slowly kill it |
 | Wall | Blocks everything |
 | Cloud / Magma / Shaker / Spill / Toxin | Generators that make water / fire / salt / oil / virus. Magma also sets fire to anything flammable touching it, boils water and brine, and melts salt |
 | Vat | Generator that drips acid. Acid can't eat it |
+| Mycelium | Generator that releases spores into the air. Indestructible: only the Eraser removes it |
 | Seeder | Drops nothing. Water that touches it turns into plants, which then keep growing into nearby water |
 
 - **Nature sliders:** *Virus eats plants* goes from never to instantly; *Steam turns to water* goes from about half a second to 30 seconds; *Steam that becomes water* sets how much of it comes back as water (0–100%, default 60%) instead of vanishing. Like screen edges, they only apply in the sandbox; challenges use the defaults.
