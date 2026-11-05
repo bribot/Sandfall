@@ -291,7 +291,7 @@ const INFO = [
   ["Seeder","Grows plants when water touches it.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
   ["Acid","Dissolves salt into nothing. Eats sand, soil and plants. Water dilutes it.","radial-gradient(circle at 35% 30%,#f4ffb0,#a8e030 50%,#4a7a08)"],
   ["Vat","Drips acid.","radial-gradient(circle at 35% 30%,#d8ff70,#5a6a3a 50%,#23281c)"],
-  ["Spores","Float in the air. Turn steam into fungus. Killed by fire, water, acid and salt.","radial-gradient(circle at 35% 30%,#fff4ff,#d7c2ec 45%,#8a74a8 80%)"],
+  ["Spores","Float in the air. Turn steam into fungus and may sprout mushrooms on plants. Killed by fire, water, acid and salt.","radial-gradient(circle at 35% 30%,#fff4ff,#d7c2ec 45%,#8a74a8 80%)"],
   ["Fungus","Grows into steam, eats plants and virus, slowly grows into water. Glows. Burns.","radial-gradient(circle at 35% 30%,#d8fff0,#5ed6b0 45%,#7a5a3e 80%)"],
   ["Mycelium","Indestructible. Releases spores into the air.","radial-gradient(circle at 35% 30%,#fffaf0,#c9b9a0 40%,#4a3a30 80%)"],
 ];
@@ -509,6 +509,7 @@ function stepWorld(){
             const j=idx(x+dx,y+dy); if(j<0) continue;
             const o=type[j];
             if (o===STEAM){ set(j,FUNGUS); set(i,FUNGUS); gone=true; break; }
+            if ((o===PLANT||o===SEED) && rnd() < .12*fungusK){ set(i,FUNGUS); gone=true; break; }   // a mushroom sprouts on the plant
             if (o===FIRE||o===MAGMA||o===WATER||o===ACID||o===SALT||o===BRINE){ set(i,E); gone=true; break; }
           }
           if (gone) break;

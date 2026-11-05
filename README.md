@@ -35,7 +35,7 @@ The whole screen is the play area, held upright (portrait).
 | Salt | Piles up, sinks slowly through oil, dissolves in water into brine, kills virus, makes flames burn yellow, melts away on magma |
 | Soil | Solid ground |
 | Virus | Lives by Life rules (B3/S23 by default) in air and water. Eats any plant it touches |
-| Spores | Float in the air and slowly sink; fade after 10-20 s. Turn steam they touch into fungus. Killed by fire, magma, water, acid, salt and brine |
+| Spores | Float in the air and slowly sink; fade after 10-20 s. Turn steam they touch into fungus, and may sprout a mushroom when they land on a plant or seed. Killed by fire, magma, water, acid, salt and brine |
 | Fungus | Glowing mushrooms. Grows into steam, eats plants, seeds and virus, slowly grows into water (water doesn't kill it). Puffs out spores into open air. Burns; acid eats it; salt and brine slowly kill it |
 | Wall | Blocks everything |
 | Cloud / Magma / Shaker / Spill / Toxin | Generators that make water / fire / salt / oil / virus. Magma also sets fire to anything flammable touching it, boils water and brine, and melts salt |
