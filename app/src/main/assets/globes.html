@@ -137,12 +137,12 @@ const rnd=Math.random;
 const INSIDE=new Uint8Array(GN);
 for (let y=0;y<G;y++) for (let x=0;x<G;x++){ const dx=x+.5-CX, dy=y+.5-CX; INSIDE[y*G+x] = dx*dx+dy*dy <= RAD*RAD ? 1 : 0; }
 
-let T,L,S,tk,cur;          // the globe being stepped
+let T,L,S,F,tk,cur;        // the globe being stepped (F: lava fed by a vent)
 function setc(i,t){
-  T[i]=t; S[i]=tk;
+  T[i]=t; S[i]=tk; F[i]=0;
   L[i] = t===STEAM ? 90+((rnd()*90)|0) : t===FUMES ? 120+((rnd()*90)|0) : t===SPORE ? 150+((rnd()*100)|0) : t===LAVA ? 200+((rnd()*55)|0) : t===FUNGUS ? 30 : 0;
 }
-function swap(i,j){ let t=T[i];T[i]=T[j];T[j]=t; t=L[i];L[i]=L[j];L[j]=t; S[i]=S[j]=tk; }
+function swap(i,j){ let t=T[i];T[i]=T[j];T[j]=t; t=L[i];L[i]=L[j];L[j]=t; t=F[i];F[i]=F[j];F[j]=t; S[i]=S[j]=tk; }
 function canMove(s,o){
   if (o===E) return true;
   if (o===STEAM||o===FUMES||o===SPORE) return DENS[s]>0;
@@ -185,7 +185,7 @@ function corrode(i,diluted){
 }
 
 function step(g){
-  T=g.T; L=g.L; S=g.S; cur=g; g.tk=((g.tk+1)&0xffff)||1; tk=g.tk;
+  T=g.T; L=g.L; S=g.S; F=g.F; cur=g; g.tk=((g.tk+1)&0xffff)||1; tk=g.tk;
   const got=g.got; got[0]=got[1]=got[2]=0;
   for (let y=G-2;y>=1;y--){
     const dir=rnd()<.5;
@@ -217,12 +217,16 @@ function step(g){
           break;
         }
         case LAVA: {
-          let hot=0, done=false;
+          let hot=0, done=false, onMagma=false;
+          for (const d of N4){ const o=T[i+d]; if (o===MAGMA) onMagma=true; else if (o===LAVA && d!==-G){ const h=L[i+d]-(d===G?1:20); if (h>hot) hot=h; } }   // heat rises; barely spreads sideways
+          const fed = onMagma || (T[i+G]===LAVA && F[i+G]===1);
+          F[i] = fed ? 1 : 0;
+          if (onMagma) L[i]=255;
           for (const d of N4){
             const j=i+d, o=T[j];
-            if (o===MAGMA) L[i]=255;
-            else if (o===LAVA && d!==-G){ const h=L[j]-(d===G?1:20); if (h>hot) hot=h; }   // heat rises; barely spreads sideways
-            else if (o===WATER){ setc(j,STEAM); if (rnd()<.5){ setc(i,GLASS); done=true; break; } }
+            if (o===MAGMA || o===LAVA) continue;
+            else if (o===WATER){ setc(j,STEAM); if (!fed && rnd()<.5){ setc(i,GLASS); done=true; break; } }
+            else if (o===GLASS && fed && L[i]>200 && rnd()<.03){ setc(j,LAVA); L[j]=L[i]-12; }
             else if (o===BRINE && rnd()<.5) setc(j, rnd()<.25 ? SALT : STEAM);
             else if (o===SAND && L[i]>235 && rnd()<.03){ setc(j,LAVA); L[j]=L[i]-12; }
             else if ((o===FUNGUS||o===SPORE) && rnd()<.3) setc(j,E);
@@ -293,10 +297,10 @@ const BIOMES={
   fungus: {name:"Fungal cave", res:2, icon:"🍄"},
 };
 function newGlobe(id,biome){
-  const g={id, biome, owner:-1, T:new Uint8Array(GN), L:new Uint8Array(GN), S:new Uint16Array(GN), tk:1,
+  const g={id, biome, owner:-1, T:new Uint8Array(GN), L:new Uint8Array(GN), S:new Uint16Array(GN), F:new Uint8Array(GN), tk:1,
     got:[0,0,0], rate:[0,0,0], core:0, coreMax:0, lastAttacker:-1, hazard:0, live:false,
     spoutRate:.035, springRate:.08, ventRate:.25, img:null, canvas:null, nb:[]};
-  T=g.T; L=g.L; S=g.S; tk=1;
+  T=g.T; L=g.L; S=g.S; F=g.F; tk=1;
   for (let i=0;i<GN;i++) T[i]=INSIDE[i]?E:BOUND;
   const fill=(x0,y0,x1,y1,t)=>{ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=y*G+x; if (INSIDE[i]) setc(i,t); } };
   // the core: a glowing crystal in the middle
@@ -406,9 +410,9 @@ function newGame(){
   start.forEach((id,p)=>{ globes[id].owner=p; });
   // everyone starts with a different resource
   globes[start[0]].biome="volcano"; globes[start[1]].biome="salt"; globes[start[2]].biome="fungus";
-  for (const p of [0,1,2]){ const g=globes[start[p]]; const ng=newGlobe(g.id,g.biome); Object.assign(g,{T:ng.T,L:ng.L,S:ng.S,coreMax:ng.coreMax,core:ng.core}); }
+  for (const p of [0,1,2]){ const g=globes[start[p]]; const ng=newGlobe(g.id,g.biome); Object.assign(g,{T:ng.T,L:ng.L,S:ng.S,F:ng.F,coreMax:ng.coreMax,core:ng.core}); }
   // neutral globes have weaker cores
-  for (const g of globes) if (g.owner<0){ T=g.T; L=g.L; S=g.S; tk=g.tk; for (let i=0;i<GN;i++){ const y=(i/G)|0; if (T[i]===CORE && (y<26||y>27)) setc(i,E); } g.coreMax=countG(g,CORE); g.core=g.coreMax; }
+  for (const g of globes) if (g.owner<0){ T=g.T; L=g.L; S=g.S; F=g.F; tk=g.tk; for (let i=0;i<GN;i++){ const y=(i/G)|0; if (T[i]===CORE && (y<26||y>27)) setc(i,E); } g.coreMax=countG(g,CORE); g.core=g.coreMax; }
   res=[[60,80,50],[60,80,50],[60,80,50]];
   focus=start[0]; view=null; closeView();
   // warm up every globe so its factory is running and its production rate is known
@@ -453,7 +457,7 @@ function payUpkeep(p,c){
 function launchAcid(from,to,p,big){
   const g=globes[to];
   const n = big ? STORM_CELLS : RAIN_CELLS;
-  T=g.T; L=g.L; S=g.S; tk=g.tk;
+  T=g.T; L=g.L; S=g.S; F=g.F; tk=g.tk;
   let placed=0, tries=0;
   while (placed<n && tries<n*20){
     tries++;
@@ -477,7 +481,7 @@ function playerAttack(big){
 function capture(g){
   const p=g.lastAttacker, was=g.owner;
   g.owner=p;
-  T=g.T; L=g.L; S=g.S; tk=g.tk;
+  T=g.T; L=g.L; S=g.S; F=g.F; tk=g.tk;
   for (let i=0;i<GN;i++) if (T[i]===ACID||T[i]===FUMES) setc(i,E);
   for (let y=24;y<=29;y++) for (let x=28;x<=35;x++){ const i=y*G+x; if (T[i]!==SHIELD && T[i]!==REAPER) setc(i,CORE); }
   g.coreMax=countG(g,CORE); g.core=g.coreMax; g.hazard=0;
@@ -524,7 +528,7 @@ function aiThink(p){
 }
 // place a 3x3 reaper next to an existing one, where the product flows
 function tryPlaceReaper(g){
-  T=g.T; L=g.L; S=g.S; tk=g.tk;
+  T=g.T; L=g.L; S=g.S; F=g.F; tk=g.tk;
   const spots=[]; for (let i=0;i<GN;i++) if (T[i]===REAPER) spots.push(i);
   for (let a=0;a<20;a++){
     const i=spots[(rnd()*spots.length)|0], cx=(i%G)+((rnd()<.5?-1:1)*(4+((rnd()*4)|0))), cy=((i/G)|0)+(((rnd()*5)|0)-2);
@@ -535,7 +539,7 @@ function tryPlaceReaper(g){
   return false;
 }
 function shieldCore(g,p){
-  T=g.T; L=g.L; S=g.S; tk=g.tk; let n=0;
+  T=g.T; L=g.L; S=g.S; F=g.F; tk=g.tk; let n=0;
   for (let y=20;y<=22;y++) for (let x=25;x<=38;x++){ const i=y*G+x; if (T[i]===E||T[i]===ACID){ setc(i,SHIELD); n++; } }
   res[p][0]-=n;
 }
@@ -567,7 +571,7 @@ function gameTick(){
     const short=!payUpkeep(p, upkeepCost(p));
     if (short){
       const g=mine.reduce((a,b)=>a.core/a.coreMax < b.core/b.coreMax ? a : b);
-      T=g.T; L=g.L; S=g.S; tk=g.tk;
+      T=g.T; L=g.L; S=g.S; F=g.F; tk=g.tk;
       let kill=Math.ceil(g.coreMax*.25); for (let i=0;i<GN && kill>0;i++) if (T[i]===CORE && rnd()<.5){ setc(i,E); kill--; }
       g.core=countG(g,CORE);
       if (p===0) toast(`Can't pay upkeep! The core of ${BIOMES[g.biome].name} ${g.id+1} crumbles.`);
@@ -677,7 +681,7 @@ function useTool(e){
   if (view===null || !tool) return;
   const g=globes[view]; if (g.owner!==0) return;
   const [cx,cy]=cellAt(e);
-  T=g.T; L=g.L; S=g.S; tk=g.tk;
+  T=g.T; L=g.L; S=g.S; F=g.F; tk=g.tk;
   if (tool==="reaper"){
     if (!canPay(0,COSTS.reaper)){ toast("A reaper costs 30 🔷"); return; }
     let ok=true; for (let y=cy-1;y<=cy+1;y++) for (let x=cx-1;x<=cx+1;x++){ const i=y*G+x; if (x<0||y<0||x>=G||y>=G||!INSIDE[i]||T[i]===CORE) ok=false; }

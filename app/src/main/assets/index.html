@@ -535,18 +535,29 @@ function stepWorld(){
         }
         case LAVA: {
           // molten sand: oozes slowly, burns and boils what it touches, cools into glass
-          let done=false, hot=0;
-          for (const [dx,dy] of ORTH){
+          let done=false, hot=0, onMagma=false;
+          for (const [dx,dy] of ORTH){                                         // first: where is the heat coming from?
             const j=idx(x+dx,y+dy); if(j<0) continue;
             const o=type[j];
-            if (o===MAGMA) life[i]=255;                                       // stays molten on the vent
+            if (o===MAGMA) onMagma=true;
             else if (o===LAVA){                                                // heat spreads through the pool: rises easily, fades sideways
               const below = dx*DX[grav] + dy*DY[grav] > 0;
               const h = life[j] - (below ? 1 : 8);
               if (h>hot) hot=h;
             }
+          }
+          // vent-fed: touching magma, or resting on vent-fed lava (flag in shade bit 32, which moves with the cell)
+          const bj=idx(x+DX[grav], y+DY[grav]);
+          const fed = onMagma || (bj>=0 && type[bj]===LAVA && (shade[bj]&32)!==0);
+          if (fed) shade[i]|=32; else shade[i]&=~32;
+          if (onMagma) life[i]=255;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===MAGMA || o===LAVA) continue;
             else if (FLAMMABLE[o] && rnd()<FLAMMABLE[o]*.6) set(j,FIRE);
-            else if (o===WATER){ set(j,STEAM); if (rnd()<.5){ set(i,GLASS); done=true; break; } }   // quenched
+            else if (o===WATER){ set(j,STEAM); if (!fed && rnd()<.5){ set(i,GLASS); done=true; break; } }   // quenched, unless a vent keeps it hot
+            else if (o===GLASS && fed && life[i]>200 && rnd()<.03){ set(j,LAVA); life[j]=life[i]-12; }   // vent-fed lava remelts glass crusts
             else if (o===BRINE && rnd()<.5){ set(j, rnd()<.25 ? SALT : STEAM); }
             else if (o===ACID && rnd()<.3) set(j, rnd()<FUMES_FRAC ? FUMES : E);
             else if (o===SALT && rnd()<.05) set(j,E);
