@@ -15,7 +15,7 @@
   --ib:env(safe-area-inset-bottom,0px); --il:env(safe-area-inset-left,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+html,body{-webkit-touch-callout:none;margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
   font:13px/1.3 system-ui,Roboto,"Segoe UI",sans-serif;user-select:none;-webkit-user-select:none;overscroll-behavior:none;touch-action:none}
 canvas#c{position:absolute;left:0;top:0;display:block;touch-action:none;transform-origin:0 0}
 canvas#c.zoomed{image-rendering:pixelated}
@@ -105,7 +105,8 @@ body.land #optMenu > .mclose{display:grid;width:30px}
 body.land #worldLbl{break-before:column}
 body.land #steamPctBox{break-before:column;margin-right:40px}
 body.land #challengeOnly:not(.hidden){break-before:column}
-body.land #optMenu:has(#sandboxOnly.hidden) #exitBtn{break-before:column;width:calc(100% - 40px)}
+body.land #optMenu:has(#sandboxOnly.hidden) #exitRow{break-before:column;margin-right:40px}
+body.land #exitRow{break-inside:avoid;margin-bottom:9px}
 body.land #elMenu .cat:not(:first-child){margin-top:8px}
 body.land #elMenu .el{padding:6px 0 4px}
 body.land #elMenu .sw{width:28px;height:28px}
@@ -163,6 +164,22 @@ body.land .sl,body.land .sizeRow{touch-action:none}
 #toast{position:absolute;bottom:calc(var(--ib) + 96px);left:50%;transform:translateX(-50%);background:rgba(12,15,28,.85);border:1px solid var(--line);
   border-radius:20px;padding:7px 14px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none;max-width:calc(100% - 170px);text-align:center;z-index:8}
 #toast.show{opacity:1}
+/* --- guide --- */
+#guide{position:absolute;left:50%;top:50%;z-index:10;border-radius:20px;display:none;flex-direction:column;overflow:hidden;
+  width:min(440px,calc(100% - 24px));height:calc(100% - var(--it) - var(--ib) - 40px);
+  transform:translate(-50%,-50%) rotate(var(--r));background:rgba(12,16,30,.86)}
+#guide.open{display:flex}
+#guide .ghead{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 8px 16px;font-size:17px}
+#guide .ghead .mclose{position:static}
+#guideBody{flex:1;overflow:hidden;padding:0 16px 16px;touch-action:none;position:relative}
+#guideBody .gin{will-change:transform}
+#guideBody h3{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:var(--dim);margin:14px 0 8px}
+#guideBody p,#guideBody li{color:#d6dcea;font-size:13px;line-height:1.45;margin:4px 0}
+#guideBody ul{padding-left:18px;margin:4px 0}
+.gel{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px solid rgba(255,255,255,.06)}
+.gel .sw{flex:none;width:26px;height:26px;margin-top:2px}
+.gel b{display:block;font-size:13.5px}
+.gel span{display:block;color:#c3cadb;font-size:12.5px;line-height:1.4}
 #overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.45);z-index:9}
 #overlay .card{border-radius:20px;padding:22px 26px;text-align:center;width:min(320px,calc(100% - 40px))}
 #overlay h2{margin:0 0 6px;font-size:24px}
@@ -258,11 +275,18 @@ body.land .sl,body.land .sizeRow{touch-action:none}
     <button class="b" id="reset">↺ Reset level</button>
     <div class="sub">Tap the goal card to show or hide the hint.</div>
   </div>
-  <button class="b" id="exitBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v8"/><path d="M6.6 7.2a7.6 7.6 0 1 0 10.8 0"/></svg>Exit</button>
+  <div class="row" id="exitRow">
+    <button class="b" id="guideBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>Guide</button>
+    <button class="b" id="exitBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v8"/><path d="M6.6 7.2a7.6 7.6 0 1 0 10.8 0"/></svg>Exit</button>
+  </div>
   <div class="sub" id="exitNote">Your sandbox is saved automatically. Drag the round buttons to move them.</div>
 </div>
 
 <div id="toast"></div>
+<div id="guide" class="glass" role="dialog" aria-label="Guide">
+  <div class="ghead"><b>Guide</b><button class="mclose" id="guideClose" aria-label="Close guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div id="guideBody"></div>
+</div>
 <div id="overlay"><div class="card glass"><h2 id="ovTitle"></h2><p id="ovText"></p>
   <div class="row"><button class="b" id="ovRetry">Try again</button><button class="b on" id="ovNext">Next ›</button></div></div></div>
 
@@ -292,7 +316,7 @@ const INFO = [
   ["Shaker","Sprinkles salt.","radial-gradient(circle at 35% 30%,#f2f4fa,#a8aec2 55%,#5e6478)"],
   ["Spill","Leaks oil.","radial-gradient(circle at 35% 30%,#d8a060,#7a4a1c 55%,#3a200a)"],
   ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#f2a6ff,#a426c8 50%,#3e0a52)"],
-  ["Brine","Salty water. Sinks under water, withers plants, kills virus. Boils into salt.","radial-gradient(circle at 35% 30%,#bff3e4,#3f9e98 55%,#1b4d5c)"],
+  ["Brine","Salty water. Sinks under water, withers plants, kills virus. Boils into steam and salt.","radial-gradient(circle at 35% 30%,#bff3e4,#3f9e98 55%,#1b4d5c)"],
   ["Steam","Floats up, then may rain back down as water. Plants it touches may grow into it.","radial-gradient(circle at 35% 30%,#ffffff,#dde3ee 50%,rgba(150,162,184,.7))"],
   ["Seeder","Grows plants when water touches it.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
   ["Acid","Dissolves salt into nothing. Eats sand, soil and plants. Water dilutes it.","radial-gradient(circle at 35% 30%,#f4ffb0,#a8e030 50%,#4a7a08)"],
@@ -470,7 +494,8 @@ function stepWorld(){
             let ate=false;
             if (o===SALT) ate=true;                                        // salt dissolves into nothing
             else if (o===BRINE && rnd()<.2){ set(j,WATER); if (rnd()<.5){ set(i,E); used=true; break; } continue; }   // takes the salt out
-            else if ((o===SAND||o===SOIL||o===PLANT||o===SEED||o===VIRUS||o===FUNGUS||o===SPORE) && rnd()<.02) ate=true;
+            else if ((o===PLANT||o===SEED||o===FUNGUS||o===SPORE) && rnd()<.12) ate=true;              // soft things go fast
+            else if ((o===SAND||o===SOIL||o===VIRUS) && rnd()<.02) ate=true;
             else if (o===WATER && rnd()<.001){ set(i,WATER); used=true; break; }   // diluted
             if (ate){ set(j,E); if (rnd()<.5){ set(i,E); used=true; break; } }    // each bite may use the acid up
           }
@@ -482,7 +507,7 @@ function stepWorld(){
           for (const [dx,dy] of ORTH){
             const j=idx(x+dx,y+dy); if(j<0) continue;
             const o=type[j];
-            if (o===FIRE){ yellow(j); emit(i,x,y,STEAM,.6,up); set(i,SALT); boiled=true; break; }   // boils away, leaves salt
+            if (o===FIRE){ yellow(j); set(i, rnd()<.25 ? SALT : STEAM); boiled=true; break; }   // boils: mostly steam, leaving some salt
             else if (o===VIRUS && rnd()<.3) set(j,E);
             else if (o===PLANT && rnd()<.01) set(j,E);                    // withers plants
           }
@@ -490,7 +515,7 @@ function stepWorld(){
             for (let n=1;n<=12;n++){
               const j=idx(x+DX[grav]*n,y+DY[grav]*n); if(j<0) break;
               const o=type[j];
-              if (o===MAGMA){ emit(i,x,y,STEAM,.6,up); set(i,SALT); boiled=true; break; }
+              if (o===MAGMA){ set(i, rnd()<.25 ? SALT : STEAM); boiled=true; break; }
               if (o!==SALT && o!==BRINE) break;
             }
           }
@@ -613,7 +638,7 @@ function stepWorld(){
             const o=type[j];
             if (FLAMMABLE[o]) set(j,FIRE);                                // anything that burns catches at once
             else if (o===WATER && rnd()<.3) set(j,STEAM);
-            else if (o===BRINE && rnd()<.3){ set(j,SALT); emit(i,x,y,STEAM,.5,up); }
+            else if (o===BRINE && rnd()<.3) set(j, rnd()<.25 ? SALT : STEAM);
             else if (o===SALT && rnd()<.2) set(j,E);                      // melts away
           }
           emit(i,x,y,FIRE,.35,(rnd()*8)|0);
@@ -967,7 +992,10 @@ window.setInsets = (t,r,b,l)=>{
 
 // --- menus ---
 const menus = { el:[$("elBtn"),$("elMenu")], opt:[$("optBtn"),$("optMenu")] };
+let lpTipShown=false;
+try{ lpTipShown = localStorage.getItem("sandfall.lpTip")==="1"; }catch(e){}
 function openMenu(name){
+  if (name==="el" && !lpTipShown){ lpTipShown=true; try{ localStorage.setItem("sandfall.lpTip","1"); }catch(e){} setTimeout(()=>toast("Tip: long-press an element to see what it does", 3500), 250); }
   for (const k in menus){
     const on = k===name && !menus[k][1].classList.contains("open");
     if (on) placeMenu(k);
@@ -1067,6 +1095,7 @@ function applyRot(r){
   document.documentElement.style.setProperty("--r", r+"deg");
   for (const k in menus) if (menus[k][1].classList.contains("open")) placeMenu(k);
   placeGoal(); setGrav(grav);
+  if ($("guide").classList.contains("open")) openGuide();
 }
 document.querySelectorAll(".mclose").forEach(b=>b.onclick=()=>closeMenus());
 // Sliders inside a turned menu: drag along the slider's turned length.
@@ -1115,6 +1144,7 @@ placeBubbles();
 // Android back: close a menu or dialog first; otherwise press back twice to exit.
 let lastBack = 0;
 window.onAndroidBack = ()=>{
+  if ($("guide").classList.contains("open")){ closeGuide(); return true; }
   if (closeMenus()) return true;
   if ($("overlay").style.display==="flex"){ $("overlay").style.display="none"; return true; }
   const now = Date.now();
@@ -1122,6 +1152,67 @@ window.onAndroidBack = ()=>{
   lastBack = now; toast("Press back again to exit");
   return true;
 };
+// --- guide: every element, the tools and the gestures. Scrolls by dragging in any orientation. ---
+const GUIDE = {
+  [SAND]:"Falls and piles up. Sinks through water and oil.",
+  [WATER]:"Flows and spreads. Puts out fire and boils into steam on fire or magma. Dissolves salt into brine. Slowly erodes soil into sand.",
+  [BRINE]:"Salty water. Heavier than water, so it sinks. Withers plants and kills virus. Boils into steam, leaving some salt behind (with a yellow flame). Acid turns it back into water.",
+  [OIL]:"Floats on water. Very flammable, and burning oil lasts long.",
+  [ACID]:"A little heavier than water. Dissolves salt into nothing and turns brine into water. Slowly eats sand, soil, plants, seeds, virus and fungus, but never walls or generators. Gets used up as it eats; water slowly dilutes it.",
+  [FIRE]:"Rises and burns out. Clings to and burns plants, oil, seeds, virus, spores and fungus. Burns yellow next to salt.",
+  [STEAM]:"Floats up and spreads like a gas along ceilings, then cools and rains down as water (or fades). Plants touching it may grow into it.",
+  [PLANT]:"Drinks water and grows into it. Won't drink brine.",
+  [SEED]:"Falls. Sprouts into a plant when it touches water.",
+  [SALT]:"Piles up. Dissolves in water into brine. Kills virus, spores and (slowly) fungus. Melts on magma. Makes flames burn yellow.",
+  [SOIL]:"Solid ground. Water slowly erodes it into sand.",
+  [VIRUS]:"Lives by Conway's Game of Life (rule in the options). Eats plants it touches. Killed by salt, brine, fire and fungus.",
+  [SPORE]:"Glowing dust that floats and slowly sinks, fading after 10-20 s. Turns steam into fungus and can sprout mushrooms on plants and seeds. Killed by fire, magma, water, acid, salt and brine.",
+  [FUNGUS]:"Mushrooms. Grow into steam, eat plants and virus, slowly grow into water, and puff out spores. Need food (steam, water, plants or virus) within ~30 cells or they die, leaving nothing, soil or a seed. Heat dries them out; fire, acid and salt kill them.",
+  [WALL]:"Blocks everything. Nothing destroys it.",
+  [CLOUD]:"Rains water.", [MAGMA]:"Spews fire. Sets anything flammable touching it alight, boils water and brine, melts salt.",
+  [SHAKER]:"Sprinkles salt.", [SPILL]:"Leaks oil.", [TOXIN]:"Breeds virus around it.",
+  [SEEDER]:"Turns water touching it into plants.", [VAT]:"Drips acid.",
+  [MYCELIUM]:"Releases spores into the air. Indestructible: only the Eraser removes it.",
+  [E]:"Erases anything, generators included.",
+};
+function buildGuide(){
+  const el = t => `<div class="gel"><span class="sw" style="background:${INFO[t][2]}"></span><div><b>${INFO[t][0]}</b><span>${GUIDE[t]||INFO[t][1]}</span></div></div>`;
+  $("guideBody").innerHTML = `<div class="gin">
+    <h3>Controls</h3><ul>
+      <li><b>Draw</b> with one finger. The elements bubble opens elements and brushes; the gear bubble opens options. Drag either bubble to move it.</li>
+      <li><b>Two fingers</b> zoom and pan with any tool. The Move &amp; zoom tool does it with one finger; double-tap with it to zoom back out.</li>
+      <li><b>Long-press</b> an element to see what it does.</li>
+      <li>Top bar: pause/play, one step, speed, zoom out (when zoomed) and undo.</li>
+      <li><b>Back</b> closes a menu; press it twice to leave. Your sandbox is saved automatically.</li>
+      <li>Hold the phone sideways and the controls turn with you. Tilt phone makes gravity follow the phone.</li></ul>
+    <h3>Elements</h3>${groups[0][1].map(el).join("")}
+    <h3>Generators</h3>${groups[1][1].filter(t=>t!==E).map(el).join("")}${el(E)}
+    <h3>Challenges</h3><p>Pick one from the options menu. Each gives you a limited supply of elements to reach a goal; edges are always solid and the Nature sliders use their defaults.</p></div>`;
+}
+let gScroll=0, gDrag=null;
+function guideMax(){ const b=$("guideBody"), i=b.firstElementChild; return Math.max(0, i.offsetHeight - b.clientHeight + 16); }
+function setGuideScroll(v){ gScroll=Math.max(0,Math.min(guideMax(),v)); $("guideBody").firstElementChild.style.transform=`translateY(${-gScroll}px)`; }
+function openGuide(){
+  closeMenus(); buildGuide(); gScroll=0;
+  const g=$("guide");
+  g.style.width = uiRot ? Math.min(560, innerHeight-24)+"px" : "";
+  g.style.height = uiRot ? (innerWidth-24)+"px" : "";
+  g.classList.add("open"); setGuideScroll(0);
+}
+function closeGuide(){ $("guide").classList.remove("open"); }
+$("guideBtn").onclick=()=>openGuide();
+$("guideClose").onclick=()=>closeGuide();
+// drag to scroll: the finger's movement is measured along the guide's own "up", so it works when turned sideways
+$("guideBody").addEventListener("pointerdown",e=>{ gDrag={id:e.pointerId,x:e.clientX,y:e.clientY}; try{ $("guideBody").setPointerCapture(e.pointerId); }catch(err){} });
+$("guideBody").addEventListener("pointermove",e=>{
+  if (!gDrag || e.pointerId!==gDrag.id) return;
+  const dx=e.clientX-gDrag.x, dy=e.clientY-gDrag.y; gDrag.x=e.clientX; gDrag.y=e.clientY;
+  const up = uiRot===90 ? dx : uiRot===-90 ? -dx : -dy;          // finger moving towards the guide's top scrolls down
+  setGuideScroll(gScroll + up);
+});
+for (const ev of ["pointerup","pointercancel"]) $("guideBody").addEventListener(ev,()=>{ gDrag=null; });
+$("guideBody").addEventListener("wheel",e=>{ setGuideScroll(gScroll+e.deltaY); e.preventDefault(); },{passive:false});
+
 $("exitBtn").onclick=()=>{
   autosave(); closeMenus();
   if (window.Android && Android.exit) Android.exit(); else window.close();
@@ -1136,12 +1227,17 @@ for (const [g,list] of groups){
   for (const t of list){
     const b=document.createElement("button"); b.className="el";
     b.innerHTML=`<span class="sw" style="background:${INFO[t][2]}"></span><span>${INFO[t][0]}</span><span class="bud"></span>`;
-    b.onclick=()=>{ selectTool(t); closeMenus(); };
+    // tap selects quietly; a long press shows what the element does (without selecting it)
+    b.onclick=()=>{ if (b._held){ b._held=false; return; } selectTool(t,true); closeMenus(); };
+    b.addEventListener("pointerdown",()=>{ clearTimeout(b._lt); b._held=false;
+      b._lt=setTimeout(()=>{ b._held=true; toast(`${INFO[t][0]} — ${INFO[t][1]}`, 4500); try{ navigator.vibrate && navigator.vibrate(12); }catch(e){} }, 450); });
+    for (const ev of ["pointerup","pointercancel","pointerleave"]) b.addEventListener(ev,()=>clearTimeout(b._lt));
+    b.addEventListener("contextmenu",e=>e.preventDefault());
     grid.appendChild(b); elBtns[t]=b;
   }
 }
 let toastTimer=0;
-function toast(msg){ const el=$("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),2000); }
+function toast(msg,ms){ const el=$("toast"); el.textContent=msg; el.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),ms||2000); }
 function selectTool(t, quiet){
   if (challenge && !(t in budget)) return;
   tool=t;
@@ -1337,14 +1433,19 @@ function pushUndo(){
   if (undoStack.length > UNDO_MAX) undoStack.shift();
   $("undo").disabled = false;
 }
-function undo(){
-  const u = undoStack.pop(); if (!u) return;
+function restoreSnap(u){
   type.set(u.t); shade.set(u.s); life.set(u.l); setGrav(u.g);
   if (challenge && u.b){ budget = u.b; runTicks = u.rt; hold = 0; finished = false; $("overlay").style.display="none"; updateGoal(); }
   refreshPalette();
   $("undo").disabled = undoStack.length===0;
+}
+function undo(){
+  const u = undoStack.pop(); if (!u) return;
+  restoreSnap(u);
   toast(undoStack.length ? `Undone (${undoStack.length} more)` : "Undone");
 }
+// A second finger turned the stroke into a pinch: take back what the first finger drew.
+function cancelStroke(){ const u = undoStack.pop(); if (u) restoreSnap(u); }
 function resetUndo(){ undoStack = []; $("undo").disabled = true; }
 $("undo").onclick=()=>undo();
 
@@ -1438,9 +1539,19 @@ function viewUp(e){
 
 let swallow=false;   // a touch that only closed a menu doesn't paint
 cv.addEventListener("contextmenu",e=>e.preventDefault());
+let drawPtr=null;    // the finger that is drawing, so a second finger can turn it into a pinch
 cv.addEventListener("pointerdown",e=>{
   if (shape==="pan"){ if (e.isPrimary && closeMenus()) return; viewDown(e); return; }
-  if (!e.isPrimary) return;
+  if (!e.isPrimary){
+    // two fingers zoom and pan with any tool: cancel the stroke the first finger started
+    if (drawPtr && !ptrs.size){
+      if (drawing){ cancelStroke(); drawing=false; preview=null; }
+      ptrs.set(drawPtr.id,{x:drawPtr.x,y:drawPtr.y});
+    }
+    if (ptrs.size) viewDown(e);
+    return;
+  }
+  drawPtr={id:e.pointerId,x:e.clientX,y:e.clientY};
   if (closeMenus()){ swallow=true; return; }
   swallow=false;
   try{ cv.setPointerCapture(e.pointerId); }catch(err){}
@@ -1450,6 +1561,7 @@ cv.addEventListener("pointerdown",e=>{
   else preview={a:p,b:p};
 });
 cv.addEventListener("pointermove",e=>{
+  if (drawPtr && e.pointerId===drawPtr.id){ drawPtr.x=e.clientX; drawPtr.y=e.clientY; }
   if (ptrs.size){ viewMove(e); return; }
   if (!e.isPrimary || !drawing) return;
   const p=gridPos(e);
@@ -1461,8 +1573,8 @@ function endDraw(e){
   if (drawing && preview) commitShape(preview.a,preview.b,tool);
   drawing=false; preview=null; swallow=false;
 }
-cv.addEventListener("pointerup",e=>{ if (ptrs.size){ viewUp(e); return; } endDraw(e); });
-cv.addEventListener("pointercancel",e=>{ if (ptrs.size){ viewUp(e); return; } if(!e.isPrimary) return; drawing=false; preview=null; });
+cv.addEventListener("pointerup",e=>{ if (drawPtr && e.pointerId===drawPtr.id) drawPtr=null; if (ptrs.size){ viewUp(e); return; } endDraw(e); });
+cv.addEventListener("pointercancel",e=>{ if (drawPtr && e.pointerId===drawPtr.id) drawPtr=null; if (ptrs.size){ viewUp(e); return; } if(!e.isPrimary) return; drawing=false; preview=null; });
 
 // =====================================================================
 //  Challenges  (laid out in fractions of the screen so they fit any phone)
@@ -1525,6 +1637,55 @@ const CHALLENGES = [
     measure(){ const v=countAll(PLANT); return {v, goal:2500, text:`🌱 <b>${v}</b> / 2500`}; },
     ok:m=>m.v>=m.goal,
   },
+  {
+    name:"5 · Fresh Water",
+    desc:"The garden needs rain, but the only water is a brine lake boiling on a magma vent. Steam slides along ceilings: build a roof that carries it over the seeds. Grow 350 plants.",
+    tools:{[WALL]:400,[E]:Infinity}, limit:60*SEC,
+    goalN:350,
+    setup(){
+      box(0,H-10,W-1,H-1,SOIL);
+      const lx=X(.45);
+      box(0,H-40,3,H-11,WALL); box(lx+1,H-40,lx+3,H-11,WALL);        // brine lake on the left...
+      box(4,H-34,lx,H-11,BRINE);
+      box(4,H-10,lx,H-8,MAGMA);                                      // ...boiling on a magma vent
+      for(let x=X(.58);x<W-3;x+=2) set((H-11)*W+x,SEED);             // dry seeds on the right
+    },
+    measure(){ const v=countAll(PLANT), g=this.goalN; return {v, goal:g, text:`🌱 <b>${v}</b> / ${g}`}; },
+    ok:m=>m.v>=m.goal,
+  },
+  {
+    name:"6 · Salt Mine",
+    desc:"Dissolve the salt mountain with acid-dripping Vats, then keep it that way for 5 seconds. Acid that runs off drains into the orchard pit and eats the trees: keep 95% of them alive.",
+    tools:{[VAT]:14,[WALL]:300,[E]:Infinity}, limit:90*SEC, holdTicks:5*SEC, first:VAT,
+    setup(){
+      const c=X(.3), hw=X(.22), floor=H-24, top=floor-1-Math.round(H*.18), px=c+hw+3;
+      box(0,floor,px-1,H-1,WALL);                                       // the mine floor...
+      box(px,H-3,W-1,H-1,WALL); box(W-3,floor-6,W-1,H-1,WALL);          // ...and the orchard pit beside it
+      for(let x=c-hw;x<=c+hw;x++){ const h=Math.round((1-Math.abs(x-c)/hw)*(floor-1-top)); for(let y=floor-1-h;y<=floor-1;y++) set(y*W+x,SALT); }
+      box(px,H-18,W-4,H-4,PLANT);                                       // the orchard
+      this.p0=countAll(PLANT); this.s0=countAll(SALT); this.px=px; this.floor=floor;
+    },
+    measure(){
+      const salt=countAll(SALT), pl=countAll(PLANT), keep=Math.ceil(this.p0*.95), maxSalt=Math.round(this.s0*.03);
+      return {salt, pl, keep, maxSalt, v:salt, start:this.s0, goal:maxSalt,
+              text:`🧂 <b>${salt}</b> (≤ ${maxSalt}) · 🌳 <b>${pl}</b> (≥ ${keep})`};
+    },
+    ok:m=>m.salt<=m.maxSalt && m.pl>=m.keep,
+  },
+  {
+    name:"7 · Fungal Bloom",
+    desc:"Grow a colony of 450 mushrooms at once in the steamy cave from a handful of spores. Rain kills spores, and heat from the magma vent dries mushrooms out.",
+    tools:{[SPORE]:40,[WALL]:200}, limit:0, first:SPORE,
+    setup(){
+      const top=Y(.4), L=6, R=W-7;
+      box(L-3,top,R+3,top+2,WALL); box(L-3,top,L-1,H-1,WALL); box(R+1,top,R+3,H-1,WALL); box(L,H-3,R,H-1,WALL);
+      box(L,H-12,R,H-4,WATER);                                       // the pond
+      box(X(.4),H-5,X(.6),H-4,MAGMA);                                // magma vent in the pond: keeps it boiling
+      box(X(.3),top+3,X(.7),top+4,CLOUD);                            // rain keeps the pond topped up
+    },
+    measure(){ const v=countAll(FUNGUS); return {v, goal:450, text:`🍄 <b>${v}</b> / 450`}; },
+    ok:m=>m.v>=m.goal,
+  },
 ];
 let solved = {};
 try{ solved = JSON.parse(localStorage.getItem("sandfall.solved")||"{}"); }catch(e){}
@@ -1561,7 +1722,7 @@ function startMode(n){
   $("sandboxOnly").classList.add("hidden"); $("challengeOnly").classList.remove("hidden");
   $("goalTitle").textContent=challenge.name;
   $("goalDesc").textContent=challenge.desc+" Press ▶ when ready.";
-  selectTool(+Object.keys(budget).find(k=>+k!==E), true);
+  selectTool(challenge.first ?? +Object.keys(budget).find(k=>+k!==E), true);
   updateGoal(); placeGoal();
   modeSel.value=n;
 }
@@ -1586,7 +1747,7 @@ function checkChallenge(){
   if (!challenge || finished) return;
   const m=updateGoal();
   if (challenge.ok(m)) hold+=10; else hold=0;
-  if (hold>=60){
+  if (hold >= (challenge.holdTicks||60)){
     finished=true; setRunning(false);
     const n=CHALLENGES.indexOf(challenge);
     solved[n]=1; try{ localStorage.setItem("sandfall.solved",JSON.stringify(solved)); }catch(e){}
