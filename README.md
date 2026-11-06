@@ -27,8 +27,8 @@ The whole screen is the play area, held upright (portrait).
 | Sand | Falls and piles up |
 | Water | Flows. Boils into steam when it touches fire or magma, dissolves salt into brine, erodes soil into sand |
 | Brine | Salty water. Sinks under fresh water, withers plants, kills virus. Boils into steam, leaving some salt behind (with a yellow flame) |
-| Lava | Molten sand: sand touching magma melts into it, and a sand pile on a vent melts down into a lava pool. A thick, glowing liquid that oozes slowly downhill; stays molten near magma. Sets flammable things alight, boils water and brine, boils acid into fumes. Water quenches it into glass; otherwise it cools into glass after about 10-13 s |
-| Glass | Cooled lava. A solid, see-through block that acid and fumes can't eat |
+| Lava | Molten sand: sand touching magma melts into it, and a sand pile on a vent melts down into a lava pool. A thick, glowing liquid that oozes slowly downhill; stays molten near magma. Sets flammable things alight and throws off the odd flame while hot, boils water and brine, boils acid into fumes. Water quenches it into glass; otherwise it cools into glass after about 10-13 s |
+| Glass | Cooled lava. A solid, see-through block that acid and fumes can't eat. Magma melts it back into lava, even under water |
 | Fumes | Toxic gas made when acid touches magma (40% of the boiled acid; the rest evaporates). Floats and spreads like steam and eats like acid, then fades away after a few seconds. Never turns back into acid |
 | Steam | Floats up and spreads out like a gas, sliding along ceilings, then cools and rains back down as water (or fades away). Plants it touches may grow into it |
 | Oil | Floats on water, very flammable |

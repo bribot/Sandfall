@@ -210,6 +210,7 @@ function step(g){
             if (o===WATER && rnd()<.3) setc(j,STEAM);
             else if (o===BRINE && rnd()<.3) setc(j, rnd()<.25 ? SALT : STEAM);
             else if (o===SAND && rnd()<.05) setc(j,LAVA);
+            else if (o===GLASS && rnd()<.03) setc(j,LAVA);
             else if (o===ACID && rnd()<.3) setc(j, rnd()<.4 ? FUMES : E);
             else if ((o===FUNGUS||o===SPORE) && rnd()<.5) setc(j,E);
           }

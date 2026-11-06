@@ -554,6 +554,7 @@ function stepWorld(){
           }
           if (done) break;
           if (hot>life[i]) life[i]=hot;
+          if (life[i]>150 && rnd()<.012) emit(i,x,y,FIRE,1,up+(((rnd()*3)|0)-1));   // hot lava throws off the odd flame
           if (tk%3===0){ if (life[i]<=1){ set(i,GLASS); break; } life[i]--; }   // the whole pool cools together: ~10-13 s away from magma
           if (rnd()<.35) liquid(i,x,y);                                        // thick: moves a third as often as water
           break;
@@ -713,6 +714,7 @@ function stepWorld(){
             else if (o===SALT && rnd()<.2) set(j,E);                      // melts away
             else if (o===ACID && rnd()<.3) set(j, rnd()<FUMES_FRAC ? FUMES : E);   // acid boils: some toxic fumes, the rest evaporates
             else if (o===SAND && rnd()<.04) set(j,LAVA);                  // sand melts into lava
+            else if (o===GLASS && rnd()<.03) set(j,LAVA);                 // glass melts back into lava, water or not
           }
           emit(i,x,y,FIRE,.35,(rnd()*8)|0);
           break;
@@ -1268,8 +1270,8 @@ const GUIDE = {
   [SHAKER]:"Sprinkles salt.", [SPILL]:"Leaks oil.", [TOXIN]:"Breeds virus around it.",
   [SEEDER]:"Turns water touching it into plants.", [VAT]:"Drips acid.",
   [MYCELIUM]:"Releases spores into the air. Indestructible: only the Eraser removes it.",
-  [LAVA]:"Molten sand: sand touching magma melts into it. A thick, glowing liquid that oozes slowly downhill. Sets flammable things alight, boils water and brine, boils acid into fumes. Water quenches it straight into glass; otherwise it cools into glass after about 10 s. Lava on or above magma stays molten, since heat rises; lava that flows away cools.",
-  [GLASS]:"Cooled lava. A solid, see-through block. Acid and fumes can't eat it, so it makes acid-proof containers.",
+  [LAVA]:"Molten sand: sand touching magma melts into it. A thick, glowing liquid that oozes slowly downhill. Sets flammable things alight, boils water and brine, boils acid into fumes. Hot lava throws off the odd flame. Water quenches it straight into glass; otherwise it cools into glass after about 10 s. Lava on or above magma stays molten, since heat rises; lava that flows away cools.",
+  [GLASS]:"Cooled lava. A solid, see-through block. Acid and fumes can't eat it, so it makes acid-proof containers. Magma melts it back into lava, even under water.",
   [FUMES]:"Toxic gas made when acid touches magma (40% of the acid becomes fumes, the rest evaporates). Floats and spreads like steam and eats like acid: dissolves salt, turns brine into water, eats plants, seeds, spores and fungus fast and sand, soil and virus slowly. Gets used up as it eats and fades after a few seconds; it never turns back into acid.",
   [E]:"Erases anything, generators included.",
 };
