@@ -63,12 +63,12 @@ The whole screen is the play area, held upright (portrait).
 
 A real-time strategy prototype, opened from the options menu (mode list → **⚔ Globe Wars**). A map of 24 linked globes, each a 128×128 falling-sand world:
 
-- **Volcano** globes melt sand into lava that cools into **🔷 glass**; **salt pans** boil brine into **🧂 salt**; **fungal caves** grow mushrooms that puff **🍄 spores**. **Reapers** harvest the product that touches them.
+- **Volcano** globes melt sand into lava that cools into **🔷 glass** (magma throws off flames, which burn fungus and spores and are put out by water); **salt pans** boil brine into **🧂 salt**; **fungal caves** grow mushrooms that puff **🍄 spores**. **Reapers** harvest the product that touches them.
 - **Units**: train them in your globes (30 resources each, any mix). **Drag** from one of your globes to a linked one on the map to send half its units, or use the buttons inside a globe. They march along the link.
 - **Battles**: attackers fight the garrison, whose strength is multiplied by the **defence bonus** from what surrounds its core (stone and glass walls, lava, magma, acid). Losses follow a square-law attrition, so a narrow win leaves few survivors.
 - **Shaping a globe**: each globe has its own limited stock of matter. **Dig** cells up into it, **place** them elsewhere, and **buy** more with your resources from a tile grid: stone, sand, water, acid, reapers and generators (magma, sand spouts, brine springs, steam vents, mycelium), so any factory can be built in any globe. Captured globes keep their stock.
 - **Upkeep** every 10 s grows with your globes and units and is paid from your biggest stock; if you can't pay, units desert.
-- Two AI rivals, Red and Green, train, wall in threatened cores, mass units in a staging globe and attack winnable neighbours. They leave you alone for 3 minutes, prefer neutral globes and each other, need a big margin to attack you and wait 30 s between attacks on you, but gang up on you once you're the biggest empire. Only the viewed globe and its neighbours simulate; the rest produce at their measured rate.
+- Two AI rivals, Red and Green, train, wall in threatened cores, mass units in a staging globe and attack winnable neighbours. In the help screen you choose how hard they go after you: **Peaceful** (the default: they never attack you), **Easy** (after 5 minutes, needing a ×2 advantage, at most every 90 s) or **Normal** (after 3 minutes, ×1.4, every 30 s, and they gang up on you once you lead). Only the viewed globe and its neighbours simulate; the rest produce at their measured rate.
 
 It lives in `app/src/main/assets/globes.html` with its own trimmed copy of the element rules. A match isn't saved when you leave.
 

@@ -130,8 +130,14 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
     <li>Units arriving at an enemy or neutral globe fight its garrison. The defenders get a <b>defence bonus</b> from what surrounds their core: stone and glass walls, and lava, magma or acid in a ring around it.</li>
     <li><b>Shape your globes</b>: each globe has its own limited matter. <b>Dig</b> picks cells up into that globe's stock, then pick a material and drag to <b>place</b> it. <b>Buy</b> more with your resources: stone walls, acid, reapers, and <b>generators</b> (magma, sand spouts, brine springs, steam vents, mycelium) to build any factory in any globe.</li>
     <li><b>Upkeep</b> every 10 s grows with your globes and units and is paid from your biggest stock. Can't pay, and units desert.</li>
-    <li>Red and Green expand and fight each other too, but leave you alone for the first 3 minutes. Take all their globes to win. Only the globe you're looking at and its neighbours run live; the rest produce at their measured rate.</li>
+    <li>Red and Green expand and fight each other too. Below, choose how hard they go after you. Take all their globes to win. Only the globe you're looking at and its neighbours run live; the rest produce at their measured rate.</li>
   </ul>
+  <div class="lbl" style="margin:10px 2px 6px">Rivals</div>
+  <div class="row" id="aiPick" style="margin-bottom:10px">
+    <button class="b" data-ai="0">😴 Peaceful<small>never attack you</small></button>
+    <button class="b" data-ai="1">🙂 Easy<small>after 5 min, rarely</small></button>
+    <button class="b" data-ai="2">😠 Normal<small>after 3 min</small></button>
+  </div>
   <button class="b" id="helpClose" style="width:100%">Got it</button>
 </div></div>
 
@@ -145,7 +151,7 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
 //  Globe simulation: a trimmed copy of Sandfall's rules on 128x128 round worlds
 // =====================================================================
 const G=128, GN=G*G, CX=64, RAD=61;
-const E=0,BOUND=1,SAND=2,WATER=3,BRINE=4,STEAM=5,SALT=6,MAGMA=7,LAVA=8,GLASS=9,ACID=10,FUMES=11,SPORE=12,FUNGUS=13,MYCEL=14,VENT=15,SPOUT=16,SPRING=17,CORE=18,REAPER=19,STONE=20;
+const E=0,BOUND=1,SAND=2,WATER=3,BRINE=4,STEAM=5,SALT=6,MAGMA=7,LAVA=8,GLASS=9,ACID=10,FUMES=11,SPORE=12,FUNGUS=13,MYCEL=14,VENT=15,SPOUT=16,SPRING=17,CORE=18,REAPER=19,STONE=20,FIRE=21;
 const DENS=new Float32Array(32); DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[LAVA]=2.8; DENS[SAND]=3; DENS[SALT]=3;
 const LIQ=new Uint8Array(32); [WATER,BRINE,ACID,LAVA].forEach(t=>LIQ[t]=1);
 const N4=[1,-1,G,-G], N8=[1,-1,G,-G,G+1,G-1,-G+1,-G-1];
@@ -158,12 +164,12 @@ for (let y=0;y<G;y++) for (let x=0;x<G;x++){ const dx=x+.5-CX, dy=y+.5-CX; INSID
 let T,L,S,F,tk,cur;        // the globe being stepped (F: lava fed by a vent)
 function setc(i,t){
   T[i]=t; S[i]=tk; F[i]=0;
-  L[i] = t===STEAM ? 90+((rnd()*90)|0) : t===FUMES ? 120+((rnd()*90)|0) : t===SPORE ? 150+((rnd()*100)|0) : t===LAVA ? 200+((rnd()*55)|0) : t===FUNGUS ? 30 : 0;
+  L[i] = t===STEAM ? 90+((rnd()*90)|0) : t===FUMES ? 120+((rnd()*90)|0) : t===SPORE ? 150+((rnd()*100)|0) : t===LAVA ? 200+((rnd()*55)|0) : t===FUNGUS ? 30 : t===FIRE ? 10+((rnd()*26)|0) : 0;
 }
 function swap(i,j){ let t=T[i];T[i]=T[j];T[j]=t; t=L[i];L[i]=L[j];L[j]=t; t=F[i];F[i]=F[j];F[j]=t; S[i]=S[j]=tk; }
 function canMove(s,o){
   if (o===E) return true;
-  if (o===STEAM||o===FUMES||o===SPORE) return DENS[s]>0;
+  if (o===STEAM||o===FUMES||o===SPORE||o===FIRE) return DENS[s]>0;
   if (LIQ[o]) return DENS[s]>DENS[o] && rnd()<.5;
   return false;
 }
@@ -228,8 +234,24 @@ function step(g){
             else if (o===SAND && rnd()<.05) setc(j,LAVA);
             else if (o===GLASS && rnd()<.03) setc(j,LAVA);
             else if (o===ACID && rnd()<.3) setc(j, rnd()<.4 ? FUMES : E);
-            else if ((o===FUNGUS||o===SPORE) && rnd()<.5) setc(j,E);
+            else if ((o===FUNGUS||o===SPORE) && rnd()<.5) setc(j,FIRE);   // anything that burns catches at once
           }
+          if (rnd()<.35){ const j=i+N8[(rnd()*8)|0]; if (T[j]===E) setc(j,FIRE); }   // spews fire
+          break;
+        }
+        case FIRE: {
+          if (L[i]<=1){ setc(i,E); break; }
+          L[i]--;
+          let out=false;
+          for (const d of N4){
+            const j=i+d, o=T[j];
+            if (o===WATER){ setc(j,STEAM); if (rnd()<.5){ setc(i,E); out=true; break; } }      // water puts it out
+            else if (o===FUNGUS && rnd()<.25) setc(j,FIRE);
+            else if (o===SPORE && rnd()<.6) setc(j,FIRE);
+          }
+          if (out) break;
+          const r=rnd(), j = r<.5 ? i-G : r<.7 ? i-G+1 : r<.9 ? i-G-1 : r<.95 ? i+1 : i-1;   // flickers upward
+          if (T[j]===E) swap(i,j);
           break;
         }
         case LAVA: {
@@ -249,6 +271,7 @@ function step(g){
           }
           if (done) break;
           if (hot>L[i]) L[i]=hot;
+          if (L[i]>150 && rnd()<.012){ const j=i-G+((rnd()*3|0)-1); if (T[j]===E) setc(j,FIRE); }   // hot lava throws off the odd flame
           if (L[i]<=1){ setc(i,GLASS); break; } L[i]--;                 // cools in ~4 s off the magma
           if (rnd()<.35) liquid(i);
           break;
@@ -263,7 +286,7 @@ function step(g){
           for (const d of N4){
             const o=T[i+d];
             if (o===STEAM){ setc(i+d,FUNGUS); setc(i,FUNGUS); gone=true; break; }
-            if (o===WATER||o===ACID||o===FUMES||o===MAGMA||o===LAVA||o===BRINE||o===SALT){ setc(i,E); gone=true; break; }
+            if (o===WATER||o===ACID||o===FUMES||o===MAGMA||o===LAVA||o===FIRE||o===BRINE||o===SALT){ setc(i,E); gone=true; break; }
           }
           if (gone) break;
           if (rnd()<.2){ if (L[i]<=1){ setc(i,E); break; } L[i]--; }
@@ -380,6 +403,7 @@ function cellColor(t,i,A,Lf,oc){
     case GLASS: r=176; gg=224; b=236; if (h>240){ r=gg=b=255; } break;
     case ACID: r=170; gg=236; b=50; break;
     case FUMES: r=196; gg=226; b=80; a=170; break;
+    case FIRE: { const q=Math.min(1,(Lf[i]+(h&7))/34); r=200+55*q; gg=60+180*q*q; b=12+120*q*q*q; break; }
     case SPORE: r=236; gg=214; b=246; break;
     case FUNGUS: { const cap=A[i-G]===E||A[i-G]===STEAM; if (cap){ r=220; gg=48; b=44; if (h<40){ r=245; gg=238; b=232; } } else { r=170; gg=168; b=176; } break; }
     case MYCEL: r=90; gg=74; b=66; if ((i+h)%5===0){ r=230; gg=222; b=210; } break;
@@ -406,7 +430,14 @@ const NAMES=["You","Red","Green"], OWN_CSS=["var(--you)","var(--red)","var(--gre
 let globes=[], links=[], res=[], armies=[], running=true, view=null, focus=0, over=false, tick=0, lastHitPlayer={};
 const UNIT_COST=30;                          // paid in any mix of resources, from the biggest stock
 const TRAVEL_TICKS=240;                       // 4 s per link
-const UPKEEP_TICKS=600, AI_TICKS=360, GRACE_TICKS=10800;   // AIs decide every 6 s and leave you alone for 3 minutes
+const UPKEEP_TICKS=600, AI_TICKS=360;                       // AIs decide every 6 s
+// how aggressive the rivals are towards you: grace before the first attack, margin they need, gap between attacks, gang up on a leader
+const AI_LEVELS=[
+  {name:"Peaceful", never:true},
+  {name:"Easy",   grace:18000, margin:2.0, gap:5400, gang:false},
+  {name:"Normal", grace:10800, margin:1.4, gap:1800, gang:true},
+];
+let aiLevel=0; try{ const v=+localStorage.getItem("globes.ai"); if (v>=0 && v<3) aiLevel=v; }catch(e){}
 // matter: what can be dug up and placed, and what can be bought
 const MATTER=[
   [STONE,"Stone","#8a90a8"],[SAND,"Sand","#e6c27a"],[WATER,"Water","#3a8ae8"],[BRINE,"Brine","#3f9e98"],[SALT,"Salt","#eef0f6"],
@@ -577,15 +608,16 @@ function aiThink(p){
     if (threat>g.units && g.bonus<.4 && res[p][0]>40){ aiWall(g,p); computeBonus(g); break; } }
   // pick a target: the neighbouring globe with the smallest shortfall, staged from the strongest adjacent globe
   let best=null;
-  const youLead = owned(0).length > Math.max(owned(1).length, owned(2).length);   // gang up on a runaway leader
+  const LV=AI_LEVELS[aiLevel];
+  const youLead = LV.gang && owned(0).length > Math.max(owned(1).length, owned(2).length);   // gang up on a runaway leader
   for (const t of globes){
     if (t.owner===p) continue;
     const vsYou=t.owner===0;
-    if (vsYou && (tick<GRACE_TICKS || tick-(lastHitPlayer[p]||-1e9)<(youLead?900:1800))) continue;
+    if (vsYou && (LV.never || tick<LV.grace || tick-(lastHitPlayer[p]||-1e9)<(youLead?LV.gap/2:LV.gap))) continue;
     if (armies.some(a=>a.owner===p && a.to===t.id)) continue;
     const stages=t.nb.map(n=>globes[n]).filter(g=>g.owner===p); if (!stages.length) continue;
     const st=stages.reduce((a,b)=>a.units>b.units?a:b);
-    const need=t.units*(1+t.bonus)*(vsYou?1.4:1.3)+1;
+    const need=t.units*(1+t.bonus)*(vsYou?LV.margin:1.3)+1;
     const score=(need-(st.units-1)) + (vsYou ? (youLead?-2:4) : 0);    // prefers neutral globes and the other AI, unless you lead
     if (!best || score<best.score) best={t, st, need, score};
   }
@@ -717,7 +749,7 @@ function drawHud(){
   const up=upkeepCost(0), totInc=inc[0]+inc[1]+inc[2];
   $("res").innerHTML=RES.map(([ic],k)=>`<span class="r">${ic} <b>${Math.floor(r[k])}</b><small>+${Math.round(inc[k])}</small></span>`).join("");
   const left=Math.ceil((UPKEEP_TICKS - tick%UPKEEP_TICKS)/60);
-  $("upkeep").innerHTML=`Income per 10 s · upkeep <b class="${totInc<up?"neg":""}">${up}</b> in ${left}s · 🪖 ${unitsOf(0)} · <span style="color:var(--red)">Red ${owned(1).length}</span> · <span style="color:var(--green)">Green ${owned(2).length}</span>`;
+  $("upkeep").innerHTML=`Income per 10 s · upkeep <b class="${totInc<up?"neg":""}">${up}</b> in ${left}s · 🪖 ${unitsOf(0)} · <span style="color:var(--red)">Red ${owned(1).length}</span> · <span style="color:var(--green)">Green ${owned(2).length}</span> · rivals ${AI_LEVELS[aiLevel].name.toLowerCase()}`;
 }
 
 // ---- globe view ----
@@ -806,7 +838,10 @@ mapC.addEventListener("pointercancel",()=>drag=null);
 function goBack(){ location.href="index.html"; }
 $("exitBtn").onclick=goBack; $("ovExit").onclick=goBack; $("ovAgain").onclick=()=>newGame();
 $("pauseBtn").onclick=()=>{ running=!running; $("pauseBtn").style.background = running ? "" : "rgba(255,176,87,.35)"; toast(running?"Resumed":"Paused"); };
-$("helpBtn").onclick=()=>{ $("help").style.display="flex"; };
+function showAiPick(){ document.querySelectorAll("#aiPick [data-ai]").forEach(b=>b.classList.toggle("on", +b.dataset.ai===aiLevel)); }
+document.querySelectorAll("#aiPick [data-ai]").forEach(b=>b.onclick=()=>{ aiLevel=+b.dataset.ai; try{ localStorage.setItem("globes.ai",aiLevel); }catch(e){} showAiPick(); drawHud(); toast(`Rivals: ${AI_LEVELS[aiLevel].name}`); });
+showAiPick();
+$("helpBtn").onclick=()=>{ showAiPick(); $("help").style.display="flex"; };
 $("helpClose").onclick=()=>{ $("help").style.display="none"; try{ localStorage.setItem("globes.help2","1"); }catch(e){} };
 window.onAndroidBack=()=>{
   if ($("help").style.display==="flex"){ $("help").style.display="none"; return true; }
