@@ -1789,11 +1789,15 @@ let solved = {};
 try{ solved = JSON.parse(localStorage.getItem("sandfall.solved")||"{}"); }catch(e){}
 const modeSel=$("mode");
 function buildModeMenu(){
-  modeSel.innerHTML=`<option value="-1">🏖 Sandbox</option>`+CHALLENGES.map((c,i)=>`<option value="${i}">${solved[i]?"⭐":"🧩"} ${c.name}</option>`).join("");
+  modeSel.innerHTML=`<option value="-1">🏖 Sandbox</option>`+CHALLENGES.map((c,i)=>`<option value="${i}">${solved[i]?"⭐":"🧩"} ${c.name}</option>`).join("")
+    +`<option value="globes">⚔ Globe Wars (prototype)</option>`;
   modeSel.value = challenge ? CHALLENGES.indexOf(challenge) : -1;
 }
 buildModeMenu();
-modeSel.onchange=()=>{ startMode(+modeSel.value); closeMenus(); };
+modeSel.onchange=()=>{
+  if (modeSel.value==="globes"){ autosave(); location.href="globes.html"; return; }   // separate strategy prototype page
+  startMode(+modeSel.value); closeMenus();
+};
 
 let sandboxSnapshot=null;
 function startMode(n){

@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#080b14">
+<title>Globe Wars</title>
+<style>
+:root{
+  --bg:#080b14; --glass:rgba(12,16,30,.62); --line:rgba(255,255,255,.14); --text:#eef1f8; --dim:#a3abc2;
+  --you:#5cc8ff; --red:#ff5a5a; --green:#6fe07a; --neutral:#8a90a6; --accent2:#ffb057;
+  --it:env(safe-area-inset-top,0px); --ib:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;color:var(--text);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  font:13px/1.3 system-ui,Roboto,"Segoe UI",sans-serif;touch-action:none;
+  background:radial-gradient(1100px 700px at 50% -10%,#1a2350 0%,transparent 60%),radial-gradient(900px 600px at 100% 110%,#2a1640 0%,transparent 60%),var(--bg)}
+button{font:inherit;color:inherit}
+.glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 8px 28px rgba(0,0,0,.35)}
+#hud{position:absolute;left:8px;right:8px;top:calc(var(--it) + 8px);border-radius:16px;padding:8px 10px;display:flex;align-items:center;gap:10px;z-index:5}
+#res{display:flex;gap:12px;flex:1;flex-wrap:wrap}
+.r b{font-size:15px}
+.r small{color:var(--dim);margin-left:3px}
+.r small.neg{color:#ff8a8a}
+#upkeep{color:var(--dim);font-size:11px;width:100%;margin-top:2px}
+#upkeep b.neg{color:#ff8a8a}
+.hb{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.07);display:grid;place-items:center;padding:0;cursor:pointer}
+.hb svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+canvas#map{position:absolute;left:0;top:0;touch-action:none}
+#toasts{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--it) + 92px);z-index:6;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:calc(100% - 24px)}
+.toast{background:rgba(12,15,28,.88);border:1px solid var(--line);border-radius:16px;padding:6px 12px;font-size:12px;animation:tin .25s,tout .5s 3s forwards;text-align:center}
+@keyframes tin{from{opacity:0;transform:translateY(-6px)}}
+@keyframes tout{to{opacity:0}}
+
+/* globe view */
+#view{position:absolute;inset:0;z-index:4;display:none;flex-direction:column;align-items:center;padding:calc(var(--it) + 98px) 12px calc(var(--ib) + 12px);gap:10px;
+  background:rgba(5,7,14,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+#view.open{display:flex}
+#gwrap{position:relative;flex:none}
+canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pixelated}
+#gwrap::after{content:"";position:absolute;inset:-3px;border-radius:50%;pointer-events:none;
+  box-shadow:inset 0 0 0 3px rgba(210,236,255,.35),inset -14px -18px 30px rgba(0,0,0,.25),0 0 30px rgba(120,190,255,.15)}
+#panel{width:min(440px,100%);border-radius:18px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;overflow:auto}
+#ginfo{display:flex;align-items:center;gap:8px;font-size:14px}
+#ginfo .own{width:12px;height:12px;border-radius:50%}
+#gname{font-weight:700}
+#gsub{color:var(--dim);font-size:12px}
+#corebar{height:7px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}
+#corebar div{height:100%;width:100%;background:linear-gradient(90deg,#ffd27a,#ff7a4c);transition:width .3s}
+.row{display:flex;gap:6px}
+.row>*{flex:1}
+.b{background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:12px;padding:9px 6px;cursor:pointer;min-height:40px}
+.b.on{background:rgba(124,200,255,.22);border-color:#7cc8ff}
+.b:disabled{opacity:.35}
+.b small{display:block;color:var(--dim);font-size:11px;margin-top:2px}
+.sub{color:var(--dim);font-size:11.5px}
+#overlay{position:absolute;inset:0;z-index:9;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.55)}
+#overlay .card{border-radius:20px;padding:22px 24px;text-align:center;width:min(330px,calc(100% - 40px))}
+#overlay h2{margin:0 0 8px;font-size:24px}
+#overlay p{margin:0 0 16px;color:var(--dim)}
+#loading{position:absolute;inset:0;display:grid;place-items:center;z-index:10;font-size:15px;color:var(--dim)}
+#help{position:absolute;inset:0;z-index:8;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.55);padding:16px}
+#help .card{border-radius:20px;padding:16px 18px;max-width:440px;max-height:calc(100% - 40px);overflow:auto}
+#help h2{margin:0 0 8px;font-size:19px}
+#help p,#help li{color:#d6dcea;font-size:13px;line-height:1.45}
+#help ul{padding-left:18px;margin:6px 0}
+</style>
+</head>
+<body>
+<canvas id="map"></canvas>
+
+<div id="hud" class="glass">
+  <div style="flex:1">
+    <div id="res"></div>
+    <div id="upkeep"></div>
+  </div>
+  <button class="hb" id="helpBtn" aria-label="How to play"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button>
+  <button class="hb" id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 24 24"><rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/></svg></button>
+  <button class="hb" id="exitBtn" aria-label="Back to Sandfall"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
+<div id="toasts"></div>
+
+<div id="view">
+  <div id="gwrap"><canvas id="big" width="64" height="64"></canvas></div>
+  <div id="panel" class="glass">
+    <div id="ginfo"><span class="own"></span><span id="gname"></span><span id="gsub"></span><span style="flex:1"></span><button class="b" id="backMap" style="flex:none;min-height:32px;padding:4px 12px">◀ Map</button></div>
+    <div id="corebar"><div></div></div>
+    <div class="sub" id="gprod"></div>
+    <div id="ownTools">
+      <div class="row">
+        <button class="b" id="tShield">🛡 Shield<small>1 🔷 per cell · acid barely etches it</small></button>
+        <button class="b" id="tReaper">⚙ Reaper<small>30 🔷 · harvests on touch</small></button>
+      </div>
+    </div>
+    <div id="attackTools">
+      <div class="row">
+        <button class="b" id="aRain">☔ Acid rain<small>60 🧂/🍄 · takes neutral globes</small></button>
+        <button class="b" id="aStorm">⛈ Acid storm<small>135 🧂/🍄 · for owned globes</small></button>
+      </div>
+      <div class="sub" id="atkNote"></div>
+    </div>
+  </div>
+</div>
+
+<div id="help"><div class="card glass">
+  <h2>Globe Wars (prototype)</h2>
+  <ul>
+    <li>Every node is a tiny falling-sand world. Tap one to look inside.</li>
+    <li><b>Volcano</b> globes melt sand into lava that cools into <b>🔷 glass</b>. <b>Salt pans</b> boil brine into <b>🧂 salt</b>. <b>Fungal caves</b> grow mushrooms that puff <b>🍄 spores</b>.</li>
+    <li><b>Reapers</b> (gold blocks) harvest the product that touches them. Build more in your globes to earn more.</li>
+    <li>To capture a globe next to one of yours, open it and rain <b>acid</b> on it, paid with salt and spores in any mix. When half of its glowing <b>core</b> is eaten, it's yours. A rain usually takes a neutral globe; owned ones need a storm or two.</li>
+    <li>Defend with <b>shields</b>: drag in your own globe to draw them. Acid only slowly etches through.</li>
+    <li><b>Upkeep:</b> every 10 s your empire costs resources, taken from whatever you have most of. It grows faster than your territory. Can't pay, and your weakest core crumbles; a crumbled globe can break away.</li>
+    <li>Red and Green expand too, and fight each other. Take every globe they own to win.</li>
+    <li>Only the globe you're viewing, its neighbours and globes under attack run live; the rest pause and produce at their measured rate.</li>
+  </ul>
+  <button class="b" id="helpClose" style="width:100%">Got it</button>
+</div></div>
+
+<div id="overlay"><div class="card glass"><h2 id="ovTitle"></h2><p id="ovText"></p>
+  <div class="row"><button class="b" id="ovAgain">Play again</button><button class="b" id="ovExit">Back to Sandfall</button></div></div></div>
+<div id="loading">Building worlds…</div>
+
+<script>
+"use strict";
+// =====================================================================
+//  Globe simulation: a trimmed copy of Sandfall's rules on 64x64 round worlds
+// =====================================================================
+const G=64, GN=G*G, CX=32, RAD=30;
+const E=0,BOUND=1,SAND=2,WATER=3,BRINE=4,STEAM=5,SALT=6,MAGMA=7,LAVA=8,GLASS=9,ACID=10,FUMES=11,SPORE=12,FUNGUS=13,MYCEL=14,VENT=15,SPOUT=16,SPRING=17,CORE=18,REAPER=19,SHIELD=20;
+const DENS=new Float32Array(32); DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[LAVA]=2.8; DENS[SAND]=3; DENS[SALT]=3;
+const LIQ=new Uint8Array(32); [WATER,BRINE,ACID,LAVA].forEach(t=>LIQ[t]=1);
+const N4=[1,-1,G,-G], N8=[1,-1,G,-G,G+1,G-1,-G+1,-G-1];
+const RES_OF=new Int8Array(32).fill(-1); RES_OF[GLASS]=0; RES_OF[SALT]=1; RES_OF[SPORE]=2;
+const RES=[["🔷","glass"],["🧂","salt"],["🍄","spores"]];
+const rnd=Math.random;
+const INSIDE=new Uint8Array(GN);
+for (let y=0;y<G;y++) for (let x=0;x<G;x++){ const dx=x+.5-CX, dy=y+.5-CX; INSIDE[y*G+x] = dx*dx+dy*dy <= RAD*RAD ? 1 : 0; }
+
+let T,L,S,tk,cur;          // the globe being stepped
+function setc(i,t){
+  T[i]=t; S[i]=tk;
+  L[i] = t===STEAM ? 90+((rnd()*90)|0) : t===FUMES ? 120+((rnd()*90)|0) : t===SPORE ? 150+((rnd()*100)|0) : t===LAVA ? 200+((rnd()*55)|0) : t===FUNGUS ? 30 : 0;
+}
+function swap(i,j){ let t=T[i];T[i]=T[j];T[j]=t; t=L[i];L[i]=L[j];L[j]=t; S[i]=S[j]=tk; }
+function canMove(s,o){
+  if (o===E) return true;
+  if (o===STEAM||o===FUMES||o===SPORE) return DENS[s]>0;
+  if (LIQ[o]) return DENS[s]>DENS[o] && rnd()<.5;
+  return false;
+}
+function tryM(i,j){ if (canMove(T[i],T[j])){ swap(i,j); return true; } return false; }
+function powder(i){ if (tryM(i,i+G)) return; const s=rnd()<.5?1:-1; if (tryM(i,i+G+s)) return; tryM(i,i+G-s); }
+function liquid(i){
+  if (tryM(i,i+G)) return;
+  const s=rnd()<.5?1:-1;
+  if (tryM(i,i+G+s) || tryM(i,i+G-s)) return;
+  for (const d of [s,-s]){
+    let c=i, moved=false;
+    for (let n=0;n<4;n++){ const j=c+d; if (T[j]!==E) break; swap(c,j); c=j; moved=true; if (T[c+G]===E) break; }
+    if (moved) return;
+  }
+}
+function gasMove(i){
+  const r=rnd(), s=r<.5?1:-1;
+  const j = r<.45 ? i-G : r<.72 ? i-G+s : i+s;
+  const o=T[j];
+  if (o===E || (LIQ[o] && rnd()<.5)) swap(i,j);
+}
+// acid and fumes eat what they touch; returns true if the corroding cell was used up
+const CORE_BITE=.12;
+function corrode(i,diluted){
+  for (const d of N4){
+    const j=i+d, o=T[j]; let ate=false;
+    if (o===SALT) ate=true;
+    else if (o===BRINE && rnd()<.2){ setc(j,WATER); if (rnd()<.5){ setc(i,E); return true; } continue; }
+    else if ((o===FUNGUS||o===SPORE) && rnd()<.12) ate=true;
+    else if (o===SAND && rnd()<.02) ate=true;
+    else if (o===CORE && rnd()<CORE_BITE) ate=true;
+    else if (o===SHIELD && rnd()<.008) ate=true;                               // shields only slowly etch away
+    else if (o===WATER && rnd()<.001){ setc(i,diluted); return true; }
+    if (ate){ setc(j,E); if (rnd()<.5){ setc(i,E); return true; } }
+  }
+  return false;
+}
+
+function step(g){
+  T=g.T; L=g.L; S=g.S; cur=g; g.tk=((g.tk+1)&0xffff)||1; tk=g.tk;
+  const got=g.got; got[0]=got[1]=got[2]=0;
+  for (let y=G-2;y>=1;y--){
+    const dir=rnd()<.5;
+    for (let k=1;k<G-1;k++){
+      const i=y*G+(dir?k:G-1-k), t=T[i];
+      if (t===E || t===BOUND || S[i]===tk) continue;
+      switch (t){
+        case SAND: powder(i); break;
+        case SALT: {
+          for (const d of N4){ if (T[i+d]===WATER && rnd()<.01){ setc(i+d,BRINE); setc(i,E); break; } }
+          if (T[i]===SALT) powder(i);
+          break;
+        }
+        case WATER: case BRINE: liquid(i); break;
+        case STEAM: {
+          if (L[i]<=1){ setc(i, rnd()<.6 ? WATER : E); break; }
+          L[i]--; gasMove(i); break;
+        }
+        case MAGMA: {
+          for (const d of N4){
+            const j=i+d, o=T[j];
+            if (o===WATER && rnd()<.3) setc(j,STEAM);
+            else if (o===BRINE && rnd()<.3) setc(j, rnd()<.25 ? SALT : STEAM);
+            else if (o===SAND && rnd()<.05) setc(j,LAVA);
+            else if (o===ACID && rnd()<.3) setc(j, rnd()<.4 ? FUMES : E);
+            else if ((o===FUNGUS||o===SPORE) && rnd()<.5) setc(j,E);
+          }
+          break;
+        }
+        case LAVA: {
+          let hot=0, done=false;
+          for (const d of N4){
+            const j=i+d, o=T[j];
+            if (o===MAGMA) L[i]=255;
+            else if (o===LAVA && d!==-G){ const h=L[j]-(d===G?1:20); if (h>hot) hot=h; }   // heat rises; barely spreads sideways
+            else if (o===WATER){ setc(j,STEAM); if (rnd()<.5){ setc(i,GLASS); done=true; break; } }
+            else if (o===BRINE && rnd()<.5) setc(j, rnd()<.25 ? SALT : STEAM);
+            else if (o===SAND && L[i]>235 && rnd()<.03){ setc(j,LAVA); L[j]=L[i]-12; }
+            else if ((o===FUNGUS||o===SPORE) && rnd()<.3) setc(j,E);
+          }
+          if (done) break;
+          if (hot>L[i]) L[i]=hot;
+          if (L[i]<=1){ setc(i,GLASS); break; } L[i]--;                 // cools in ~4 s off the magma
+          if (rnd()<.35) liquid(i);
+          break;
+        }
+        case ACID: if (!corrode(i,WATER)) liquid(i); break;
+        case FUMES: {
+          if (L[i]<=1){ setc(i,E); break; }
+          L[i]--; if (!corrode(i,E)) gasMove(i); break;
+        }
+        case SPORE: {
+          let gone=false;
+          for (const d of N4){
+            const o=T[i+d];
+            if (o===STEAM){ setc(i+d,FUNGUS); setc(i,FUNGUS); gone=true; break; }
+            if (o===WATER||o===ACID||o===FUMES||o===MAGMA||o===LAVA||o===BRINE||o===SALT){ setc(i,E); gone=true; break; }
+          }
+          if (gone) break;
+          if (rnd()<.2){ if (L[i]<=1){ setc(i,E); break; } L[i]--; }
+          const r=rnd(); const j = r<.3 ? i+G : r<.42 ? i-G : r<.62 ? i+1 : r<.82 ? i-1 : -1;
+          if (j>=0 && T[j]===E) swap(i,j);
+          break;
+        }
+        case FUNGUS: {
+          let fed=false, best=0;
+          for (const d of N4){
+            const o=T[i+d];
+            if (o===STEAM||o===WATER) fed=true;
+            else if (o===FUNGUS && L[i+d]>best) best=L[i+d];
+          }
+          L[i] = fed ? 30 : best>0 ? best-1 : 0;
+          if (L[i]===0 && rnd()<.004){ setc(i,E); break; }
+          if (rnd()<.35){
+            for (const d of N4){
+              const j=i+d, o=T[j];
+              if ((o===SALT||o===BRINE) && rnd()<.03){ setc(i,E); break; }
+              if (o===STEAM && rnd()<.45) setc(j,FUNGUS);
+              else if (o===WATER && rnd()<.006) setc(j,FUNGUS);
+            }
+            if (T[i]===FUNGUS && rnd()<.012){ const j=i-G+((rnd()*3|0)-1); if (T[j]===E) setc(j,SPORE); }
+          }
+          break;
+        }
+        case MYCEL: if (rnd()<.03){ const j=i-G+((rnd()*3|0)-1); if (T[j]===E) setc(j,SPORE); } break;
+        case VENT:  if (rnd()<g.ventRate){ const j=i-G; if (T[j]===E) setc(j,STEAM); } break;
+        case SPOUT: if (rnd()<g.spoutRate){ const j=i+G; if (T[j]===E) setc(j,SAND); } break;
+        case SPRING:if (rnd()<g.springRate){ const j=i+G; if (T[j]===E) setc(j,BRINE); } break;
+        case REAPER: {
+          for (const d of N8){ const j=i+d, r=RES_OF[T[j]]; if (r>=0){ setc(j,E); got[r]++; } }
+          break;
+        }
+      }
+    }
+  }
+}
+
+// =====================================================================
+//  Building globes
+// =====================================================================
+const BIOMES={
+  volcano:{name:"Volcano", res:0, icon:"🌋"},
+  salt:   {name:"Salt pan", res:1, icon:"🧂"},
+  fungus: {name:"Fungal cave", res:2, icon:"🍄"},
+};
+function newGlobe(id,biome){
+  const g={id, biome, owner:-1, T:new Uint8Array(GN), L:new Uint8Array(GN), S:new Uint16Array(GN), tk:1,
+    got:[0,0,0], rate:[0,0,0], core:0, coreMax:0, lastAttacker:-1, hazard:0, live:false,
+    spoutRate:.035, springRate:.08, ventRate:.25, img:null, canvas:null, nb:[]};
+  T=g.T; L=g.L; S=g.S; tk=1;
+  for (let i=0;i<GN;i++) T[i]=INSIDE[i]?E:BOUND;
+  const fill=(x0,y0,x1,y1,t)=>{ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=y*G+x; if (INSIDE[i]) setc(i,t); } };
+  // the core: a glowing crystal in the middle
+  fill(28,24,35,29,CORE);
+  if (biome==="volcano"){
+    fill(6,40,20,42,MAGMA);                 // magma ledge on the left
+    fill(11,16,14,16,SPOUT);                 // sand pours onto it
+    fill(27,57,31,59,REAPER);               // reaper in the bowl where the lava cools
+  } else if (biome==="salt"){
+    fill(42,40,56,41,MAGMA);                // hot plate on the right
+    fill(46,8,49,8,SPRING);                 // brine drips onto it
+    fill(20,61,44,61,MAGMA);                // the bowl floor boils leftover brine
+    fill(30,57,34,59,REAPER);
+  } else {
+    fill(29,60,34,60,VENT);                 // steam vent at the bottom
+    fill(8,30,10,32,MYCEL); fill(53,30,55,32,MYCEL);
+    fill(37,51,39,53,REAPER);               // spores drift down to the bowl, where the reaper waits
+  }
+  g.coreMax=countG(g,CORE); g.core=g.coreMax;
+  return g;
+}
+function countG(g,t){ let n=0; const a=g.T; for (let i=0;i<GN;i++) if (a[i]===t) n++; return n; }
+
+// =====================================================================
+//  Drawing a globe
+// =====================================================================
+const OWN_COL=[[92,200,255],[255,90,90],[111,224,122]], NEU_COL=[160,166,186];
+const HASH=new Uint8Array(GN); for (let i=0;i<GN;i++){ let h=(i*2654435761)>>>0; h^=h>>>15; h=Math.imul(h,0x2c1b3c6d)>>>0; HASH[i]=(h>>>8)&255; }
+let frame=0;
+function paint(g){
+  if (!g.img){ g.canvas=document.createElement("canvas"); g.canvas.width=g.canvas.height=G; g.ctx=g.canvas.getContext("2d"); g.img=g.ctx.createImageData(G,G); }
+  const P=g.img.data, A=g.T, Lf=g.L, oc=g.owner>=0?OWN_COL[g.owner]:NEU_COL;
+  for (let i=0;i<GN;i++){
+    const t=A[i], o=i<<2, h=HASH[i];
+    let r=0,gg=0,b=0,a=255;
+    switch(t){
+      case BOUND: a=0; break;
+      case E: { const y=(i/G)|0; r=18+y*.25; gg=24+y*.2; b=56-y*.25; break; }   // dark sky inside the globe
+      case SAND: r=230+(h&15)-8; gg=196+(h&15)-8; b=128; break;
+      case WATER: r=40; gg=130; b=232; break;
+      case BRINE: r=56; gg=150; b=150; break;
+      case STEAM: r=210; gg=218; b=232; a=150; break;
+      case SALT: r=238; gg=240; b=246; break;
+      case MAGMA: { const p=(Math.sin((frame*.12)+(i%G)*.6)+1)*.5; r=230+25*p; gg=70+90*p; b=20; break; }
+      case LAVA: { const q=Lf[i]/255; r=120+135*q; gg=22+150*q*q; b=8+50*q*q*q; break; }
+      case GLASS: r=176; gg=224; b=236; if (h>240){ r=gg=b=255; } break;
+      case ACID: r=170; gg=236; b=50; break;
+      case FUMES: r=196; gg=226; b=80; a=170; break;
+      case SPORE: r=236; gg=214; b=246; break;
+      case FUNGUS: { const cap=A[i-G]===E||A[i-G]===STEAM; if (cap){ r=220; gg=48; b=44; if (h<40){ r=245; gg=238; b=232; } } else { r=170; gg=168; b=176; } break; }
+      case MYCEL: r=90; gg=74; b=66; if ((i+h)%5===0){ r=230; gg=222; b=210; } break;
+      case VENT: r=120; gg=128; b=140; break;
+      case SPOUT: r=168; gg=130; b=80; break;
+      case SPRING: r=60; gg=160; b=160; break;
+      case CORE: { const p=(Math.sin(frame*.08+(i%7))+1)*.5; r=oc[0]*.6+90*p; gg=oc[1]*.6+90*p; b=oc[2]*.6+90*p; break; }
+      case REAPER: { const s=((i%G)+((i/G)|0))&1; r=s?236:200; gg=s?190:150; b=s?70:40; break; }
+      case SHIELD: { const hatch=((i%G)+((i/G)|0))%4===0; r=hatch?250:206; gg=hatch?246:196; b=255; break; }   // pale violet crystal
+    }
+    P[o]=r; P[o+1]=gg; P[o+2]=b; P[o+3]=a;
+  }
+  g.ctx.putImageData(g.img,0,0);
+}
+
+// =====================================================================
+//  Map and game state
+// =====================================================================
+const NAMES=["You","Red","Green"], OWN_CSS=["var(--you)","var(--red)","var(--green)"];
+let globes=[], links=[], res=[], running=true, view=null, focus=0, over=false, tick=0;
+let lastAttack={};   // "from>to" -> tick, to rate-limit
+const COSTS={ reaper:[30,0,0] }, OFFENSE={ rain:60, storm:135 };
+const RAIN_CELLS=45, STORM_CELLS=170;
+
+function rngSeed(){ return Math.random(); }
+function newGame(){
+  over=false; tick=0; lastAttack={};
+  $("overlay").style.display="none";
+  globes=[]; links=[];
+  const cols=4, rows=6, kinds=["volcano","salt","fungus"];
+  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++){
+    const id=r*cols+c;
+    const g=newGlobe(id, kinds[(id*7+((rnd()*3)|0))%3]);
+    g.mx=(c+.5)/cols + (rnd()-.5)*.1;
+    g.my=(r+.5)/rows + (rnd()-.5)*.07;
+    globes.push(g);
+  }
+  const link=(a,b)=>{ if (a===b || globes[a].nb.includes(b)) return; globes[a].nb.push(b); globes[b].nb.push(a); links.push([a,b]); };
+  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++){
+    const id=r*cols+c;
+    if (c<cols-1 && rnd()<.85) link(id,id+1);
+    if (r<rows-1 && rnd()<.85) link(id,id+cols);
+    if (r<rows-1 && c<cols-1 && rnd()<.22) link(id,id+cols+1);
+    if (r<rows-1 && c>0 && rnd()<.22) link(id,id+cols-1);
+  }
+  // make sure everything is connected and nobody is a dead end
+  for (const g of globes){
+    if (g.nb.length<2){ const c=g.id%cols, r=(g.id/cols)|0; const opts=[]; if(c<cols-1)opts.push(g.id+1); if(c>0)opts.push(g.id-1); if(r<rows-1)opts.push(g.id+cols); if(r>0)opts.push(g.id-cols);
+      for (const o of opts){ if (g.nb.length>=2) break; link(g.id,o); } }
+  }
+  for(;;){
+    const seen=new Set([0]), q=[0]; while(q.length){ const a=q.pop(); for (const b of globes[a].nb) if(!seen.has(b)){ seen.add(b); q.push(b); } }
+    if (seen.size===globes.length) break;
+    const a=[...seen][(rnd()*seen.size)|0]; const g=globes[a]; const c=a%cols, r=(a/cols)|0;
+    for (const o of [a+1,a-1,a+cols,a-cols]){ if (o>=0 && o<globes.length && !seen.has(o) && Math.abs((o%cols)-c)<=1){ link(a,o); break; } }
+  }
+  // starting globes: you at the bottom, Red top-left, Green top-right
+  const start=[21+((rnd()*2)|0), 0, 3];
+  start.forEach((id,p)=>{ globes[id].owner=p; });
+  // everyone starts with a different resource
+  globes[start[0]].biome="volcano"; globes[start[1]].biome="salt"; globes[start[2]].biome="fungus";
+  for (const p of [0,1,2]){ const g=globes[start[p]]; const ng=newGlobe(g.id,g.biome); Object.assign(g,{T:ng.T,L:ng.L,S:ng.S,coreMax:ng.coreMax,core:ng.core}); }
+  // neutral globes have weaker cores
+  for (const g of globes) if (g.owner<0){ T=g.T; L=g.L; S=g.S; tk=g.tk; for (let i=0;i<GN;i++){ const y=(i/G)|0; if (T[i]===CORE && (y<26||y>27)) setc(i,E); } g.coreMax=countG(g,CORE); g.core=g.coreMax; }
+  res=[[60,80,50],[60,80,50],[60,80,50]];
+  focus=start[0]; view=null; closeView();
+  // warm up every globe so its factory is running and its production rate is known
+  for (const g of globes){
+    for (let k=0;k<500;k++) step(g);
+    const sum=[0,0,0]; for (let k=0;k<400;k++){ step(g); for (let r=0;r<3;r++) sum[r]+=g.got[r]; }
+    g.rate=sum.map(s=>s/400);
+    paint(g);
+  }
+  toast("Capture globes next to yours with acid rain. Tap a globe to look inside.");
+}
+
+// which globes run the real simulation this frame
+function liveSet(){
+  const s=new Set();
+  const f = view!==null ? view : focus;
+  s.add(f); for (const n of globes[f].nb) s.add(n);
+  for (const g of globes) if (g.hazard>0) s.add(g.id);
+  return s;
+}
+
+function credit(owner, amounts){ if (owner<0) return; const r=res[owner]; for (let k=0;k<3;k++) r[k]+=amounts[k]; }
+function canPay(p,cost){ return res[p].every((v,k)=>v>=cost[k]); }
+function pay(p,cost){ for (let k=0;k<3;k++) res[p][k]-=cost[k]; }
+// acid is paid with salt and/or spores, from whichever you have more of
+function canOffense(p,n){ return res[p][1]+res[p][2] >= n; }
+function payOffense(p,n){ const r=res[p]; while (n>0){ const k = r[1]>=r[2] ? 1 : 2; const t=Math.min(n, Math.max(1, Math.floor(Math.abs(r[1]-r[2]))) , Math.floor(r[k])); if (t<=0) break; r[k]-=t; n-=t; } }
+function owned(p){ return globes.filter(g=>g.owner===p); }
+function upkeepCost(p){ const k=owned(p).length; return Math.round(4.5*k + 1.5*k*k); }
+// upkeep is one total, paid from whichever resources you have most of; returns false if you couldn't pay it all
+function payUpkeep(p,c){
+  const r=res[p];
+  while (c>0){
+    let m=0; for (let k=1;k<3;k++) if (r[k]>r[m]) m=k;
+    if (r[m]<1){ for (let k=0;k<3;k++) r[k]=Math.max(0,r[k]); return false; }
+    const take=Math.min(c, Math.max(1, Math.floor(r[m]-Math.max(...r.filter((_,k)=>k!==m)))) || 1, Math.floor(r[m]));
+    r[m]-=take; c-=take;
+  }
+  return true;
+}
+
+function launchAcid(from,to,p,big){
+  const g=globes[to];
+  const n = big ? STORM_CELLS : RAIN_CELLS;
+  T=g.T; L=g.L; S=g.S; tk=g.tk;
+  let placed=0, tries=0;
+  while (placed<n && tries<n*20){
+    tries++;
+    const x=CX + ((rnd()*2-1)*7)|0, y=3+((rnd()*14)|0), i=y*G+x;      // aimed above the core
+    if (INSIDE[i] && T[i]===E){ setc(i,ACID); placed++; }
+  }
+  g.lastAttacker=p; g.hazard=Math.max(g.hazard, 600);
+  lastAttack[from+">"+to]=tick;
+}
+function playerAttack(big){
+  if (view===null) return;
+  const g=globes[view];
+  const from=g.nb.find(n=>globes[n].owner===0);
+  if (from===undefined) return;
+  const cost = big ? OFFENSE.storm : OFFENSE.rain;
+  if (!canOffense(0,cost)){ toast(`Needs ${cost} 🧂/🍄 (salt and spores combined)`); return; }
+  payOffense(0,cost); launchAcid(from,g.id,0,big);
+  toast(big ? "Acid storm launched!" : "Acid rain launched!");
+}
+
+function capture(g){
+  const p=g.lastAttacker, was=g.owner;
+  g.owner=p;
+  T=g.T; L=g.L; S=g.S; tk=g.tk;
+  for (let i=0;i<GN;i++) if (T[i]===ACID||T[i]===FUMES) setc(i,E);
+  for (let y=24;y<=29;y++) for (let x=28;x<=35;x++){ const i=y*G+x; if (T[i]!==SHIELD && T[i]!==REAPER) setc(i,CORE); }
+  g.coreMax=countG(g,CORE); g.core=g.coreMax; g.hazard=0;
+  const name=`${BIOMES[g.biome].name} ${g.id+1}`;
+  if (p===0) toast(`You captured ${name}!`);
+  else if (was===0) toast(`${NAMES[p]} captured your ${name}!`);
+  else toast(`${NAMES[p]} captured ${name}`);
+  checkEnd();
+}
+function checkEnd(){
+  if (over) return;
+  if (!owned(0).length){ over=true; showOverlay("Defeat","Your last globe has fallen."); }
+  else if (!owned(1).length && !owned(2).length){ over=true; showOverlay("Victory! ⭐",`You rule ${owned(0).length} globes.`); }
+}
+
+// =====================================================================
+//  AI
+// =====================================================================
+function aiThink(p){
+  const mine=owned(p); if (!mine.length) return;
+  // defend: shield a core that is under acid attack
+  for (const g of mine){
+    if (g.hazard>0 && res[p][0]>=45){ shieldCore(g,p); break; }
+  }
+  // spend spare glass on more reapers (up to 3 per globe)
+  if (res[p][0] >= 90){
+    const g=mine[(rnd()*mine.length)|0];
+    if (countG(g,REAPER) < 27 && tryPlaceReaper(g)) res[p][0]-=COSTS.reaper[0];
+  }
+  // attack the weakest neighbouring globe
+  let best=null, bestScore=1e9;
+  for (const g of mine) for (const n of g.nb){
+    const t=globes[n]; if (t.owner===p || (t.owner===0 && tick<GRACE_TICKS)) continue;
+    if (tick - (lastAttack[g.id+">"+n]||-1e9) < 600) continue;
+    const score = t.core/Math.max(1,t.coreMax) + (t.owner===-1 ? 0 : .35) + rnd()*.3;
+    if (score<bestScore){ bestScore=score; best=[g.id,n]; }
+  }
+  if (best){
+    const big = canOffense(p,OFFENSE.storm+upkeepCost(p)) && rnd()<.4;
+    const cost = big ? OFFENSE.storm : OFFENSE.rain;
+    if (canOffense(p,cost) && res[p][0]+res[p][1]+res[p][2] - cost > upkeepCost(p)){ payOffense(p,cost); launchAcid(best[0],best[1],p,big);
+      const t=globes[best[1]]; if (t.owner===0) toast(`${NAMES[p]} is raining acid on your ${BIOMES[t.biome].name} ${t.id+1}!`); }
+  }
+}
+// place a 3x3 reaper next to an existing one, where the product flows
+function tryPlaceReaper(g){
+  T=g.T; L=g.L; S=g.S; tk=g.tk;
+  const spots=[]; for (let i=0;i<GN;i++) if (T[i]===REAPER) spots.push(i);
+  for (let a=0;a<20;a++){
+    const i=spots[(rnd()*spots.length)|0], cx=(i%G)+((rnd()<.5?-1:1)*(4+((rnd()*4)|0))), cy=((i/G)|0)+(((rnd()*5)|0)-2);
+    let ok=true;
+    for (let y=cy-1;y<=cy+1 && ok;y++) for (let x=cx-1;x<=cx+1;x++){ const j=y*G+x; if (x<1||y<1||x>=G-1||y>=G-1||!INSIDE[j]||!(T[j]===E||RES_OF[T[j]]>=0||T[j]===STEAM)) { ok=false; break; } }
+    if (ok){ for (let y=cy-1;y<=cy+1;y++) for (let x=cx-1;x<=cx+1;x++) setc(y*G+x,REAPER); return true; }
+  }
+  return false;
+}
+function shieldCore(g,p){
+  T=g.T; L=g.L; S=g.S; tk=g.tk; let n=0;
+  for (let y=20;y<=22;y++) for (let x=25;x<=38;x++){ const i=y*G+x; if (T[i]===E||T[i]===ACID){ setc(i,SHIELD); n++; } }
+  res[p][0]-=n;
+}
+
+// =====================================================================
+//  Main loop
+// =====================================================================
+const UPKEEP_TICKS=600, AI_TICKS=420, GRACE_TICKS=3600;   // AIs decide every 7 s and leave you alone for the first minute
+function gameTick(){
+  tick++;
+  const live=liveSet();
+  for (const g of globes){
+    g.live=live.has(g.id);
+    if (g.live){
+      step(g);
+      credit(g.owner, g.got);
+      for (let r=0;r<3;r++) g.rate[r]=g.rate[r]*.998 + g.got[r]*.002;     // learn the production rate
+      if (g.hazard>0) g.hazard--;
+      if (tick%30===g.id%30){
+        g.core=countG(g,CORE);
+        let acid=0; for (let i=0;i<GN;i++) if (g.T[i]===ACID||g.T[i]===FUMES){ acid=1; break; }
+        if (acid) g.hazard=Math.max(g.hazard,60);
+        if (g.lastAttacker>=0 && g.lastAttacker!==g.owner && g.core < g.coreMax*.5) capture(g);
+      }
+    } else credit(g.owner, g.rate);                                           // cheap mode
+  }
+  if (tick%UPKEEP_TICKS===0) for (const p of [0,1,2]){
+    const mine=owned(p); if (!mine.length) continue;
+    const short=!payUpkeep(p, upkeepCost(p));
+    if (short){
+      const g=mine.reduce((a,b)=>a.core/a.coreMax < b.core/b.coreMax ? a : b);
+      T=g.T; L=g.L; S=g.S; tk=g.tk;
+      let kill=Math.ceil(g.coreMax*.25); for (let i=0;i<GN && kill>0;i++) if (T[i]===CORE && rnd()<.5){ setc(i,E); kill--; }
+      g.core=countG(g,CORE);
+      if (p===0) toast(`Can't pay upkeep! The core of ${BIOMES[g.biome].name} ${g.id+1} crumbles.`);
+      if (g.core < g.coreMax*.3){ g.owner=-1; g.lastAttacker=-1;
+        for (let y=24;y<=29;y++) for (let x=28;x<=35;x++){ const i=y*G+x; if (T[i]===E) setc(i,CORE); }
+        g.core=countG(g,CORE);
+        if (p===0) toast(`${BIOMES[g.biome].name} ${g.id+1} broke away and went neutral.`); checkEnd(); }
+    }
+  }
+  if (tick%AI_TICKS===80) aiThink(1);
+  if (tick%AI_TICKS===290) aiThink(2);
+}
+
+// =====================================================================
+//  UI
+// =====================================================================
+const $=id=>document.getElementById(id);
+const mapC=$("map"), mx=mapC.getContext("2d"), big=$("big"), bx=big.getContext("2d");
+const INS={t:0,b:0};
+window.setInsets=(t,r,b,l)=>{ const s=document.documentElement.style; s.setProperty("--it",t+"px"); s.setProperty("--ib",b+"px"); INS.t=t; INS.b=b; };
+function toast(msg){ const d=document.createElement("div"); d.className="toast"; d.textContent=msg; $("toasts").appendChild(d); setTimeout(()=>d.remove(),3600); while($("toasts").children.length>3) $("toasts").firstChild.remove(); }
+function showOverlay(t,m){ $("ovTitle").textContent=t; $("ovText").textContent=m; $("overlay").style.display="flex"; }
+
+let mapGeom=null;
+function layout(){
+  const dpr=Math.min(devicePixelRatio||1,2.5);
+  mapC.width=innerWidth*dpr; mapC.height=innerHeight*dpr; mapC.style.width=innerWidth+"px"; mapC.style.height=innerHeight+"px";
+  const top=$("hud").getBoundingClientRect().bottom+12, bottom=innerHeight-INS.b-12;
+  const w=innerWidth, h=bottom-top;
+  const rad=Math.min(w/4, h/6)*.3;
+  mapGeom={dpr, top, w, h, rad, pad:rad*1.6};
+  const bs=Math.min(innerWidth-24, innerHeight*.48);
+  big.style.width=big.style.height=bs+"px";
+}
+addEventListener("resize",layout);
+function nodePos(g){ const m=mapGeom; return [m.pad + g.mx*(m.w-2*m.pad), m.top + m.pad*.6 + g.my*(m.h-1.4*m.pad)]; }
+
+function drawMap(){
+  const {dpr,rad}=mapGeom;
+  mx.setTransform(dpr,0,0,dpr,0,0);
+  mx.clearRect(0,0,innerWidth,innerHeight);
+  mx.lineWidth=3; mx.lineCap="round";
+  for (const [a,b] of links){
+    const A=globes[a], B=globes[b], [x1,y1]=nodePos(A), [x2,y2]=nodePos(B);
+    const same = A.owner>=0 && A.owner===B.owner;
+    mx.strokeStyle = same ? `rgba(${OWN_COL[A.owner].join(",")},.55)` : "rgba(200,210,240,.18)";
+    mx.beginPath(); mx.moveTo(x1,y1); mx.lineTo(x2,y2); mx.stroke();
+  }
+  for (const g of globes){
+    const [x,y]=nodePos(g);
+    const col = g.owner>=0 ? `rgb(${OWN_COL[g.owner].join(",")})` : "rgb(140,146,166)";
+    if (g.owner===0 || g.id===focus){ mx.fillStyle=`rgba(${(g.owner>=0?OWN_COL[g.owner]:NEU_COL).join(",")},.16)`; mx.beginPath(); mx.arc(x,y,rad*1.45,0,7); mx.fill(); }
+    mx.save(); mx.beginPath(); mx.arc(x,y,rad,0,7); mx.clip();
+    mx.imageSmoothingEnabled=false;
+    if (g.canvas) mx.drawImage(g.canvas, x-rad, y-rad, rad*2, rad*2);
+    if (!g.live){ mx.fillStyle="rgba(8,11,20,.35)"; mx.fillRect(x-rad,y-rad,rad*2,rad*2); }
+    mx.restore();
+    mx.lineWidth=3; mx.strokeStyle=col; mx.beginPath(); mx.arc(x,y,rad+1.5,0,7); mx.stroke();
+    // damaged core: a thin health arc
+    const f=g.coreMax? g.core/g.coreMax : 0;
+    if (f<.98){ mx.strokeStyle="rgba(255,200,110,.95)"; mx.lineWidth=2.5; mx.beginPath(); mx.arc(x,y,rad+6,-Math.PI/2,-Math.PI/2+f*Math.PI*2); mx.stroke(); }
+    if (g.hazard>0){ mx.fillStyle="#d8ff70"; mx.font="bold 13px system-ui"; mx.textAlign="center"; mx.fillText("☔", x+rad*.8, y-rad*.8); }
+    mx.fillStyle="rgba(255,255,255,.75)"; mx.font="10px system-ui"; mx.textAlign="center"; mx.fillText(BIOMES[g.biome].icon, x, y+rad+18);
+  }
+}
+
+function drawHud(){
+  const r=res[0], inc=[0,0,0];
+  for (const g of owned(0)) for (let k=0;k<3;k++) inc[k]+=g.rate[k]*600;
+  const up=upkeepCost(0), totInc=inc[0]+inc[1]+inc[2];
+  $("res").innerHTML=RES.map(([ic],k)=>`<span class="r">${ic} <b>${Math.floor(r[k])}</b><small>+${Math.round(inc[k])}</small></span>`).join("")
+    + `<span class="r"><small class="${totInc<up?"neg":""}">per 10 s</small></span>`;
+  const left=Math.ceil((UPKEEP_TICKS - tick%UPKEEP_TICKS)/60);
+  $("upkeep").innerHTML=`Upkeep <b class="${totInc<up?"neg":""}">${up}</b> in ${left}s, paid from your biggest stock · ${owned(0).length} globes · <span style="color:var(--red)">Red ${owned(1).length}</span> · <span style="color:var(--green)">Green ${owned(2).length}</span>`;
+}
+
+// ---- globe view ----
+let tool=null, drawing=false;
+function openView(id){ view=id; focus=id; tool=null; $("view").classList.add("open"); updateView(); }
+function closeView(){ view=null; $("view").classList.remove("open"); }
+function updateView(){
+  if (view===null) return;
+  const g=globes[view];
+  $("ginfo").querySelector(".own").style.background = g.owner>=0 ? OWN_CSS[g.owner] : "var(--neutral)";
+  $("gname").textContent=`${BIOMES[g.biome].icon} ${BIOMES[g.biome].name} ${g.id+1}`;
+  $("gsub").textContent = g.owner>=0 ? NAMES[g.owner] : "Neutral";
+  $("corebar").firstElementChild.style.width = (100*g.core/Math.max(1,g.coreMax))+"%";
+  const pr=g.rate.map((v,k)=>v>.0005 ? `${RES[k][0]} ${(v*600).toFixed(0)}/10s` : "").filter(Boolean).join("  ");
+  $("gprod").textContent = `Core ${g.core}/${g.coreMax} · produces ${pr||"nothing yet"}`;
+  const mine=g.owner===0;
+  $("ownTools").style.display = mine ? "" : "none";
+  $("attackTools").style.display = mine ? "none" : "";
+  $("tShield").classList.toggle("on",tool==="shield"); $("tReaper").classList.toggle("on",tool==="reaper");
+  const from=g.nb.find(n=>globes[n].owner===0);
+  $("aRain").disabled = from===undefined || !canOffense(0,OFFENSE.rain);
+  $("aStorm").disabled = from===undefined || !canOffense(0,OFFENSE.storm);
+  $("atkNote").textContent = from===undefined ? "Not next to any of your globes." : `Launched from your ${BIOMES[globes[from].biome].name} ${from+1}. Eat half of its core to capture it.`;
+}
+$("backMap").onclick=()=>closeView();
+$("tShield").onclick=()=>{ tool = tool==="shield" ? null : "shield"; updateView(); };
+$("tReaper").onclick=()=>{ tool = tool==="reaper" ? null : "reaper"; updateView(); };
+$("aRain").onclick=()=>{ playerAttack(false); updateView(); };
+$("aStorm").onclick=()=>{ playerAttack(true); updateView(); };
+
+function cellAt(e){ const r=big.getBoundingClientRect(); return [Math.floor((e.clientX-r.left)/r.width*G), Math.floor((e.clientY-r.top)/r.height*G)]; }
+function useTool(e){
+  if (view===null || !tool) return;
+  const g=globes[view]; if (g.owner!==0) return;
+  const [cx,cy]=cellAt(e);
+  T=g.T; L=g.L; S=g.S; tk=g.tk;
+  if (tool==="reaper"){
+    if (!canPay(0,COSTS.reaper)){ toast("A reaper costs 30 🔷"); return; }
+    let ok=true; for (let y=cy-1;y<=cy+1;y++) for (let x=cx-1;x<=cx+1;x++){ const i=y*G+x; if (x<0||y<0||x>=G||y>=G||!INSIDE[i]||T[i]===CORE) ok=false; }
+    if (!ok){ toast("Can't build a reaper there"); return; }
+    for (let y=cy-1;y<=cy+1;y++) for (let x=cx-1;x<=cx+1;x++) setc(y*G+x,REAPER);
+    pay(0,COSTS.reaper); toast("Reaper built"); tool=null; updateView();
+  } else if (tool==="shield"){
+    let n=0;
+    for (let y=cy-1;y<=cy+1;y++) for (let x=cx-1;x<=cx+1;x++){
+      if (x<0||y<0||x>=G||y>=G) continue; const i=y*G+x;
+      if (INSIDE[i] && (T[i]===E||T[i]===ACID||T[i]===STEAM||T[i]===FUMES) && res[0][0]>=1){ setc(i,SHIELD); n++; res[0][0]-=1; }
+    }
+    if (!n && res[0][0]<1) toast("Shields cost 1 🔷 per cell");
+  }
+}
+big.addEventListener("pointerdown",e=>{ drawing=true; try{ big.setPointerCapture(e.pointerId); }catch(err){} useTool(e); });
+big.addEventListener("pointermove",e=>{ if (drawing && tool==="shield") useTool(e); });
+big.addEventListener("pointerup",()=>drawing=false);
+big.addEventListener("pointercancel",()=>drawing=false);
+
+mapC.addEventListener("pointerup",e=>{
+  if (view!==null) return;
+  for (const g of globes){ const [x,y]=nodePos(g); if (Math.hypot(e.clientX-x,e.clientY-y) < mapGeom.rad*1.4){ openView(g.id); return; } }
+});
+
+function goBack(){ location.href="index.html"; }
+$("exitBtn").onclick=goBack; $("ovExit").onclick=goBack; $("ovAgain").onclick=()=>newGame();
+$("pauseBtn").onclick=()=>{ running=!running; $("pauseBtn").style.background = running ? "" : "rgba(255,176,87,.35)"; toast(running?"Resumed":"Paused"); };
+$("helpBtn").onclick=()=>{ $("help").style.display="flex"; };
+$("helpClose").onclick=()=>{ $("help").style.display="none"; try{ localStorage.setItem("globes.help","1"); }catch(e){} };
+window.onAndroidBack=()=>{
+  if ($("help").style.display==="flex"){ $("help").style.display="none"; return true; }
+  if (view!==null){ closeView(); return true; }
+  goBack(); return true;
+};
+
+let acc=0, lastT=performance.now();
+function loop(now){
+  const dt=Math.min(100, now-lastT); lastT=now;
+  if (running && !over){ acc += dt/(1000/60); let n=0; while (acc>=1 && n<4){ gameTick(); acc--; n++; } if (acc>4) acc=0; }
+  frame++;
+  for (const g of globes) if (g.live && (g.id===view || frame%4===g.id%4)) paint(g);
+  if (view!==null){ bx.imageSmoothingEnabled=false; bx.clearRect(0,0,G,G); bx.drawImage(globes[view].canvas,0,0); if (frame%10===0) updateView(); }
+  drawMap(); if (frame%10===0) drawHud();
+  requestAnimationFrame(loop);
+}
+
+layout();
+setTimeout(()=>{
+  newGame(); $("loading").remove(); layout(); drawHud();
+  let seen=false; try{ seen = localStorage.getItem("globes.help")==="1"; }catch(e){}
+  if (!seen) $("help").style.display="flex";
+  requestAnimationFrame(loop);
+}, 30);
+</script>
+</body>
+</html>

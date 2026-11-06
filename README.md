@@ -59,6 +59,18 @@ The whole screen is the play area, held upright (portrait).
   6. **Salt Mine** – dissolve most of a salt mountain with Vats and wall off the orchard pit from the acid.
   7. **Fungal Bloom** – grow 450 mushrooms in a steamy cave from 40 spores.
 
+## Globe Wars (prototype)
+
+A real-time strategy prototype, opened from the options menu (mode list → **⚔ Globe Wars**). A map of 24 connected globes, each a tiny falling-sand world:
+
+- **Volcano** globes melt sand into lava that cools into **🔷 glass**; **salt pans** boil brine into **🧂 salt**; **fungal caves** grow mushrooms that puff **🍄 spores**.
+- **Reapers** harvest the product that touches them; build more to earn more.
+- Capture a neighbouring globe by raining **acid** on it (paid with salt and spores) until half its **core** is eaten. Defend with **shields**, which acid only slowly etches.
+- **Upkeep** every 10 s grows faster than your empire and is paid from your biggest stock; failing it crumbles your weakest core.
+- Two AI rivals, Red and Green, expand and fight each other. Only the viewed globe, its neighbours and globes under attack run live; the rest produce at their measured rate.
+
+It lives in `app/src/main/assets/globes.html` with its own trimmed copy of the element rules. A match isn't saved when you leave.
+
 ## Building
 
 The app is a thin WebView wrapper (`app/src/main/java`) around the game, which is one self-contained file: `app/src/main/assets/index.html`.
