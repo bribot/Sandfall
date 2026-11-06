@@ -17,13 +17,13 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;color:var(--text);user
   background:radial-gradient(1100px 700px at 50% -10%,#1a2350 0%,transparent 60%),radial-gradient(900px 600px at 100% 110%,#2a1640 0%,transparent 60%),var(--bg)}
 button{font:inherit;color:inherit}
 .glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 8px 28px rgba(0,0,0,.35)}
-#hud{position:absolute;left:8px;right:8px;top:calc(var(--it) + 8px);border-radius:16px;padding:8px 10px;display:flex;align-items:center;gap:8px;z-index:5}
-#res{display:flex;gap:10px;flex-wrap:wrap}
+#hud{position:absolute;left:8px;right:8px;top:calc(var(--it) + 8px);border-radius:16px;padding:8px 10px;display:flex;align-items:center;gap:6px;z-index:5}
+#res{display:flex;gap:7px;flex-wrap:wrap}
 .r b{font-size:15px}
 .r small{color:var(--dim);margin-left:2px}
 #upkeep{color:var(--dim);font-size:11px;margin-top:3px}
 #upkeep b.neg,.neg{color:#ff8a8a}
-.hb{flex:none;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.07);display:grid;place-items:center;padding:0;cursor:pointer}
+.hb{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.07);display:grid;place-items:center;padding:0;cursor:pointer}
 .hb svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 canvas#map{position:absolute;left:0;top:0;touch-action:none}
 #toasts{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--it) + 84px);z-index:7;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:calc(100% - 24px)}
@@ -93,6 +93,7 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
     <div id="upkeep"></div>
   </div>
   <button class="hb" id="helpBtn" aria-label="How to play"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button>
+  <button class="hb" id="speedBtn" aria-label="Game speed" style="font:700 12px system-ui;color:inherit">2×</button>
   <button class="hb" id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 24 24"><rect x="7" y="5" width="3.5" height="14" rx="1"/><rect x="13.5" y="5" width="3.5" height="14" rx="1"/></svg></button>
   <button class="hb" id="exitBtn" aria-label="Back to Sandfall"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
@@ -125,7 +126,7 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
 <div id="help"><div class="card glass">
   <h2>Globe Wars (prototype)</h2>
   <ul>
-    <li>Every node is a falling-sand world. <b>Volcanoes</b> melt sand into lava that cools into <b>🔷 glass</b>, <b>gardens</b> grow <b>🌿 plants</b> in the rain, <b>fungal caves</b> grow <b>🍄 fungus</b> on steam. Gold <b>reapers</b> eat glass, plants and fungus that touch them; the eating spreads a little way through what it touches, like fire through a plant bed, and each cell eaten is one resource.</li>
+    <li>Every node is a falling-sand world. <b>Volcanoes</b> melt sand into lava that cools into <b>🔷 glass</b>, <b>gardens</b> grow <b>🌿 plants</b> in the rain, <b>fungal caves</b> grow <b>🍄 fungus</b> on steam. Gold <b>reapers</b> eat glass, plants and fungus that touch them; the eating spreads through everything connected to it, like fire through a plant bed, and each cell eaten is one resource.</li>
     <li><b>Train units</b> in your globes (30 resources each, any mix). <b>Drag</b> from one of your globes to a linked one on the map to send half its units, or use the buttons inside a globe.</li>
     <li>Units arriving at an enemy or neutral globe fight its garrison. The defenders get a <b>defence bonus</b> from what surrounds their core: stone and glass walls, and lava, magma or acid in a ring around it.</li>
     <li><b>Shape your globes</b>: each globe has its own limited matter. <b>Dig</b> picks cells up into that globe's stock, then pick a material and drag to <b>place</b> it. <b>Buy</b> more with your resources: stone walls, acid, reapers, and <b>generators</b> (magma, sand spouts, clouds, steam vents, mycelium, brine springs) to build any factory in any globe.</li>
@@ -151,13 +152,12 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
 //  Globe simulation: a trimmed copy of Sandfall's rules on 128x128 round worlds
 // =====================================================================
 const G=128, GN=G*G, CX=64, RAD=61;
-const E=0,BOUND=1,SAND=2,WATER=3,BRINE=4,STEAM=5,SALT=6,MAGMA=7,LAVA=8,GLASS=9,ACID=10,FUMES=11,SPORE=12,FUNGUS=13,MYCEL=14,VENT=15,SPOUT=16,SPRING=17,CORE=18,REAPER=19,STONE=20,FIRE=21,PLANT=22,CLOUD=23,HARVEST=24;
+const E=0,BOUND=1,SAND=2,WATER=3,BRINE=4,STEAM=5,SALT=6,MAGMA=7,LAVA=8,GLASS=9,ACID=10,FUMES=11,SPORE=12,FUNGUS=13,MYCEL=14,VENT=15,SPOUT=16,SPRING=17,CORE=18,REAPER=19,STONE=20,FIRE=21,PLANT=22,CLOUD=23,HARVEST=24,SEEDER=25;
 const DENS=new Float32Array(32); DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[LAVA]=2.8; DENS[SAND]=3; DENS[SALT]=3;
 const LIQ=new Uint8Array(32); [WATER,BRINE,ACID,LAVA].forEach(t=>LIQ[t]=1);
 const N4=[1,-1,G,-G], N8=[1,-1,G,-G,G+1,G-1,-G+1,-G-1];
 const RES_OF=new Int8Array(32).fill(-1); RES_OF[GLASS]=0; RES_OF[PLANT]=1; RES_OF[FUNGUS]=2;
 const KIND_TYPE=[GLASS,PLANT,FUNGUS];
-const HARVEST_DEPTH=6;   // how far a reaper's eating spreads through a connected body
 const RES=[["🔷","glass"],["🌿","plants"],["🍄","fungus"]];
 const rnd=Math.random;
 const INSIDE=new Uint8Array(GN);
@@ -322,14 +322,16 @@ function step(g){
         case SPRING:if (rnd()<g.springRate){ const j=i+G; if (T[j]===E) setc(j,BRINE); } break;
         case REAPER: {
           // starts eating glass, plants or fungus that touch it
-          for (const d of N8){ const j=i+d, r=RES_OF[T[j]]; if (r>=0 && rnd()<.25){ setc(j,HARVEST); F[j]=r|(HARVEST_DEPTH<<2); } }
+          for (const d of N8){ const j=i+d, r=RES_OF[T[j]]; if (r>=0 && rnd()<.25){ setc(j,HARVEST); F[j]=r; } }
           break;
         }
         case HARVEST: {
-          // a cell being eaten: glows, spreads into connected cells of the same material (fading with distance), then is gone
-          const kind=F[i]&3, depth=F[i]>>2;
-          if (depth>0) for (const d of N4){ const j=i+d; if (T[j]===KIND_TYPE[kind] && rnd()<.12){ setc(j,HARVEST); F[j]=kind|((depth-1)<<2); } }
-          if (L[i]<=1){ got[kind]++; setc(i,E); break; }
+          // a cell being eaten: glows and spreads through the whole connected body of the same material, like fire through plants
+          const kind=F[i]&3, want=KIND_TYPE[kind];
+          for (const d of N4){ const j=i+d; if (T[j]===want && rnd()<.3){ setc(j,HARVEST); F[j]=kind; } }
+          if (L[i]<=1){
+            for (const d of N8){ const j=i+d; if (T[j]===want){ setc(j,HARVEST); F[j]=kind; } }   // nothing connected is left behind
+            got[kind]++; setc(i,E); break; }
           L[i]--;
           break;
         }
@@ -342,6 +344,7 @@ function step(g){
           if (rnd()<.15) for (const d of N4){ const j=i+d; if (T[j]===WATER && rnd()<.25){ setc(j,PLANT); break; } }   // drinks water and grows into it
           break;
         }
+        case SEEDER: if (rnd()<.1) for (const d of N4){ const j=i+d; if (T[j]===WATER){ setc(j,PLANT); break; } } break;   // water touching it sprouts
         case CLOUD: if (rnd()<g.cloudRate){ const j=i+G; if (T[j]===E) setc(j,WATER); } break;
       }
     }
@@ -358,12 +361,12 @@ const BIOMES={
   fungus: {name:"Fungal cave", res:2, icon:"🍄"},
 };
 // production per tick of a fresh globe of each biome (measured), used until a globe has been seen live
-const BASE_RATE={ volcano:[.19,0,0], garden:[0,.165,0], fungus:[0,0,.19] };
+const BASE_RATE={ volcano:[.2,0,0], garden:[0,.2,0], fungus:[0,0,.2] };
 const CORE_BOX=[56,48,71,59];
 function newGlobe(id,biome){
   const g={id, biome, owner:-1, T:new Uint8Array(GN), L:new Uint8Array(GN), S:new Uint16Array(GN), F:new Uint8Array(GN), tk:1,
     got:[0,0,0], rate:BASE_RATE[biome].slice(), units:0, bonus:0, bonusParts:"", inv:{}, live:false,
-    spoutRate:.025, springRate:.055, ventRate:.15, cloudRate:.007, img:null, canvas:null, nb:[]};
+    spoutRate:.025, springRate:.055, ventRate:.04, cloudRate:.007, img:null, canvas:null, nb:[]};
   T=g.T; L=g.L; S=g.S; F=g.F; tk=1;
   for (let i=0;i<GN;i++) T[i]=INSIDE[i]?E:BOUND;
   const fill=(x0,y0,x1,y1,t)=>{ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=y*G+x; if (INSIDE[i]) setc(i,t); } };
@@ -376,6 +379,7 @@ function newGlobe(id,biome){
   } else if (biome==="garden"){
     fill(24,40,42,41,CLOUD); fill(86,40,104,41,CLOUD);   // two rain clouds, either side of the core
     fill(20,108,108,123,PLANT);                 // a low plant bed
+    for (let i=108*G;i<GN;i++) if (T[i]===PLANT && (T[i+G]===BOUND||T[i-1]===BOUND||T[i+1]===BOUND)) setc(i,SEEDER);   // seeder lining the bowl: rain soaking down sprouts again, so the bed regrows after it is eaten
     fill(29,103,37,107,REAPER); fill(91,103,99,107,REAPER);   // a reaper under each cloud: rain runs off it and plants grow up into it
     g.inv={[WATER]:120,[STONE]:20};
   } else {
@@ -431,6 +435,7 @@ function cellColor(t,i,A,Lf,oc){
     case SPOUT: r=168; gg=130; b=80; break;
     case SPRING: r=60; gg=160; b=160; break;
     case PLANT: { const top=A[i-G]===E||A[i-G]===WATER; r=40+(h&31); gg=150+(h&63); b=60; if (top){ r+=30; gg+=30; if (h<8){ r=255; gg=160; b=200; } } break; }
+    case SEEDER: { const s=(i*7+((i/G)|0))%5===0; r=s?150:96; gg=s?120:78; b=s?60:48; break; }
     case CLOUD: { const n=Math.sin(frame*.05+(i%G)*.4); r=225+20*n; gg=230+20*n; b=250; break; }
     case HARVEST: { const p=(Math.sin(frame*.5+i)+1)*.5; r=255; gg=200+40*p; b=80+60*p; break; }
     case CORE: { const p=(Math.sin(frame*.08+(i%7))+1)*.5; r=oc[0]*.6+90*p; gg=oc[1]*.6+90*p; b=oc[2]*.6+90*p; break; }
@@ -466,16 +471,16 @@ const MATTER=[
   [STONE,"Stone","#8a90a8"],[SAND,"Sand","#e6c27a"],[WATER,"Water","#3a8ae8"],[BRINE,"Brine","#3f9e98"],[SALT,"Salt","#eef0f6"],
   [GLASS,"Glass","#b0e0ec"],[ACID,"Acid","#aaec32"],[MAGMA,"Magma","#ff7a1a"],[REAPER,"Reaper","#ecbe46"],
   [SPOUT,"Sand spout","#a88250"],[SPRING,"Brine spring","#3ca0a0"],[VENT,"Steam vent","#78808c"],[MYCEL,"Mycelium","#5a4a42"],[FUNGUS,"Fungus","#dc302c"],
-  [PLANT,"Plant","#3ec45a"],[CLOUD,"Cloud","#e2e8fa"]];
+  [PLANT,"Plant","#3ec45a"],[CLOUD,"Cloud","#e2e8fa"],[SEEDER,"Seeder","#7a5a34"]];
 const DIGGABLE=new Uint8Array(32); MATTER.forEach(([t])=>DIGGABLE[t]=1);
 // what can be bought for a globe: material -> [amount, cost in 🔷 glass, 🌿 plants, 🍄 fungus]
 const BUY={
   [STONE]:[30,[15,0,0]], [SAND]:[60,[0,8,0]], [WATER]:[60,[0,0,8]], [ACID]:[25,[0,25,10]], [REAPER]:[9,[30,0,0]],
   [MAGMA]:[8,[20,20,0]], [SPOUT]:[4,[40,0,20]], [SPRING]:[4,[20,40,0]], [VENT]:[6,[0,20,40]], [MYCEL]:[6,[20,0,40]],
-  [PLANT]:[20,[0,10,0]], [CLOUD]:[8,[20,30,0]],
+  [PLANT]:[20,[0,10,0]], [CLOUD]:[8,[20,30,0]], [SEEDER]:[10,[10,20,0]],
 };
-const GENERATORS=new Set([MAGMA,SPOUT,SPRING,VENT,MYCEL,REAPER,CLOUD]);
-const TILE_ORDER=[STONE,SAND,WATER,ACID,PLANT,REAPER,MAGMA,SPOUT,CLOUD,VENT,MYCEL,SPRING,GLASS,FUNGUS,SALT,BRINE];
+const GENERATORS=new Set([MAGMA,SPOUT,SPRING,VENT,MYCEL,REAPER,CLOUD,SEEDER]);
+const TILE_ORDER=[STONE,SAND,WATER,ACID,PLANT,REAPER,MAGMA,SPOUT,CLOUD,SEEDER,VENT,MYCEL,SPRING,GLASS,FUNGUS,SALT,BRINE];
 
 function newGame(){
   over=false; tick=0; armies=[]; lastHitPlayer={};
@@ -863,6 +868,10 @@ mapC.addEventListener("pointercancel",()=>drag=null);
 function goBack(){ location.href="index.html"; }
 $("exitBtn").onclick=goBack; $("ovExit").onclick=goBack; $("ovAgain").onclick=()=>newGame();
 $("pauseBtn").onclick=()=>{ running=!running; $("pauseBtn").style.background = running ? "" : "rgba(255,176,87,.35)"; toast(running?"Resumed":"Paused"); };
+const SPEEDS=[1,2,4,.5]; let speed=2; try{ const v=+localStorage.getItem("globes.speed"); if (SPEEDS.includes(v)) speed=v; }catch(e){}
+function showSpeed(){ $("speedBtn").textContent = speed===.5 ? "½×" : speed+"×"; }
+showSpeed();
+$("speedBtn").onclick=()=>{ speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length]; try{ localStorage.setItem("globes.speed",speed); }catch(e){} showSpeed(); toast(`Speed ${$("speedBtn").textContent}`); };
 function showAiPick(){ document.querySelectorAll("#aiPick [data-ai]").forEach(b=>b.classList.toggle("on", +b.dataset.ai===aiLevel)); }
 document.querySelectorAll("#aiPick [data-ai]").forEach(b=>b.onclick=()=>{ aiLevel=+b.dataset.ai; try{ localStorage.setItem("globes.ai",aiLevel); }catch(e){} showAiPick(); drawHud(); toast(`Rivals: ${AI_LEVELS[aiLevel].name}`); });
 showAiPick();
@@ -877,7 +886,7 @@ window.onAndroidBack=()=>{
 let acc=0, lastT=performance.now();
 function loop(now){
   const dt=Math.min(100, now-lastT); lastT=now;
-  if (running && !over){ acc += dt/(1000/60); let n=0; while (acc>=1 && n<3){ gameTick(); acc--; n++; } if (acc>3) acc=0; }
+  if (running && !over){ acc += dt/(1000/60)*speed; let n=0; while (acc>=1 && n<3*Math.max(1,speed)){ gameTick(); acc--; n++; } if (acc>3*speed) acc=0; }
   frame++;
   for (const g of globes) if (g.live && (g.id===view || frame%6===g.id%6)) paint(g);
   if (view!==null){ bx.imageSmoothingEnabled=false; bx.clearRect(0,0,G,G); bx.drawImage(globes[view].canvas,0,0); if (frame%15===0) updateView(false); }
