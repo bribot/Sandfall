@@ -125,10 +125,10 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
 <div id="help"><div class="card glass">
   <h2>Globe Wars (prototype)</h2>
   <ul>
-    <li>Every node is a falling-sand world. <b>Volcanoes</b> melt sand into lava that cools into <b>🔷 glass</b>, <b>salt pans</b> boil brine into <b>🧂 salt</b>, <b>fungal caves</b> grow mushrooms that puff <b>🍄 spores</b>. Gold <b>reapers</b> harvest what touches them.</li>
+    <li>Every node is a falling-sand world. <b>Volcanoes</b> melt sand into lava that cools into <b>🔷 glass</b>, <b>gardens</b> grow <b>🌿 plants</b> in the rain, <b>fungal caves</b> grow <b>🍄 fungus</b> on steam. Gold <b>reapers</b> eat glass, plants and fungus that touch them; the eating spreads a little way through what it touches, like fire through a plant bed, and each cell eaten is one resource.</li>
     <li><b>Train units</b> in your globes (30 resources each, any mix). <b>Drag</b> from one of your globes to a linked one on the map to send half its units, or use the buttons inside a globe.</li>
     <li>Units arriving at an enemy or neutral globe fight its garrison. The defenders get a <b>defence bonus</b> from what surrounds their core: stone and glass walls, and lava, magma or acid in a ring around it.</li>
-    <li><b>Shape your globes</b>: each globe has its own limited matter. <b>Dig</b> picks cells up into that globe's stock, then pick a material and drag to <b>place</b> it. <b>Buy</b> more with your resources: stone walls, acid, reapers, and <b>generators</b> (magma, sand spouts, brine springs, steam vents, mycelium) to build any factory in any globe.</li>
+    <li><b>Shape your globes</b>: each globe has its own limited matter. <b>Dig</b> picks cells up into that globe's stock, then pick a material and drag to <b>place</b> it. <b>Buy</b> more with your resources: stone walls, acid, reapers, and <b>generators</b> (magma, sand spouts, clouds, steam vents, mycelium, brine springs) to build any factory in any globe.</li>
     <li><b>Upkeep</b> every 10 s grows with your globes and units and is paid from your biggest stock. Can't pay, and units desert.</li>
     <li>Red and Green expand and fight each other too. Below, choose how hard they go after you. Take all their globes to win. Only the globe you're looking at and its neighbours run live; the rest produce at their measured rate.</li>
   </ul>
@@ -151,12 +151,14 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
 //  Globe simulation: a trimmed copy of Sandfall's rules on 128x128 round worlds
 // =====================================================================
 const G=128, GN=G*G, CX=64, RAD=61;
-const E=0,BOUND=1,SAND=2,WATER=3,BRINE=4,STEAM=5,SALT=6,MAGMA=7,LAVA=8,GLASS=9,ACID=10,FUMES=11,SPORE=12,FUNGUS=13,MYCEL=14,VENT=15,SPOUT=16,SPRING=17,CORE=18,REAPER=19,STONE=20,FIRE=21;
+const E=0,BOUND=1,SAND=2,WATER=3,BRINE=4,STEAM=5,SALT=6,MAGMA=7,LAVA=8,GLASS=9,ACID=10,FUMES=11,SPORE=12,FUNGUS=13,MYCEL=14,VENT=15,SPOUT=16,SPRING=17,CORE=18,REAPER=19,STONE=20,FIRE=21,PLANT=22,CLOUD=23,HARVEST=24;
 const DENS=new Float32Array(32); DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[LAVA]=2.8; DENS[SAND]=3; DENS[SALT]=3;
 const LIQ=new Uint8Array(32); [WATER,BRINE,ACID,LAVA].forEach(t=>LIQ[t]=1);
 const N4=[1,-1,G,-G], N8=[1,-1,G,-G,G+1,G-1,-G+1,-G-1];
-const RES_OF=new Int8Array(32).fill(-1); RES_OF[GLASS]=0; RES_OF[SALT]=1; RES_OF[SPORE]=2;
-const RES=[["🔷","glass"],["🧂","salt"],["🍄","spores"]];
+const RES_OF=new Int8Array(32).fill(-1); RES_OF[GLASS]=0; RES_OF[PLANT]=1; RES_OF[FUNGUS]=2;
+const KIND_TYPE=[GLASS,PLANT,FUNGUS];
+const HARVEST_DEPTH=6;   // how far a reaper's eating spreads through a connected body
+const RES=[["🔷","glass"],["🌿","plants"],["🍄","fungus"]];
 const rnd=Math.random;
 const INSIDE=new Uint8Array(GN);
 for (let y=0;y<G;y++) for (let x=0;x<G;x++){ const dx=x+.5-CX, dy=y+.5-CX; INSIDE[y*G+x] = dx*dx+dy*dy <= RAD*RAD ? 1 : 0; }
@@ -164,7 +166,7 @@ for (let y=0;y<G;y++) for (let x=0;x<G;x++){ const dx=x+.5-CX, dy=y+.5-CX; INSID
 let T,L,S,F,tk,cur;        // the globe being stepped (F: lava fed by a vent)
 function setc(i,t){
   T[i]=t; S[i]=tk; F[i]=0;
-  L[i] = t===STEAM ? 90+((rnd()*90)|0) : t===FUMES ? 120+((rnd()*90)|0) : t===SPORE ? 150+((rnd()*100)|0) : t===LAVA ? 200+((rnd()*55)|0) : t===FUNGUS ? 30 : t===FIRE ? 10+((rnd()*26)|0) : 0;
+  L[i] = t===STEAM ? 90+((rnd()*90)|0) : t===FUMES ? 120+((rnd()*90)|0) : t===SPORE ? 150+((rnd()*100)|0) : t===LAVA ? 200+((rnd()*55)|0) : t===FUNGUS ? 30 : t===FIRE ? 10+((rnd()*26)|0) : t===HARVEST ? 6+((rnd()*8)|0) : t===PLANT ? 20 : 0;
 }
 function swap(i,j){ let t=T[i];T[i]=T[j];T[j]=t; t=L[i];L[i]=L[j];L[j]=t; t=F[i];F[i]=F[j];F[j]=t; S[i]=S[j]=tk; }
 function canMove(s,o){
@@ -234,7 +236,7 @@ function step(g){
             else if (o===SAND && rnd()<.05) setc(j,LAVA);
             else if (o===GLASS && rnd()<.03) setc(j,LAVA);
             else if (o===ACID && rnd()<.3) setc(j, rnd()<.4 ? FUMES : E);
-            else if ((o===FUNGUS||o===SPORE) && rnd()<.5) setc(j,FIRE);   // anything that burns catches at once
+            else if ((o===FUNGUS||o===SPORE||o===PLANT) && rnd()<.5) setc(j,FIRE);   // anything that burns catches at once
           }
           if (rnd()<.35){ const j=i+N8[(rnd()*8)|0]; if (T[j]===E) setc(j,FIRE); }   // spews fire
           break;
@@ -246,7 +248,7 @@ function step(g){
           for (const d of N4){
             const j=i+d, o=T[j];
             if (o===WATER){ setc(j,STEAM); if (rnd()<.5){ setc(i,E); out=true; break; } }      // water puts it out
-            else if (o===FUNGUS && rnd()<.25) setc(j,FIRE);
+            else if ((o===FUNGUS||o===PLANT) && rnd()<.22) setc(j,FIRE);
             else if (o===SPORE && rnd()<.6) setc(j,FIRE);
           }
           if (out) break;
@@ -267,7 +269,7 @@ function step(g){
             else if (o===GLASS && fed && L[i]>200 && rnd()<.03){ setc(j,LAVA); L[j]=L[i]-12; }
             else if (o===BRINE && rnd()<.5) setc(j, rnd()<.25 ? SALT : STEAM);
             else if (o===SAND && L[i]>235 && rnd()<.03){ setc(j,LAVA); L[j]=L[i]-12; }
-            else if ((o===FUNGUS||o===SPORE) && rnd()<.3) setc(j,E);
+            else if ((o===FUNGUS||o===SPORE||o===PLANT) && rnd()<.3) setc(j,FIRE);
           }
           if (done) break;
           if (hot>L[i]) L[i]=hot;
@@ -319,9 +321,28 @@ function step(g){
         case SPOUT: if (rnd()<g.spoutRate){ const j=i+G; if (T[j]===E) setc(j,SAND); } break;
         case SPRING:if (rnd()<g.springRate){ const j=i+G; if (T[j]===E) setc(j,BRINE); } break;
         case REAPER: {
-          for (const d of N8){ const j=i+d, r=RES_OF[T[j]]; if (r>=0){ setc(j,E); got[r]++; } }
+          // starts eating glass, plants or fungus that touch it
+          for (const d of N8){ const j=i+d, r=RES_OF[T[j]]; if (r>=0 && rnd()<.25){ setc(j,HARVEST); F[j]=r|(HARVEST_DEPTH<<2); } }
           break;
         }
+        case HARVEST: {
+          // a cell being eaten: glows, spreads into connected cells of the same material (fading with distance), then is gone
+          const kind=F[i]&3, depth=F[i]>>2;
+          if (depth>0) for (const d of N4){ const j=i+d; if (T[j]===KIND_TYPE[kind] && rnd()<.12){ setc(j,HARVEST); F[j]=kind|((depth-1)<<2); } }
+          if (L[i]<=1){ got[kind]++; setc(i,E); break; }
+          L[i]--;
+          break;
+        }
+        case PLANT: {
+          // needs water: fed when touching it, passed through the plant; dry plant far from water withers away
+          let wet=false, best=0;
+          for (const d of N4){ const o=T[i+d]; if (o===WATER) wet=true; else if (o===PLANT && L[i+d]>best) best=L[i+d]; }
+          L[i] = wet ? 20 : best>0 ? best-1 : 0;
+          if (L[i]===0 && rnd()<.003){ setc(i,E); break; }
+          if (rnd()<.15) for (const d of N4){ const j=i+d; if (T[j]===WATER && rnd()<.25){ setc(j,PLANT); break; } }   // drinks water and grows into it
+          break;
+        }
+        case CLOUD: if (rnd()<g.cloudRate){ const j=i+G; if (T[j]===E) setc(j,WATER); } break;
       }
     }
   }
@@ -333,16 +354,16 @@ function step(g){
 // =====================================================================
 const BIOMES={
   volcano:{name:"Volcano", res:0, icon:"🌋"},
-  salt:   {name:"Salt pan", res:1, icon:"🧂"},
+  garden: {name:"Garden", res:1, icon:"🌿"},
   fungus: {name:"Fungal cave", res:2, icon:"🍄"},
 };
 // production per tick of a fresh globe of each biome (measured), used until a globe has been seen live
-const BASE_RATE={ volcano:[.176,0,0], salt:[0,.094,0], fungus:[0,0,.123] };
+const BASE_RATE={ volcano:[.19,0,0], garden:[0,.165,0], fungus:[0,0,.19] };
 const CORE_BOX=[56,48,71,59];
 function newGlobe(id,biome){
   const g={id, biome, owner:-1, T:new Uint8Array(GN), L:new Uint8Array(GN), S:new Uint16Array(GN), F:new Uint8Array(GN), tk:1,
     got:[0,0,0], rate:BASE_RATE[biome].slice(), units:0, bonus:0, bonusParts:"", inv:{}, live:false,
-    spoutRate:.025, springRate:.055, ventRate:.25, img:null, canvas:null, nb:[]};
+    spoutRate:.025, springRate:.055, ventRate:.15, cloudRate:.007, img:null, canvas:null, nb:[]};
   T=g.T; L=g.L; S=g.S; F=g.F; tk=1;
   for (let i=0;i<GN;i++) T[i]=INSIDE[i]?E:BOUND;
   const fill=(x0,y0,x1,y1,t)=>{ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=y*G+x; if (INSIDE[i]) setc(i,t); } };
@@ -352,16 +373,15 @@ function newGlobe(id,biome){
     fill(22,32,29,33,SPOUT);                    // sand pours onto it
     fill(54,114,62,118,REAPER);                 // reaper in the bowl where the lava cools
     g.inv={[SAND]:120,[STONE]:20};
-  } else if (biome==="salt"){
-    fill(84,80,112,82,MAGMA);                   // hot plate on the right
-    fill(92,16,98,17,SPRING);                   // brine drips onto it
-    fill(20,120,108,123,MAGMA);                 // the bowl floor boils leftover brine
-    fill(79,115,91,118,REAPER);                 // salt slides off the plate's edge onto the reaper below
+  } else if (biome==="garden"){
+    fill(24,40,42,41,CLOUD); fill(86,40,104,41,CLOUD);   // two rain clouds, either side of the core
+    fill(20,108,108,123,PLANT);                 // a low plant bed
+    fill(29,103,37,107,REAPER); fill(91,103,99,107,REAPER);   // a reaper under each cloud: rain runs off it and plants grow up into it
     g.inv={[WATER]:120,[STONE]:20};
   } else {
     fill(58,120,68,120,VENT);                   // steam vent at the bottom
     fill(16,60,20,64,MYCEL); fill(106,60,110,64,MYCEL);
-    fill(72,115,82,118,REAPER);                 // spores settle on the bowl floor beside the vent
+    fill(69,116,75,121,REAPER);                 // right against the vent: grazes the mushrooms in its steam
     g.inv={[WATER]:80,[STONE]:20};
   }
   return g;
@@ -410,6 +430,9 @@ function cellColor(t,i,A,Lf,oc){
     case VENT: r=120; gg=128; b=140; break;
     case SPOUT: r=168; gg=130; b=80; break;
     case SPRING: r=60; gg=160; b=160; break;
+    case PLANT: { const top=A[i-G]===E||A[i-G]===WATER; r=40+(h&31); gg=150+(h&63); b=60; if (top){ r+=30; gg+=30; if (h<8){ r=255; gg=160; b=200; } } break; }
+    case CLOUD: { const n=Math.sin(frame*.05+(i%G)*.4); r=225+20*n; gg=230+20*n; b=250; break; }
+    case HARVEST: { const p=(Math.sin(frame*.5+i)+1)*.5; r=255; gg=200+40*p; b=80+60*p; break; }
     case CORE: { const p=(Math.sin(frame*.08+(i%7))+1)*.5; r=oc[0]*.6+90*p; gg=oc[1]*.6+90*p; b=oc[2]*.6+90*p; break; }
     case REAPER: { const s=((i%G)+((i/G)|0))&1; r=s?236:200; gg=s?190:150; b=s?70:40; break; }
     case STONE: { const m=((i/G)|0)%4===0 || ((i%G)+(((i/G)>>2)&1)*4)%8===0; const n=(h&15)-8; r=(m?70:118)+n; gg=(m?72:122)+n; b=(m?84:138)+n; break; }   // stone bricks
@@ -442,21 +465,23 @@ let aiLevel=0; try{ const v=+localStorage.getItem("globes.ai"); if (v>=0 && v<3)
 const MATTER=[
   [STONE,"Stone","#8a90a8"],[SAND,"Sand","#e6c27a"],[WATER,"Water","#3a8ae8"],[BRINE,"Brine","#3f9e98"],[SALT,"Salt","#eef0f6"],
   [GLASS,"Glass","#b0e0ec"],[ACID,"Acid","#aaec32"],[MAGMA,"Magma","#ff7a1a"],[REAPER,"Reaper","#ecbe46"],
-  [SPOUT,"Sand spout","#a88250"],[SPRING,"Brine spring","#3ca0a0"],[VENT,"Steam vent","#78808c"],[MYCEL,"Mycelium","#5a4a42"],[FUNGUS,"Fungus","#dc302c"]];
+  [SPOUT,"Sand spout","#a88250"],[SPRING,"Brine spring","#3ca0a0"],[VENT,"Steam vent","#78808c"],[MYCEL,"Mycelium","#5a4a42"],[FUNGUS,"Fungus","#dc302c"],
+  [PLANT,"Plant","#3ec45a"],[CLOUD,"Cloud","#e2e8fa"]];
 const DIGGABLE=new Uint8Array(32); MATTER.forEach(([t])=>DIGGABLE[t]=1);
-// what can be bought for a globe: material -> [amount, cost in 🔷 🧂 🍄]
+// what can be bought for a globe: material -> [amount, cost in 🔷 glass, 🌿 plants, 🍄 fungus]
 const BUY={
   [STONE]:[30,[15,0,0]], [SAND]:[60,[0,8,0]], [WATER]:[60,[0,0,8]], [ACID]:[25,[0,25,10]], [REAPER]:[9,[30,0,0]],
   [MAGMA]:[8,[20,20,0]], [SPOUT]:[4,[40,0,20]], [SPRING]:[4,[20,40,0]], [VENT]:[6,[0,20,40]], [MYCEL]:[6,[20,0,40]],
+  [PLANT]:[20,[0,10,0]], [CLOUD]:[8,[20,30,0]],
 };
-const GENERATORS=new Set([MAGMA,SPOUT,SPRING,VENT,MYCEL,REAPER]);
-const TILE_ORDER=[STONE,SAND,WATER,ACID,REAPER,MAGMA,SPOUT,SPRING,VENT,MYCEL,GLASS,SALT,BRINE,FUNGUS];
+const GENERATORS=new Set([MAGMA,SPOUT,SPRING,VENT,MYCEL,REAPER,CLOUD]);
+const TILE_ORDER=[STONE,SAND,WATER,ACID,PLANT,REAPER,MAGMA,SPOUT,CLOUD,VENT,MYCEL,SPRING,GLASS,FUNGUS,SALT,BRINE];
 
 function newGame(){
   over=false; tick=0; armies=[]; lastHitPlayer={};
   $("overlay").style.display="none";
   globes=[]; links=[];
-  const cols=4, rows=6, kinds=["volcano","salt","fungus"];
+  const cols=4, rows=6, kinds=["volcano","garden","fungus"];
   for (let r=0;r<rows;r++) for (let c=0;c<cols;c++){
     const id=r*cols+c;
     const g=newGlobe(id, kinds[(id*7+((rnd()*3)|0))%3]);
@@ -482,7 +507,7 @@ function newGame(){
     const a=[...seen][(rnd()*seen.size)|0]; const c=a%cols;
     for (const o of [a+1,a-1,a+cols,a-cols]){ if (o>=0 && o<globes.length && !seen.has(o) && Math.abs((o%cols)-c)<=1){ link(a,o); break; } }
   }
-  const start=[21+((rnd()*2)|0), 0, 3], startBiome=["volcano","salt","fungus"];
+  const start=[21+((rnd()*2)|0), 0, 3], startBiome=["volcano","garden","fungus"];
   start.forEach((id,p)=>{ const old=globes[id], g=newGlobe(id,startBiome[p]); Object.assign(g,{mx:old.mx,my:old.my,nb:old.nb}); g.owner=p; g.units=8; globes[id]=g; });
   for (const g of globes) if (g.owner<0) g.units=3+((rnd()*6)|0);
   res=[[60,60,60],[60,60,60],[60,60,60]];
@@ -767,7 +792,7 @@ function updateView(full){
   $("ownTools").style.display = mine ? "" : "none";
   $("enemyTools").style.display = mine ? "none" : "";
   if (mine){
-    $("unitCost").textContent=`${UNIT_COST} of any 🔷🧂🍄`;
+    $("unitCost").textContent=`${UNIT_COST} of any 🔷🌿🍄`;
     $("train1").disabled=total(0)<UNIT_COST; $("train5").disabled=total(0)<UNIT_COST;
     $("sendMode").innerHTML=` · <a href="#" id="sendToggle" style="color:var(--accent)">${sendAll?"sending all":"sending half"}</a>`;
     $("sendToggle").onclick=e=>{ e.preventDefault(); sendAll=!sendAll; updateView(true); };
