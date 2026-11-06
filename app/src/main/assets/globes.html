@@ -7,17 +7,19 @@
 <title>Globe Wars</title>
 <style>
 :root{
-  --bg:#080b14; --glass:rgba(12,16,30,.66); --line:rgba(255,255,255,.14); --text:#eef1f8; --dim:#a3abc2;
+  --bg:#080b14; --glass:rgba(12,16,30,.6); --glass2:rgba(12,16,30,.38); --line:rgba(255,255,255,.14); --text:#eef1f8; --dim:#a3abc2;
+  --tile:rgba(255,255,255,.07); --tile-h:rgba(255,255,255,.14);
   --you:#5cc8ff; --red:#ff5a5a; --green:#6fe07a; --neutral:#8a90a6; --accent:#7cc8ff; --accent2:#ffb057;
-  --it:env(safe-area-inset-top,0px); --ib:env(safe-area-inset-bottom,0px);
+  --it:env(safe-area-inset-top,0px); --ib:env(safe-area-inset-bottom,0px); --il:env(safe-area-inset-left,0px); --ir:env(safe-area-inset-right,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;color:var(--text);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
-  font:13px/1.3 system-ui,Roboto,"Segoe UI",sans-serif;touch-action:none;
+  font:13px/1.3 system-ui,Roboto,"Segoe UI",sans-serif;touch-action:none;overscroll-behavior:none;
   background:radial-gradient(1100px 700px at 50% -10%,#1a2350 0%,transparent 60%),radial-gradient(900px 600px at 100% 110%,#2a1640 0%,transparent 60%),var(--bg)}
 button{font:inherit;color:inherit}
-.glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 8px 28px rgba(0,0,0,.35)}
-#hud{position:absolute;left:8px;right:8px;top:calc(var(--it) + 8px);border-radius:16px;padding:8px 10px;display:flex;align-items:center;gap:6px;z-index:5}
+.glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(10px) saturate(1.3);-webkit-backdrop-filter:blur(10px) saturate(1.3);
+  box-shadow:0 8px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08)}
+#hud{position:absolute;left:8px;right:8px;top:calc(var(--it) + 8px);border-radius:16px;padding:8px 10px;display:flex;align-items:center;gap:6px;z-index:6}
 #res{display:flex;gap:7px;flex-wrap:wrap}
 .r b{font-size:15px}
 .r small{color:var(--dim);margin-left:2px}
@@ -26,62 +28,105 @@ button{font:inherit;color:inherit}
 .hb{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.07);display:grid;place-items:center;padding:0;cursor:pointer}
 .hb svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 canvas#map{position:absolute;left:0;top:0;touch-action:none}
-#toasts{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--it) + 84px);z-index:7;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:calc(100% - 24px)}
+#toasts{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--it) + 84px);z-index:9;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:calc(100% - 24px)}
+body.viewing #toasts{top:calc(var(--it) + 128px)}
+body.menuopen #toasts{opacity:0}
 .toast{background:rgba(12,15,28,.9);border:1px solid var(--line);border-radius:16px;padding:6px 12px;font-size:12px;animation:tin .25s,tout .5s 3s forwards;text-align:center}
 @keyframes tin{from{opacity:0;transform:translateY(-6px)}}
 @keyframes tout{to{opacity:0}}
 
-/* globe view */
-#view{position:absolute;inset:0;z-index:4;display:none;flex-direction:column;align-items:center;padding:calc(var(--it) + 86px) 10px calc(var(--ib) + 10px);gap:8px;
-  background:rgba(5,7,14,.6);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-#view.open{display:flex}
-#gwrap{position:relative;flex:none}
-canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pixelated}
-#gwrap::after{content:"";position:absolute;inset:-3px;border-radius:50%;pointer-events:none;
-  box-shadow:inset 0 0 0 3px rgba(210,236,255,.35),inset -14px -18px 30px rgba(0,0,0,.25),0 0 30px rgba(120,190,255,.15)}
-#panel{width:min(460px,100%);border-radius:18px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;min-height:0;touch-action:pan-y}
-#ginfo{display:flex;align-items:center;gap:8px;font-size:14px}
-#ginfo .own{flex:none;width:12px;height:12px;border-radius:50%}
-#gname{font-weight:700}
-#gsub{color:var(--dim);font-size:12px}
-#gstats{color:#d6dcea;font-size:12.5px}
-.row{display:flex;gap:6px;flex-wrap:wrap}
-.row>*{flex:1}
-.b{background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:12px;padding:8px 6px;cursor:pointer;min-height:38px}
+/* --- globe view: the globe fills the screen, played like the sandbox --- */
+#view{position:absolute;inset:0;z-index:4;display:none;
+  background:linear-gradient(#1a2350,#121838 35%,#0b0f22 75%,#080a14)}
+#view.open{display:block}
+#stage{position:absolute;inset:0;touch-action:none;overflow:hidden}
+canvas#c{position:absolute;left:0;top:0;display:block;touch-action:none;transform-origin:0 0}
+canvas#c.zoomed{image-rendering:pixelated}
+#gbar{position:absolute;left:8px;right:8px;top:calc(var(--it) + 76px);border-radius:14px;padding:6px 6px 6px 12px;display:flex;align-items:center;gap:8px;z-index:5}
+#gbar .own{flex:none;width:11px;height:11px;border-radius:50%}
+#gbar .txt{flex:1;min-width:0;line-height:1.25}
+#gname{font-weight:700;font-size:13.5px}
+#gsub{color:var(--dim);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#backMap{flex:none;min-height:34px;padding:4px 12px}
+.fab{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;cursor:pointer;padding:0;position:absolute;z-index:5;
+  background:var(--glass2);border:1px solid var(--line);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,.35)}
+.fab svg{width:20px;height:20px}
+#zoomReset{right:calc(var(--ir) + 12px);top:calc(var(--it) + 132px)}
+
+/* floating bubbles: they bob gently, can be dragged anywhere and drift to the nearest side */
+.corner{position:absolute;width:62px;height:62px;border-radius:50%;z-index:6;cursor:pointer;padding:0;
+  display:grid;place-items:center;touch-action:none;transition:scale .15s,box-shadow .15s;animation:bob 4.2s ease-in-out infinite}
+#armyBtn{animation-delay:-2.1s}
+@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -4px}}
+.corner.held{scale:.94}
+.corner.dragging{scale:1.12;animation:none;box-shadow:0 14px 34px rgba(0,0,0,.5),0 0 0 2px rgba(124,200,255,.35)}
+.corner.drift{transition:left .45s cubic-bezier(.2,1.5,.4,1),top .45s cubic-bezier(.2,1.5,.4,1),scale .15s}
+.corner.open{border-color:var(--accent);box-shadow:0 0 0 2px rgba(124,200,255,.35),0 8px 28px rgba(0,0,0,.35)}
+#elBtn .sw{width:38px;height:38px}
+#elBtn .hand{display:none;width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#elBtn.panning .sw{display:none}
+#elBtn.panning .hand{display:block}
+#armyBtn svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.corner .bud{position:absolute;top:-4px;right:-4px;min-width:22px;padding:2px 5px;border-radius:11px;background:var(--accent2);color:#1a1206;font-size:11px;font-weight:800;text-align:center}
+.corner .bud:empty{display:none}
+
+.menu{position:absolute;z-index:7;border-radius:20px;padding:12px;overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;
+  opacity:0;pointer-events:none;transform:scale(.85);transition:opacity .16s,transform .16s;transform-origin:var(--ox,0) var(--oy,100%)}
+.menu.open{opacity:1;pointer-events:auto;transform:none}
+#elMenu{width:min(330px,calc(100% - 24px))}
+#armyMenu{width:min(330px,calc(100% - 24px));display:flex;flex-direction:column;gap:8px}
+.mclose{position:absolute;top:7px;right:7px;width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.08);
+  display:grid;place-items:center;padding:0;cursor:pointer;z-index:1}
+.mclose svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round}
+.cat{font-size:10px;text-transform:uppercase;letter-spacing:1.4px;color:var(--dim);margin:2px 2px 7px}
+.cat:not(:first-child){margin-top:12px}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.el{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0 5px;border-radius:14px;
+  background:var(--tile);border:1px solid transparent;font-size:10px;cursor:pointer;line-height:1.1;text-align:center}
+.el:active{transform:scale(.94)}
+.el.on{border-color:var(--accent);background:rgba(124,200,255,.18);box-shadow:0 0 14px rgba(124,200,255,.3)}
+.el.none{opacity:.38}
+.sw{display:block;width:28px;height:28px;border-radius:50%;box-shadow:inset 0 -3px 6px rgba(0,0,0,.35), inset 0 2px 3px rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.4)}
+.el .n{position:absolute;top:2px;right:4px;font-size:9.5px;color:var(--accent2);font-weight:800}
+.el .n:empty{display:none}
+#selRow{display:flex;align-items:center;gap:8px;padding:7px 8px;margin:0 36px 4px 0;border-radius:14px;background:rgba(255,255,255,.05);min-height:48px}
+#selRow .sw{flex:none;width:30px;height:30px}
+#selRow .t{flex:1;font-size:12px;color:#d6dcea;line-height:1.3}
+#selRow .b{flex:none;min-height:36px;padding:4px 10px}
+.b{background:var(--tile);border:1px solid var(--line);border-radius:12px;padding:8px 6px;cursor:pointer;min-height:40px}
+.b:active{background:var(--tile-h)}
 .b.on{background:rgba(124,200,255,.22);border-color:var(--accent)}
 .b:disabled{opacity:.35}
 .b small{display:block;color:var(--dim);font-size:11px;margin-top:2px}
+.b svg.ic{width:18px;height:18px;vertical-align:-4px;margin-right:4px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.row{display:flex;gap:6px;align-items:center}
+.row>*{flex:1}
+.brushRows .row + .row{margin-top:6px}
+.sizeRow{margin-top:8px}
+#sizeDot{flex:none;width:26px;height:26px;display:grid;place-items:center}
+#sizeDot i{display:block;border-radius:50%;background:var(--text)}
+input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1.3px;color:var(--dim);margin:4px 2px -2px}
 .sub{color:var(--dim);font-size:11.5px}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid var(--line);cursor:pointer;font-size:12px}
-.chip.on{background:rgba(124,200,255,.22);border-color:var(--accent)}
-.chip i{display:block;width:14px;height:14px;border-radius:4px}
-.chip.empty{opacity:.35}
-.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
-.tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px 5px;border-radius:12px;
-  background:rgba(255,255,255,.06);border:1px solid transparent;cursor:pointer;font-size:11px;text-align:center;line-height:1.15}
-.tile.on{border-color:var(--accent);background:rgba(124,200,255,.2)}
-.tile .sw{width:22px;height:22px;border-radius:7px;box-shadow:inset 0 -2px 4px rgba(0,0,0,.35),inset 0 1px 2px rgba(255,255,255,.35)}
-.tile .n{position:absolute;top:3px;right:5px;font-size:10px;font-weight:700;color:var(--accent2)}
-.tile .n.zero{color:var(--dim);font-weight:400}
-.tile.gen .sw{outline:2px dashed rgba(255,255,255,.35);outline-offset:1px}
-.selbar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);min-height:44px}
-.selbar .t{flex:1;font-size:12.5px;color:#d6dcea}
-.selbar .b{flex:none;min-height:34px;padding:4px 12px}
 .send{display:flex;align-items:center;gap:6px}
 .send .who{flex:1;font-size:12.5px}
 .send .b{flex:none;min-height:34px;padding:4px 10px}
-#overlay{position:absolute;inset:0;z-index:9;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.55)}
+#ahead{display:flex;align-items:center;gap:8px;font-size:14px;margin-right:36px}
+#ahead .own{flex:none;width:12px;height:12px;border-radius:50%}
+#astats{color:#d6dcea;font-size:12.5px}
+
+#overlay{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.55)}
 #overlay .card{border-radius:20px;padding:22px 24px;text-align:center;width:min(330px,calc(100% - 40px))}
 #overlay h2{margin:0 0 8px;font-size:24px}
 #overlay p{margin:0 0 16px;color:var(--dim)}
-#loading{position:absolute;inset:0;display:grid;place-items:center;z-index:10;font-size:15px;color:var(--dim)}
-#help{position:absolute;inset:0;z-index:8;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.55);padding:16px}
+#loading{position:absolute;inset:0;display:grid;place-items:center;z-index:11;font-size:15px;color:var(--dim)}
+#help{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;background:rgba(5,7,14,.55);padding:16px}
 #help .card{border-radius:20px;padding:16px 18px;max-width:440px;max-height:calc(100% - 40px);overflow:auto;touch-action:pan-y}
 #help h2{margin:0 0 8px;font-size:19px}
 #help li{color:#d6dcea;font-size:13px;line-height:1.45;margin:3px 0}
 #help ul{padding-left:18px;margin:6px 0}
+#help .row .b{flex:1}
+.hidden{display:none!important}
 </style>
 </head>
 <body>
@@ -100,38 +145,43 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
 <div id="toasts"></div>
 
 <div id="view">
-  <div id="gwrap"><canvas id="big" width="128" height="128"></canvas></div>
-  <div id="panel" class="glass">
-    <div id="ginfo"><span class="own"></span><span id="gname"></span><span id="gsub"></span><span style="flex:1"></span><button class="b" id="backMap" style="flex:none;min-height:32px;padding:4px 12px">◀ Map</button></div>
-    <div id="gstats"></div>
-    <div id="ownTools">
-      <div class="lbl">Army</div>
-      <div class="row">
-        <button class="b" id="train1">🪖 Train 1<small id="unitCost"></small></button>
-        <button class="b" id="train5">🪖 Train 5</button>
-      </div>
-      <div class="lbl">Send units <span id="sendMode" style="text-transform:none;letter-spacing:0"></span></div>
-      <div id="sendList"></div>
-      <div class="lbl">Shape the globe <span style="text-transform:none;letter-spacing:0">· pick a tile, then drag on the globe</span></div>
-      <div class="tiles" id="tiles"></div>
-      <div class="selbar" id="selbar"></div>
+  <div id="stage"><canvas id="c"></canvas></div>
+  <div id="gbar" class="glass"><span class="own"></span><div class="txt"><div id="gname"></div><div id="gsub"></div></div><button class="b" id="backMap">◀ Map</button></div>
+  <button class="fab hidden" id="zoomReset" aria-label="Zoom out"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l5 5M7.5 10.5h6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+
+  <button class="corner glass" id="elBtn" aria-label="Elements"><span class="sw"></span><svg class="hand" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/><path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg><span class="bud"></span></button>
+  <button class="corner glass" id="armyBtn" aria-label="Army"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg><span class="bud"></span></button>
+
+  <div id="elMenu" class="menu glass">
+    <button class="mclose" aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div id="selRow"></div>
+    <div id="palette"></div>
+    <div class="cat">Brush</div>
+    <div class="brushRows">
+      <div class="row"><button class="b on" data-shape="brush">✎ Draw</button><button class="b" data-shape="line">╱ Line</button></div>
+      <div class="row"><button class="b" data-shape="rect">▢ Box</button><button class="b" data-shape="frect">■ Fill</button></div>
+      <div class="row"><button class="b" data-shape="pan"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/><path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg>Move &amp; zoom</button></div>
     </div>
-    <div id="enemyTools">
-      <div class="lbl">Attack from your globes</div>
-      <div id="attackList"></div>
-    </div>
+    <div class="row sizeRow"><span id="sizeDot"><i></i></span><input id="size" type="range" min="0" max="10" value="3" aria-label="Brush size"></div>
+  </div>
+
+  <div id="armyMenu" class="menu glass">
+    <button class="mclose" aria-label="Close menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div id="ahead"><span class="own"></span><b id="aname"></b></div>
+    <div id="astats"></div>
+    <div id="army"></div>
   </div>
 </div>
 
 <div id="help"><div class="card glass">
   <h2>Globe Wars (prototype)</h2>
   <ul>
-    <li>Every node is a falling-sand world. <b>Volcanoes</b> melt sand into lava that cools into <b>🔷 glass</b>, <b>gardens</b> grow <b>🌿 plants</b> in the rain, <b>fungal caves</b> grow <b>🍄 fungus</b> on steam. Gold <b>reapers</b> eat glass, plants and fungus that touch them; the eating spreads through everything connected to it, like fire through a plant bed, and each cell eaten is one resource.</li>
-    <li><b>Train units</b> in your globes (30 resources each, any mix). <b>Drag</b> from one of your globes to a linked one on the map to send half its units, or use the buttons inside a globe.</li>
+    <li>Every node is a falling-sand world that runs on Sandfall's own rules. <b>Volcanoes</b> melt sand into lava that cools into <b>🔷 glass</b>, <b>gardens</b> grow <b>🌿 plants</b> in the rain, <b>fungal caves</b> grow <b>🍄 fungus</b> on steam. Gold <b>reapers</b> eat glass, plants and fungus that touch them; the eating spreads through everything connected to it, like fire through a plant bed, and each cell eaten is one resource.</li>
+    <li><b>Train units</b> in your globes (30 resources each, any mix). <b>Drag</b> from one of your globes to a linked one on the map to send half its units, or use the army bubble inside a globe.</li>
     <li>Units arriving at an enemy or neutral globe fight its garrison. The defenders get a <b>defence bonus</b> from what surrounds their core: stone and glass walls, and lava, magma or acid in a ring around it.</li>
-    <li><b>Shape your globes</b>: each globe has its own limited matter. <b>Dig</b> picks cells up into that globe's stock, then pick a material and drag to <b>place</b> it. <b>Buy</b> more with your resources: stone walls, acid, reapers, and <b>generators</b> (magma, sand spouts, clouds, steam vents, mycelium, brine springs) to build any factory in any globe.</li>
+    <li><b>Tap a globe</b> to open it. Like the sandbox, the <b>elements bubble</b> holds the elements, brushes and brush size, and <b>Move &amp; zoom</b>; two fingers zoom and pan with any tool. Each globe has its own limited <b>stock</b> of every element (the number on it): drawing uses it up, <b>Dig</b> picks cells back up into it, and you can <b>buy</b> more with your resources, generators included, to build any factory in any globe.</li>
     <li><b>Upkeep</b> every 10 s grows with your globes and units and is paid from your biggest stock. Can't pay, and units desert.</li>
-    <li>Red and Green expand and fight each other too. Below, choose how hard they go after you. Take all their globes to win. Only the globe you're looking at and its neighbours run live; the rest produce at their measured rate.</li>
+    <li>Red and Green expand and fight each other too. Below, choose how hard they go after you. Take all their globes to win. Only the globe you're looking at (or the one last opened) runs live; the rest produce at their measured rate.</li>
   </ul>
   <div class="lbl" style="margin:10px 2px 6px">Rivals</div>
   <div class="row" id="aiPick" style="margin-bottom:10px">
@@ -149,306 +199,841 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
 <script>
 "use strict";
 // =====================================================================
-//  Globe simulation: a trimmed copy of Sandfall's rules on 128x128 round worlds
+//  Globe simulation: Sandfall's own element rules, on 180x180 round worlds
 // =====================================================================
-const G=128, GN=G*G, CX=64, RAD=61;
-const E=0,BOUND=1,SAND=2,WATER=3,BRINE=4,STEAM=5,SALT=6,MAGMA=7,LAVA=8,GLASS=9,ACID=10,FUMES=11,SPORE=12,FUNGUS=13,MYCEL=14,VENT=15,SPOUT=16,SPRING=17,CORE=18,REAPER=19,STONE=20,FIRE=21,PLANT=22,CLOUD=23,HARVEST=24,SEEDER=25;
-const DENS=new Float32Array(32); DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[LAVA]=2.8; DENS[SAND]=3; DENS[SALT]=3;
-const LIQ=new Uint8Array(32); [WATER,BRINE,ACID,LAVA].forEach(t=>LIQ[t]=1);
-const N4=[1,-1,G,-G], N8=[1,-1,G,-G,G+1,G-1,-G+1,-G-1];
-const RES_OF=new Int8Array(32).fill(-1); RES_OF[GLASS]=0; RES_OF[PLANT]=1; RES_OF[FUNGUS]=2;
+const G=180, W=G, H=G, N=G*G, GN=N, CX=90, RAD=87;
+const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20,SPORE=21,FUNGUS=22,MYCELIUM=23,FUMES=24,LAVA=25,GLASS=26,
+      BOUND=27,CORE=28,REAPER=29,HARVEST=30,VENT=31,SPOUT=32;
+const INFO = [
+  ["Dig","Picks cells up into this globe's stock.","repeating-linear-gradient(45deg,#3a4058 0 4px,#232838 4px 8px)"],
+  ["Stone","Blocks everything. Stone around the core strengthens its defence.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
+  ["Sand","Falls and piles up.","radial-gradient(circle at 35% 30%,#ffe7a8,#d9b06a 60%,#a5803f)"],
+  ["Water","Flows. Boils into steam on fire, dissolves salt into brine.","radial-gradient(circle at 35% 30%,#a8dcff,#2f86e6 55%,#174a9c)"],
+  ["Oil","Floats on water. Very flammable.","radial-gradient(circle at 35% 30%,#c49052,#5a3416 60%,#2a170a)"],
+  ["Fire","Rises and burns out. Burns plants, oil, virus.","radial-gradient(circle at 50% 70%,#fff3a0,#ff9a2a 45%,#c2300c)"],
+  ["Plant","Drinks water and grows. Brine withers it.","radial-gradient(circle at 35% 30%,#b8f58a,#36b552 55%,#16692c)"],
+  ["Seed","Sprouts when wet.","radial-gradient(circle at 35% 30%,#e8c08a,#a6743e 60%,#5f3e1c)"],
+  ["Salt","Dissolves in water into brine. Kills virus. Burns yellow. Melts on magma.","radial-gradient(circle at 35% 30%,#ffffff,#dfe3ee 55%,#9aa1b5)"],
+  ["Soil","Ground. Water erodes it to sand.","radial-gradient(circle at 35% 30%,#a07650,#6a4528 60%,#3a2414)"],
+  ["Virus","Lives by Conway's Life. Eats plants.","radial-gradient(circle at 35% 30%,#ffb0ff,#d040d8 55%,#6a1680)"],
+  ["Cloud","Rains water.","radial-gradient(circle at 35% 30%,#ffffff,#cfe0ff 55%,#8aa4d6)"],
+  ["Magma","Spews fire. Burns what touches it, boils water, melts salt.","radial-gradient(circle at 40% 40%,#ffd060,#ff5a1a 45%,#7a1606)"],
+  ["Shaker","Sprinkles salt.","radial-gradient(circle at 35% 30%,#f2f4fa,#a8aec2 55%,#5e6478)"],
+  ["Spill","Leaks oil.","radial-gradient(circle at 35% 30%,#d8a060,#7a4a1c 55%,#3a200a)"],
+  ["Toxin","Breeds virus.","radial-gradient(circle at 35% 30%,#f2a6ff,#a426c8 50%,#3e0a52)"],
+  ["Brine","Salty water. Sinks under water, withers plants, kills virus. Boils into steam and salt.","radial-gradient(circle at 35% 30%,#bff3e4,#3f9e98 55%,#1b4d5c)"],
+  ["Steam","Floats up, then may rain back down as water. Plants it touches may grow into it.","radial-gradient(circle at 35% 30%,#ffffff,#dde3ee 50%,rgba(150,162,184,.7))"],
+  ["Seeder","Grows plants when water touches it.","radial-gradient(circle at 35% 30%,#c8f29a,#6aa83a 45%,#5a3a1a 75%)"],
+  ["Acid","Dissolves salt into nothing. Eats sand, soil and plants. Water dilutes it.","radial-gradient(circle at 35% 30%,#f4ffb0,#a8e030 50%,#4a7a08)"],
+  ["Vat","Drips acid.","radial-gradient(circle at 35% 30%,#d8ff70,#5a6a3a 50%,#23281c)"],
+  ["Spores","Float in the air. Turn steam into fungus and may sprout mushrooms on plants. Killed by fire, water, acid and salt.","radial-gradient(circle at 35% 30%,#fff4ff,#d7c2ec 45%,#8a74a8 80%)"],
+  ["Fungus","Grows into steam, eats plants and virus, slowly grows into water. Without food it dies into soil, nothing or a seed. Heat dries it out.","radial-gradient(circle at 35% 30%,#ffb2a6,#d8302a 45%,#8e8c94 82%)"],
+  ["Mycelium","Indestructible. Releases spores into the air.","radial-gradient(circle at 35% 30%,#fffaf0,#c9b9a0 40%,#4a3a30 80%)"],
+  ["Fumes","Toxic gas from acid boiling on magma. Floats like steam, eats like acid, then fades.","radial-gradient(circle at 35% 30%,#f6ffc8,#bcd84e 48%,rgba(104,132,36,.75))"],
+  ["Lava","Molten sand. Oozes slowly, sets things alight, boils water. Cools into glass.","radial-gradient(circle at 40% 35%,#ffe58a,#ff7a1a 45%,#8a1e08 85%)"],
+  ["Glass","Cooled lava. Solid and see-through. Acid and fumes can't eat it.","radial-gradient(circle at 32% 28%,#ffffff,#bfe8f2 40%,rgba(110,170,190,.75) 85%)"],
+  ["Edge","The globe's glass.",""],
+  ["Core","The globe's heart, which its units defend.","radial-gradient(circle at 35% 30%,#ffffff,#9ad8ff 45%,#2a6aa8)"],
+  ["Reaper","Eats glass, plants and fungus that touch it, and everything connected to them. Each cell eaten is one resource.","repeating-conic-gradient(#ecbe46 0 25%,#c8962a 0 50%) 0 0/12px 12px"],
+  ["Harvest","Being eaten by a reaper.",""],
+  ["Steam vent","Breathes steam, and boils water sitting on it.","radial-gradient(circle at 35% 30%,#e8eef8,#78808c 50%,#3a4048)"],
+  ["Sand spout","Pours sand.","radial-gradient(circle at 35% 30%,#ffe7a8,#a88250 55%,#5a4020)"],
+];
+const RES_OF=new Int8Array(64).fill(-1); RES_OF[GLASS]=0; RES_OF[PLANT]=1; RES_OF[FUNGUS]=2;
 const KIND_TYPE=[GLASS,PLANT,FUNGUS];
 const RES=[["🔷","glass"],["🌿","plants"],["🍄","fungus"]];
-const rnd=Math.random;
-const INSIDE=new Uint8Array(GN);
-for (let y=0;y<G;y++) for (let x=0;x<G;x++){ const dx=x+.5-CX, dy=y+.5-CX; INSIDE[y*G+x] = dx*dx+dy*dy <= RAD*RAD ? 1 : 0; }
+const GRAIN = new Uint8Array(64); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM,ACID,SPORE].forEach(t=>GRAIN[t]=1);
+const DENS = new Float32Array(64); DENS[OIL]=1; DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3; DENS[LAVA]=2.8; DENS[SOIL]=3;
+const FLAMMABLE = new Float32Array(64); FLAMMABLE[PLANT]=0.2; FLAMMABLE[OIL]=0.45; FLAMMABLE[SEED]=0.3; FLAMMABLE[VIRUS]=0.5; FLAMMABLE[FUNGUS]=0.25; FLAMMABLE[SPORE]=0.6;
 
-let T,L,S,F,tk,cur;        // the globe being stepped (F: lava fed by a vent)
-function setc(i,t){
-  T[i]=t; S[i]=tk; F[i]=0;
-  L[i] = t===STEAM ? 90+((rnd()*90)|0) : t===FUMES ? 120+((rnd()*90)|0) : t===SPORE ? 150+((rnd()*100)|0) : t===LAVA ? 200+((rnd()*55)|0) : t===FUNGUS ? 30 : t===FIRE ? 10+((rnd()*26)|0) : t===HARVEST ? 6+((rnd()*8)|0) : t===PLANT ? 20 : 0;
+let type, shade, life, stamp, tk=1, cur=null;   // the globe being stepped or drawn (use(g) points these at its arrays)
+const nb = new Uint8Array(N), depth = new Uint8Array(N);
+const DX = [0,-1,-1,-1,0,1,1,1], DY = [1,1,0,-1,-1,-1,0,1];   // index 0 = down
+let grav = 0;
+let openEdges = false;   // the player's choice (sandbox)
+let edgesOpen = false;   // what the simulation uses right now (challenges always have solid edges)
+let virusP = .5;         // chance per tick that virus eats a plant it touches
+let fungusK = 1;         // fungus growth speed multiplier (Nature slider)
+let eatK = .15;          // how fast mushrooms eat plants (Nature slider)
+const FUNGUS_REACH = 30; // fungus stays alive up to this many cells from food
+let steamDec = 1;     // steam "heat" lost per tick (bigger = turns to water sooner)
+let steamWater = .3;     // chance a cooled steam cell becomes water (otherwise it vanishes)
+const ORTH = [[1,0],[-1,0],[0,1],[0,-1]];
+const OUT = -2;          // a move that carried the cell off the screen
+const rnd = Math.random;
+
+function set(i, t){
+  type[i] = t; shade[i] = (rnd()*16)|0;
+  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 100 + ((rnd()*100)|0) : t===SPORE ? 150 + ((rnd()*100)|0) : t===FUNGUS ? FUNGUS_REACH : t===FUMES ? 150 + ((rnd()*100)|0) : t===LAVA ? 200 + ((rnd()*55)|0) : t===HARVEST ? 6 + ((rnd()*8)|0) : 0;
+  stamp[i] = tk;
 }
-function swap(i,j){ let t=T[i];T[i]=T[j];T[j]=t; t=L[i];L[i]=L[j];L[j]=t; t=F[i];F[i]=F[j];F[j]=t; S[i]=S[j]=tk; }
-function canMove(s,o){
+function vanish(i){ type[i]=E; life[i]=0; }
+function swap(i, j){
+  let t=type[i]; type[i]=type[j]; type[j]=t;
+  t=shade[i]; shade[i]=shade[j]; shade[j]=t;
+  t=life[i]; life[i]=life[j]; life[j]=t;
+  stamp[i]=stamp[j]=tk;
+}
+function idx(x,y){ return (x<0||y<0||x>=W||y>=H) ? -1 : y*W+x; }
+function canDisplace(s, o){
   if (o===E) return true;
-  if (o===STEAM||o===FUMES||o===SPORE||o===FIRE) return DENS[s]>0;
-  if (LIQ[o]) return DENS[s]>DENS[o] && rnd()<.5;
+  if (o===FIRE || o===STEAM || o===SPORE || o===FUMES) return DENS[s] > 0;
+  if (o===WATER || o===OIL || o===BRINE || o===ACID || o===LAVA) {
+    if (!(DENS[s] > DENS[o])) return false;
+    return rnd() < (s===SALT && o===OIL ? 0.08 : 0.5);
+  }
   return false;
 }
-function tryM(i,j){ if (canMove(T[i],T[j])){ swap(i,j); return true; } return false; }
-function powder(i){ if (tryM(i,i+G)) return; const s=rnd()<.5?1:-1; if (tryM(i,i+G+s)) return; tryM(i,i+G-s); }
-function liquid(i){
-  if (tryM(i,i+G)) return;
-  const s=rnd()<.5?1:-1;
-  if (tryM(i,i+G+s) || tryM(i,i+G-s)) return;
-  for (const d of [s,-s]){
-    let c=i, moved=false;
-    for (let n=0;n<4;n++){ const j=c+d; if (T[j]!==E) break; swap(c,j); c=j; moved=true; if (T[c+G]===E) break; }
+// Move cell i one step in direction k. Returns the new index, OUT if it left the screen, or -1.
+function tryDir(i,x,y,k){
+  const j = idx(x+DX[k&7], y+DY[k&7]);
+  if (j<0){ if (edgesOpen){ vanish(i); return OUT; } return -1; }
+  if (canDisplace(type[i], type[j])) { swap(i,j); return j; }
+  return -1;
+}
+function tryEmpty(i,x,y,k){
+  const j = idx(x+DX[k&7], y+DY[k&7]);
+  if (j<0){ if (edgesOpen){ vanish(i); return OUT; } return -1; }
+  if (type[j]!==E) return -1;
+  swap(i,j); return j;
+}
+function powder(i,x,y){
+  if (tryDir(i,x,y,grav)!==-1) return;
+  const s = rnd()<.5 ? 1 : -1;
+  if (tryDir(i,x,y,grav+s+8)!==-1) return;
+  tryDir(i,x,y,grav-s+8);
+}
+function liquid(i,x,y){
+  if (tryDir(i,x,y,grav)!==-1) return;
+  const s = rnd()<.5 ? 1 : -1;
+  if (tryDir(i,x,y,grav+s+8)!==-1) return;
+  if (tryDir(i,x,y,grav-s+8)!==-1) return;
+  for (const side of [s, -s]) {
+    const k = (grav + 2*side + 8) & 7;
+    let cx=x, cy=y, ci=i, moved=false;
+    for (let n=0; n<4; n++) {
+      const j = idx(cx+DX[k], cy+DY[k]);
+      if (j<0){ if (edgesOpen){ vanish(ci); moved=true; } break; }
+      const o = type[j];
+      if (o===E || (o!==type[ci] && (o===WATER||o===OIL||o===BRINE||o===ACID) && DENS[type[ci]]>DENS[o] && rnd()<.5)) {
+        swap(ci,j); ci=j; cx+=DX[k]; cy+=DY[k]; moved=true;
+        const d = idx(cx+DX[grav], cy+DY[grav]);
+        if (d>=0 && type[d]===E) break;
+      } else break;
+    }
     if (moved) return;
   }
 }
-function gasMove(i){
-  const r=rnd(), s=r<.5?1:-1;
-  const j = r<.45 ? i-G : r<.72 ? i-G+s : i+s;
-  const o=T[j];
-  if (o===E || (LIQ[o] && rnd()<.5)) swap(i,j);
+function emit(i,x,y,t,p,k){
+  if (rnd() >= p) return;
+  const j = idx(x+DX[k&7], y+DY[k&7]);
+  if (j>=0 && type[j]===E) set(j,t);
 }
-// acid and fumes eat what they touch; returns true if the corroding cell was used up
-function corrode(i,diluted){
-  for (const d of N4){
-    const j=i+d, o=T[j]; let ate=false;
-    if (o===SALT) ate=true;
-    else if (o===BRINE && rnd()<.2){ setc(j,WATER); if (rnd()<.5){ setc(i,E); return true; } continue; }
-    else if ((o===FUNGUS||o===SPORE) && rnd()<.12) ate=true;
-    else if (o===SAND && rnd()<.02) ate=true;
-    else if (o===STONE && rnd()<.008) ate=true;                                // stone only slowly etches away
-    else if (o===WATER && rnd()<.001){ setc(i,diluted); return true; }
-    if (ate){ setc(j,E); if (rnd()<.5){ setc(i,E); return true; } }
+
+// Steam drifts upward, bubbling up through liquids.
+// Returns true if the steam moved (or left the screen).
+function gas(i,x,y,k){
+  const j = idx(x+DX[k&7], y+DY[k&7]);
+  if (j<0){ if (edgesOpen){ vanish(i); return true; } return false; }
+  const o = type[j];
+  if (o===E || ((o===WATER||o===OIL||o===BRINE||o===ACID) && rnd()<.5)){ swap(i,j); return true; }
+  return false;
+}
+// Steam spreads like a gas: it rises, but also drifts sideways up to 3 cells at a time,
+// sliding along ceilings (water flowing on a floor, upside down) so it fills spaces.
+function steamMove(i,x,y,up){
+  const s = rnd()<.5 ? 1 : -1, r = rnd();
+  if (r<.45 && gas(i,x,y,up)) return;
+  if (r<.75 && (gas(i,x,y,up+s) || gas(i,x,y,up-s+8))) return;
+  for (const side of [s,-s]){
+    const k = (grav + 2*side + 8) & 7;
+    let ci=i, cx=x, cy=y, moved=false;
+    for (let n=0; n<3; n++){
+      const nx=cx+DX[k], ny=cy+DY[k], j=idx(nx,ny);
+      if (j<0){ if (edgesOpen){ vanish(ci); moved=true; } break; }
+      if (type[j]!==E) break;
+      swap(ci,j); ci=j; cx=nx; cy=ny; moved=true;
+      const a=idx(cx+DX[up], cy+DY[up]);
+      if (a>=0 && type[a]===E && rnd()<.5) break;                    // open air above: may rise again next frame
+    }
+    if (moved) return;
+  }
+}
+// A fire that touches salt burns yellow (sodium flame).
+function yellow(j){ shade[j] |= 16; if (life[j]<30) life[j]+=8; }
+
+// Acid and toxic fumes eat what they touch. Returns true if the corroding cell was used up.
+// `diluted` is what it becomes when water dilutes it (acid -> water, fumes -> nothing).
+function corrode(i,x,y,diluted){
+  for (const [dx,dy] of ORTH){
+    const j=idx(x+dx,y+dy); if(j<0) continue;
+    const o=type[j];
+    let ate=false;
+    if (o===SALT) ate=true;                                                        // salt dissolves into nothing
+    else if (o===BRINE && rnd()<.2){ set(j,WATER); if (rnd()<.5){ set(i,E); return true; } continue; }   // takes the salt out
+    else if ((o===PLANT||o===SEED||o===FUNGUS||o===SPORE) && rnd()<.12) ate=true;  // soft things go fast
+    else if ((o===SAND||o===SOIL||o===VIRUS) && rnd()<.02) ate=true;
+    else if (o===WATER && rnd()<.001){ set(i,diluted); return true; }               // diluted
+    if (ate){ set(j,E); if (rnd()<.5){ set(i,E); return true; } }                   // each bite may use it up
   }
   return false;
 }
+const FUMES_FRAC = .4;   // share of acid boiled on magma that becomes toxic fumes (the rest just evaporates)
 
-function step(g){
-  T=g.T; L=g.L; S=g.S; F=g.F; cur=g; g.tk=((g.tk+1)&0xffff)||1; tk=g.tk;
-  const got=g.got; got[0]=got[1]=got[2]=0;
-  for (let y=G-2;y>=1;y--){
-    const dir=rnd()<.5;
-    for (let k=1;k<G-1;k++){
-      const i=y*G+(dir?k:G-1-k), t=T[i];
-      if (t===E || t===BOUND || S[i]===tk) continue;
-      switch (t){
-        case SAND: powder(i); break;
+// Every few frames, find connected pieces of soil (diagonals count). Pieces smaller than
+// LOOSE_SOIL cells are marked loose (life=1, which moves with the cell) and fall; bigger ones stay rigid.
+const LOOSE_SOIL = 10;
+const soilSeen = new Uint8Array(N), soilStack = new Int32Array(N), soilComp = new Int32Array(N);
+function markLooseSoil(){
+  soilSeen.fill(0);
+  for (let s0=0; s0<N; s0++){
+    if (type[s0]!==SOIL || soilSeen[s0]) continue;
+    let sp=0, n=0; soilStack[sp++]=s0; soilSeen[s0]=1;
+    while (sp){
+      const c=soilStack[--sp]; soilComp[n++]=c;
+      const cx=c%W, cy=(c/W)|0;
+      for (let k=0;k<8;k++){
+        const j=idx(cx+DX[k], cy+DY[k]);
+        if (j>=0 && !soilSeen[j] && type[j]===SOIL){ soilSeen[j]=1; soilStack[sp++]=j; }
+      }
+    }
+    const loose = n<LOOSE_SOIL ? 1 : 0;
+    for (let q=0;q<n;q++){ const c=soilComp[q]; if (life[c]!==2) life[c]=loose; }   // crumbly soil stays crumbly
+  }
+}
+
+function stepWorld(){
+  tk = ((tk + 1) & 0xffff) || 1;
+  const gx = DX[grav], gy = DY[grav], up = (grav+4)&7;
+  const y0 = gy>0 ? H-1 : 0, y1 = gy>0 ? -1 : H, ys = gy>0 ? -1 : 1;
+  for (let y=y0; y!==y1; y+=ys) {
+    const xs = gx>0 ? -1 : gx<0 ? 1 : (rnd()<.5 ? 1 : -1);
+    const x0 = xs<0 ? W-1 : 0, x1 = xs<0 ? -1 : W;
+    for (let x=x0; x!==x1; x+=xs) {
+      const i = y*W+x, t = type[i];
+      if (t===E || t===WALL || t===BOUND || t===CORE || stamp[i]===tk) continue;
+      switch (t) {
+        case SAND: powder(i,x,y); break;
+        case SEED: {
+          let wet=false;
+          for (const [dx,dy] of ORTH){ const j=idx(x+dx,y+dy); if(j>=0&&type[j]===WATER){wet=true;break;} }
+          if (wet) { set(i,PLANT); break; }
+          powder(i,x,y); break;
+        }
         case SALT: {
-          for (const d of N4){ if (T[i+d]===WATER && rnd()<.01){ setc(i+d,BRINE); setc(i,E); break; } }
-          if (T[i]===SALT) powder(i);
+          let gone=false;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===VIRUS) set(j,E);
+            else if (o===FIRE) yellow(j);
+            else if (o===WATER && rnd()<.012){ set(j,BRINE); set(i,E); gone=true; break; }   // dissolves
+          }
+          if (!gone) powder(i,x,y);
           break;
         }
-        case WATER: case BRINE: liquid(i); break;
-        case STEAM: {
-          if (L[i]<=1){ setc(i, rnd()<.6 ? WATER : E); break; }
-          L[i]--; gasMove(i); break;
-        }
-        case MAGMA: {
-          for (const d of N4){
-            const j=i+d, o=T[j];
-            if (o===WATER && rnd()<.3) setc(j,STEAM);
-            else if (o===BRINE && rnd()<.3) setc(j, rnd()<.25 ? SALT : STEAM);
-            else if (o===SAND && rnd()<.05) setc(j,LAVA);
-            else if (o===GLASS && rnd()<.03) setc(j,LAVA);
-            else if (o===ACID && rnd()<.3) setc(j, rnd()<.4 ? FUMES : E);
-            else if ((o===FUNGUS||o===SPORE||o===PLANT) && rnd()<.5) setc(j,FIRE);   // anything that burns catches at once
+        case WATER: {
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===FIRE){ if (rnd()<.5) set(j,E); set(i,STEAM); break; }   // boils, and may put the fire out
+            else if (o===SOIL && rnd()<.004) set(j,SAND);
           }
-          if (rnd()<.35){ const j=i+N8[(rnd()*8)|0]; if (T[j]===E) setc(j,FIRE); }   // spews fire
+          if (type[i]===WATER) liquid(i,x,y);
           break;
         }
-        case FIRE: {
-          if (L[i]<=1){ setc(i,E); break; }
-          L[i]--;
-          let out=false;
-          for (const d of N4){
-            const j=i+d, o=T[j];
-            if (o===WATER){ setc(j,STEAM); if (rnd()<.5){ setc(i,E); out=true; break; } }      // water puts it out
-            else if ((o===FUNGUS||o===PLANT) && rnd()<.22) setc(j,FIRE);
-            else if (o===SPORE && rnd()<.6) setc(j,FIRE);
-          }
-          if (out) break;
-          const r=rnd(), j = r<.5 ? i-G : r<.7 ? i-G+1 : r<.9 ? i-G-1 : r<.95 ? i+1 : i-1;   // flickers upward
-          if (T[j]===E) swap(i,j);
+        case ACID: {
+          if (!corrode(i,x,y,WATER)) liquid(i,x,y);
           break;
         }
         case LAVA: {
-          let hot=0, done=false, onMagma=false;
-          for (const d of N4){ const o=T[i+d]; if (o===MAGMA) onMagma=true; else if (o===LAVA && d!==-G){ const h=L[i+d]-(d===G?1:20); if (h>hot) hot=h; } }   // heat rises; barely spreads sideways
-          const fed = onMagma || (T[i+G]===LAVA && F[i+G]===1);
-          F[i] = fed ? 1 : 0;
-          if (onMagma) L[i]=255;
-          for (const d of N4){
-            const j=i+d, o=T[j];
+          // molten sand: oozes slowly, burns and boils what it touches, cools into glass
+          let done=false, hot=0, onMagma=false;
+          for (const [dx,dy] of ORTH){                                         // first: where is the heat coming from?
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===MAGMA) onMagma=true;
+            else if (o===LAVA){                                                // heat spreads through the pool: rises easily, fades sideways
+              const below = dx*DX[grav] + dy*DY[grav] > 0;
+              const h = life[j] - (below ? 1 : 8);
+              if (h>hot) hot=h;
+            }
+          }
+          // vent-fed: touching magma, or resting on vent-fed lava (flag in shade bit 32, which moves with the cell)
+          const bj=idx(x+DX[grav], y+DY[grav]);
+          const fed = onMagma || (bj>=0 && type[bj]===LAVA && (shade[bj]&32)!==0);
+          if (fed) shade[i]|=32; else shade[i]&=~32;
+          if (onMagma) life[i]=255;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
             if (o===MAGMA || o===LAVA) continue;
-            else if (o===WATER){ setc(j,STEAM); if (!fed && rnd()<.5){ setc(i,GLASS); done=true; break; } }
-            else if (o===GLASS && fed && L[i]>200 && rnd()<.03){ setc(j,LAVA); L[j]=L[i]-12; }
-            else if (o===BRINE && rnd()<.5) setc(j, rnd()<.25 ? SALT : STEAM);
-            else if (o===SAND && L[i]>235 && rnd()<.03){ setc(j,LAVA); L[j]=L[i]-12; }
-            else if ((o===FUNGUS||o===SPORE||o===PLANT) && rnd()<.3) setc(j,FIRE);
+            else if (FLAMMABLE[o] && rnd()<FLAMMABLE[o]*.6) set(j,FIRE);
+            else if (o===WATER){ set(j,STEAM); if (!fed && rnd()<.5){ set(i,GLASS); done=true; break; } }   // quenched, unless a vent keeps it hot
+            else if (o===GLASS && fed && life[i]>200 && rnd()<.03){ set(j,LAVA); life[j]=life[i]-12; }   // vent-fed lava remelts glass crusts
+            else if (o===BRINE && rnd()<.5){ set(j, rnd()<.25 ? SALT : STEAM); }
+            else if (o===ACID && rnd()<.3) set(j, rnd()<FUMES_FRAC ? FUMES : E);
+            else if (o===SALT && rnd()<.05) set(j,E);
+            else if (o===SAND && life[i]>235 && rnd()<.03){ set(j,LAVA); life[j]=life[i]-12; }   // very hot lava melts sand it touches (a little cooler)
           }
           if (done) break;
-          if (hot>L[i]) L[i]=hot;
-          if (L[i]>150 && rnd()<.012){ const j=i-G+((rnd()*3|0)-1); if (T[j]===E) setc(j,FIRE); }   // hot lava throws off the odd flame
-          if (L[i]<=1){ setc(i,GLASS); break; } L[i]--;                 // cools in ~4 s off the magma
-          if (rnd()<.35) liquid(i);
+          if (hot>life[i]) life[i]=hot;
+          if (life[i]>150 && rnd()<.012) emit(i,x,y,FIRE,1,up+(((rnd()*3)|0)-1));   // hot lava throws off the odd flame
+          if (life[i]<=1){ set(i,GLASS); break; } life[i]--;   // the whole pool cools together: ~4 s away from magma (faster than the sandbox)
+          if (rnd()<.35) liquid(i,x,y);                                        // thick: moves a third as often as water
           break;
         }
-        case ACID: if (!corrode(i,WATER)) liquid(i); break;
+        case SOIL: {
+          // soil is solid ground, but tiny loose pieces (life 1, from markLooseSoil) and crumbly soil
+          // left by dead fungus (life 2) fall like sand when there is room below
+          if (life[i]===0) break;
+          const j=idx(x+DX[grav], y+DY[grav]);
+          if (j<0 ? edgesOpen : (type[j]===E || canDisplace(SOIL,type[j]))) powder(i,x,y);
+          break;
+        }
         case FUMES: {
-          if (L[i]<=1){ setc(i,E); break; }
-          L[i]--; if (!corrode(i,E)) gasMove(i); break;
+          // acid boiled into a gas: eats like acid, drifts like steam, fades away (never turns back into acid)
+          if (life[i]<=1){ set(i,E); break; }
+          life[i]--;
+          if (!corrode(i,x,y,E)) steamMove(i,x,y,up);
+          break;
+        }
+        case BRINE: {
+          let boiled=false;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===FIRE){ yellow(j); set(i, rnd()<.25 ? SALT : STEAM); boiled=true; break; }   // boils: mostly steam, leaving some salt
+            else if (o===VIRUS && rnd()<.3) set(j,E);
+            else if (o===PLANT && rnd()<.01) set(j,E);                    // withers plants
+          }
+          if (!boiled && rnd()<.04){                                     // magma heats it through a salt crust
+            for (let n=1;n<=12;n++){
+              const j=idx(x+DX[grav]*n,y+DY[grav]*n); if(j<0) break;
+              const o=type[j];
+              if (o===MAGMA){ set(i, rnd()<.25 ? SALT : STEAM); boiled=true; break; }
+              if (o!==SALT && o!==BRINE) break;
+            }
+          }
+          if (!boiled) liquid(i,x,y);
+          break;
+        }
+        case STEAM: {
+          const dec = (steamDec|0) + (rnd() < steamDec%1 ? 1 : 0);
+          if (life[i]<=dec){ set(i, rnd()<steamWater ? WATER : E); break; }   // condenses into rain (or just fades)
+          life[i]-=dec;
+          let grew=false;
+          for (const [dx,dy] of ORTH){                                   // plants can drink the steam and grow into it
+            const j=idx(x+dx,y+dy);
+            if (j>=0 && type[j]===PLANT && rnd()<.1){ set(i,PLANT); grew=true; break; }
+          }
+          if (grew) break;
+          steamMove(i,x,y,up);
+          break;
         }
         case SPORE: {
+          // floats on the air; turns steam into fungus; dies to fire, magma, water, acid, salt and brine; fades with time
           let gone=false;
-          for (const d of N4){
-            const o=T[i+d];
-            if (o===STEAM){ setc(i+d,FUNGUS); setc(i,FUNGUS); gone=true; break; }
-            if (o===WATER||o===ACID||o===FUMES||o===MAGMA||o===LAVA||o===FIRE||o===BRINE||o===SALT){ setc(i,E); gone=true; break; }
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===STEAM){ set(j,FUNGUS); set(i,FUNGUS); gone=true; break; }
+            if ((o===PLANT||o===SEED) && rnd() < .12*fungusK){ set(i,FUNGUS); gone=true; break; }   // a mushroom sprouts on the plant
+            if (o===FIRE||o===MAGMA||o===LAVA||o===WATER||o===ACID||o===FUMES||o===SALT||o===BRINE){ set(i,E); gone=true; break; }
           }
           if (gone) break;
-          if (rnd()<.2){ if (L[i]<=1){ setc(i,E); break; } L[i]--; }
-          const r=rnd(); const j = r<.3 ? i+G : r<.42 ? i-G : r<.62 ? i+1 : r<.82 ? i-1 : -1;
-          if (j>=0 && T[j]===E) swap(i,j);
+          if (rnd()<.2){ if (life[i]<=1){ set(i,E); break; } life[i]--; }   // a spore lasts roughly 10-20 s
+          const r=rnd();
+          if (r<.3) gas(i,x,y,grav); else if (r<.42) gas(i,x,y,up); else if (r<.62) gas(i,x,y,grav+2); else if (r<.82) gas(i,x,y,grav+6);
           break;
         }
         case FUNGUS: {
+          // Food energy: full when touching steam, water, plants or virus, passed along the colony
+          // one step weaker per cell. Fungus cut off from food withers into soil.
           let fed=false, best=0;
-          for (const d of N4){
-            const o=T[i+d];
-            if (o===STEAM||o===WATER) fed=true;
-            else if (o===FUNGUS && L[i+d]>best) best=L[i+d];
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===STEAM||o===WATER||o===PLANT||o===VIRUS) fed=true;
+            else if (o===FUNGUS && life[j]>best) best=life[j];
           }
-          L[i] = fed ? 30 : best>0 ? best-1 : 0;
-          if (L[i]===0 && rnd()<.004){ setc(i,E); break; }
-          if (rnd()<.35){
-            for (const d of N4){
-              const j=i+d, o=T[j];
-              if ((o===SALT||o===BRINE) && rnd()<.03){ setc(i,E); break; }
-              if (o===STEAM && rnd()<.45) setc(j,FUNGUS);
-              else if (o===WATER && rnd()<.006) setc(j,FUNGUS);
+          life[i] = fed ? FUNGUS_REACH : best>0 ? best-1 : 0;
+          if (rnd()<.08){                                                          // heat nearby dries it out
+            let hot=false;
+            for (let dy=-3; dy<=3 && !hot; dy++) for (let dx=-3; dx<=3; dx++){
+              const j=idx(x+dx,y+dy); if (j>=0 && (type[j]===FIRE||type[j]===MAGMA||type[j]===LAVA)){ hot=true; break; }
             }
-            if (T[i]===FUNGUS && rnd()<.012){ const j=i-G+((rnd()*3|0)-1); if (T[j]===E) setc(j,SPORE); }
+            if (hot && rnd()<.6){ set(i,E); break; }
+          }
+          if (life[i]===0 && fungusK>0 && rnd() < .004){                          // starving: dies, leaving soil, nothing or (rarely) a seed
+            const r=rnd(); set(i, r<.7 ? E : r<.93 ? SOIL : SEED); if (type[i]===SOIL) life[i]=2; break;   // nothing 70%, crumbly soil 23%, seed 7%
+          }
+          if (rnd()<.35){
+            for (const [dx,dy] of ORTH){
+              const j=idx(x+dx,y+dy); if(j<0) continue;
+              const o=type[j];
+              if ((o===SALT||o===BRINE) && rnd()<.03){ set(i,E); break; }           // salt slowly kills it
+              const g = o===STEAM ? .45 : o===PLANT ? .12*eatK : o===VIRUS ? .2 : o===WATER ? .006 : 0;
+              if (g && rnd() < g*fungusK) set(j,FUNGUS);                             // grows into steam, eats plants & virus
+            }
+            if (type[i]===FUNGUS && fungusK>0 && rnd() < .004*fungusK){            // puffs out a spore into open air
+              const k=up + (((rnd()*3)|0)-1);
+              const j=idx(x+DX[(k+8)&7], y+DY[(k+8)&7]);
+              if (j>=0 && type[j]===E) set(j,SPORE);
+            }
           }
           break;
         }
-        case MYCEL: if (rnd()<.03){ const j=i-G+((rnd()*3|0)-1); if (T[j]===E) setc(j,SPORE); } break;
-        case VENT:  if (rnd()<g.ventRate){ const j=i-G; if (T[j]===E||T[j]===WATER) setc(j,STEAM); } break;   // also boils water sitting on it
-        case SPOUT: if (rnd()<g.spoutRate){ const j=i+G; if (T[j]===E) setc(j,SAND); } break;
-        case SPRING:if (rnd()<g.springRate){ const j=i+G; if (T[j]===E) setc(j,BRINE); } break;
-        case REAPER: {
-          // starts eating glass, plants or fungus that touch it
-          for (const d of N8){ const j=i+d, r=RES_OF[T[j]]; if (r>=0 && rnd()<.25){ setc(j,HARVEST); F[j]=r; } }
+        case MYCELIUM: {
+          const k=up + (((rnd()*3)|0)-1);
+          emit(i,x,y,SPORE,.025,(k+8)&7);
+          break;
+        }
+        case VIRUS: {
+          for (let k=0;k<8;k++){ const j=idx(x+DX[k],y+DY[k]); if (j>=0 && type[j]===PLANT && rnd()<virusP) set(j,VIRUS); }
+          break;
+        }
+        case OIL: liquid(i,x,y); break;
+        case FIRE: {
+          if (life[i]<=1){ set(i,E); break; }
+          life[i]--;
+          let fuel=false;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const f=FLAMMABLE[type[j]];
+            if (f){ fuel=true; if (rnd()<f){ const was=type[j]; set(j,FIRE); if(was===OIL) life[j]+=12; } }
+            else if (type[j]===SALT || type[j]===BRINE) shade[i] |= 16;
+          }
+          if (fuel && rnd()<.7) break;      // flames cling to whatever they're burning
+          const r=rnd();
+          const k = r<.5 ? up : r<.7 ? up+1 : r<.9 ? up+7 : (r<.95 ? up+2 : up+6);
+          tryEmpty(i,x,y,k);
+          break;
+        }
+        case PLANT: {
+          if (rnd()<.15) for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy);
+            if (j>=0 && type[j]===WATER && rnd()<.25){ set(j,PLANT); break; }
+          }
+          break;
+        }
+        case CLOUD:  emit(i,x,y,WATER,cur.cloudRate,grav); break;
+        case SHAKER: emit(i,x,y,SALT,.05,grav); break;
+        case VAT:    emit(i,x,y,ACID,.05,grav); break;
+        case SEEDER: {                                                   // grows plants into water that touches it
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy);
+            if (j>=0 && type[j]===WATER && rnd()<.3) set(j,PLANT);
+          }
+          break;
+        }
+        case SPILL:  emit(i,x,y,OIL,.06,grav); break;
+        case MAGMA: {
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (FLAMMABLE[o]) set(j,FIRE);                                // anything that burns catches at once
+            else if (o===WATER && rnd()<.3) set(j,STEAM);
+            else if (o===BRINE && rnd()<.3) set(j, rnd()<.25 ? SALT : STEAM);
+            else if (o===SALT && rnd()<.2) set(j,E);                      // melts away
+            else if (o===ACID && rnd()<.3) set(j, rnd()<FUMES_FRAC ? FUMES : E);   // acid boils: some toxic fumes, the rest evaporates
+            else if (o===SAND && rnd()<.04) set(j,LAVA);                  // sand melts into lava
+            else if (o===GLASS && rnd()<.03) set(j,LAVA);                 // glass melts back into lava, water or not
+          }
+          emit(i,x,y,FIRE,.35,(rnd()*8)|0);
+          break;
+        }
+        case REAPER: {                                                  // starts eating glass, plants or fungus that touch it
+          for (let k=0;k<8;k++){ const j=idx(x+DX[k],y+DY[k]); if (j<0) continue; const r=RES_OF[type[j]]; if (r>=0 && rnd()<.25){ set(j,HARVEST); shade[j]=r; } }
           break;
         }
         case HARVEST: {
           // a cell being eaten: glows and spreads through the whole connected body of the same material, like fire through plants
-          const kind=F[i]&3, want=KIND_TYPE[kind];
-          for (const d of N4){ const j=i+d; if (T[j]===want && rnd()<.3){ setc(j,HARVEST); F[j]=kind; } }
-          if (L[i]<=1){
-            for (const d of N8){ const j=i+d; if (T[j]===want){ setc(j,HARVEST); F[j]=kind; } }   // nothing connected is left behind
-            got[kind]++; setc(i,E); break; }
-          L[i]--;
+          const kind=shade[i]&3, want=KIND_TYPE[kind];
+          for (const [dx,dy] of ORTH){ const j=idx(x+dx,y+dy); if (j>=0 && type[j]===want && rnd()<.3){ set(j,HARVEST); shade[j]=kind; } }
+          if (life[i]<=1){
+            for (let k=0;k<8;k++){ const j=idx(x+DX[k],y+DY[k]); if (j>=0 && type[j]===want){ set(j,HARVEST); shade[j]=kind; } }   // nothing connected is left behind
+            cur.got[kind]++; vanish(i); break;
+          }
+          life[i]--; break;
+        }
+        case VENT: {                                                    // breathes steam, boils water touching it
+          for (const [dx,dy] of ORTH){ const j=idx(x+dx,y+dy); if (j<0) continue; const o=type[j]; if (o===WATER && rnd()<.3) set(j,STEAM); else if ((o===SOIL||o===SEED||o===SAND||o===SALT) && rnd()<.05) vanish(j); }   // blows away dirt that would bury it
+          const j=idx(x,y-1); if (j>=0 && type[j]===E && rnd()<cur.ventRate) set(j,STEAM);
+          break;
+        }
+        case SPOUT: emit(i,x,y,SAND,cur.spoutRate,grav); break;
+        case TOXIN:  {
+          if (rnd()<.04){ const k=(rnd()*8)|0; const j=idx(x+DX[k],y+DY[k]); if(j>=0&&(type[j]===E||type[j]===WATER)) set(j,VIRUS); }
+          break;
+        }
+      }
+    }
+  }
+  if (tk % 5 === 0) lifeStep();
+  if (tk % 20 === 0) markLooseSoil();
+}
+
+let BIRTH = new Uint8Array(9), SURV = new Uint8Array(9);
+function setRule(s){
+  BIRTH = new Uint8Array(9); SURV = new Uint8Array(9);
+  const m = /B(\d*)\/S(\d*)/.exec(s); if (!m) return;
+  for (const c of m[1]) BIRTH[+c]=1;
+  for (const c of m[2]) SURV[+c]=1;
+}
+setRule("B3/S23");
+function lifeStep(){
+  nb.fill(0);
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const t = type[y*W+x];
+    if (t!==VIRUS && t!==TOXIN) continue;
+    for (let k=0;k<8;k++){ const j=idx(x+DX[k],y+DY[k]); if(j>=0) nb[j]++; }
+  }
+  for (let i=0;i<N;i++){
+    const t=type[i], n=nb[i];
+    if (t===VIRUS){ if(!SURV[n]) set(i,E); }
+    else if ((t===E||t===WATER) && BIRTH[n]) set(i,VIRUS);
+  }
+}
+
+const SIN = new Float32Array(256); for (let i=0;i<256;i++) SIN[i]=Math.sin(i/256*Math.PI*2);
+const HASH = new Uint8Array(N); for (let i=0;i<N;i++){ let h=(i*2654435761)>>>0; h^=h>>>15; h=Math.imul(h,0x2c1b3c6d)>>>0; HASH[i]=(h>>>8)&255; }
+let frame = 0;
+function paintCells(){
+  const t = frame;
+  const up = (grav+4)&7, ux = DX[up], uy = DY[up];
+  const gx = DX[grav], gy = DY[grav];
+  // iterate so that each cell's "up" neighbour is visited first (for depth)
+  const ya = gy>0 ? 0 : H-1, yb = gy>0 ? H : -1, ysd = gy>0 ? 1 : -1;
+  const xa = gx>0 ? 0 : W-1, xb = gx>0 ? W : -1, xsd = gx>0 ? 1 : -1;
+  const edge = edgesOpen ? E : WALL;
+  for (let y=ya; y!==yb; y+=ysd) {
+    for (let x=xa; x!==xb; x+=xsd) {
+      const i = y*W+x, ty = type[i], o = i<<2;
+      if (ty===E || ty===BOUND){ P[o+3]=0; Gd[o+3]=0; depth[i]=0; continue; }
+      const ux2=x+ux, uy2=y+uy;
+      const j = (ux2<0||uy2<0||ux2>=W||uy2>=H) ? -1 : uy2*W+ux2;
+      const above = j<0 ? edge : type[j];
+      const d = (j>=0 && above===ty) ? Math.min(255, depth[j]+1) : 0;
+      depth[i] = d;
+      const open = above===E;
+      const sh = shade[i], hs = HASH[i];
+      let r=0,g=0,b=0,e=0,a=255;
+      switch (ty){
+        case WALL: {
+          const row = (y/5)|0;
+          const mortar = (y%5===0) || ((x + (row&1)*5) % 10 === 0);
+          const n = (hs&15) - 8;
+          if (mortar){ r=52+n; g=56+n; b=70+n; }
+          else { r=92+n+(sh>>1); g=98+n+(sh>>1); b=118+n+sh; }
+          if (open){ r+=40; g+=42; b+=46; }
+          break;
+        }
+        case SAND: {
+          const n = sh*3 - 22;
+          r=226+n; g=194+n; b=126+n*.8;
+          if (hs<10){ r-=40; g-=40; b-=30; }            // darker grains
+          else if (hs>250){ r=255; g=245; b=210; }       // glints
+          if (open){ r+=18; g+=18; b+=18; }
+          const k=Math.min(d,30)*.9; r-=k; g-=k; b-=k;
+          break;
+        }
+        case WATER: {
+          const k = Math.min(d,48)/48;
+          const s = SIN[(x*7 + y*4 + t*2)&255] * 10 + SIN[(x*3 - t*3 + y*9)&255]*6;
+          r = 34 - 18*k; g = 120 - 55*k + s; b = 228 - 80*k + s*1.4;
+          if (open || d===0){ r=150; g=215+s; b=255; }
+          else if (d===1){ r=70; g=160+s; b=245; }
+          break;
+        }
+        case OIL: {
+          const k = Math.min(d,30)/30;
+          r = 92 - 40*k; g = 56 - 28*k; b = 26 - 12*k;
+          if (open || d===0){
+            const s = SIN[(x*6 - t*2)&255];
+            r = 190 + s*40; g = 130 + SIN[(x*6 - t*2 + 85)&255]*40; b = 70 + SIN[(x*6 - t*2 + 170)&255]*60;
+          }
+          r += sh>>1; g += sh>>2;
+          break;
+        }
+        case FIRE: {
+          let h = (life[i] + (sh&7)) / 34 + SIN[(t*29 + i*7)&255]*.12;
+          h = h<0?0:h>1?1:h;
+          if (sh&16){ r = 255; g = 190 + 65*h; b = 40 + 120*h*h; }      // sodium-yellow flame
+          else { r = 200 + 55*h; g = 50 + 200*h*h; b = 10 + 150*h*h*h; }
+          e = 255;
+          break;
+        }
+        case ACID: {
+          const k = Math.min(d,40)/40;
+          const s = SIN[(x*6 + y*5 + t*3)&255] * 8;
+          r = 150 - 60*k; g = 225 - 70*k + s; b = 40 - 20*k;
+          if (open || d===0){ r=214; g=255; b=120; }
+          if (((x*7 + y*13 + (t>>1)) % 47) === 0){ r=235; g=255; b=200; }   // fizz
+          e = 40;
+          break;
+        }
+        case BRINE: {
+          const k = Math.min(d,48)/48;
+          const s = SIN[(x*5 + y*3 + t)&255] * 6;
+          r = 42 - 20*k; g = 128 - 50*k + s; b = 140 - 50*k + s;
+          if (open || d===0){ r=150; g=220+s; b=210+s; }
+          else if (d===1){ r=80; g=170+s; b=170+s; }
+          if (hs>246){ r+=40; g+=30; b+=30; }                        // salt specks
+          break;
+        }
+        case STEAM: {
+          const n = SIN[(x*9 + y*5 + t*3)&255];
+          r = 222 + n*14; g = 228 + n*14; b = 240 + n*10;
+          a = 80 + Math.min(life[i],200)*.6 + n*20;                      // fades as it cools
           break;
         }
         case PLANT: {
-          // needs water: fed when touching it, passed through the plant; dry plant far from water withers away
-          let wet=false, best=0;
-          for (const d of N4){ const o=T[i+d]; if (o===WATER) wet=true; else if (o===PLANT && L[i+d]>best) best=L[i+d]; }
-          L[i] = wet ? 20 : best>0 ? best-1 : 0;
-          if (L[i]===0 && rnd()<.003){ setc(i,E); break; }
-          if (rnd()<.15) for (const d of N4){ const j=i+d; if (T[j]===WATER && rnd()<.25){ setc(j,PLANT); break; } }   // drinks water and grows into it
+          const k = Math.min(d,14)*4;
+          r = 34 + (sh<<1) - k*.4; g = 150 + sh*4 - k; b = 52 + sh - k*.3;
+          if (open){
+            r += 40; g += 45; b += 10;
+            if (hs<6){ r=255; g=150; b=200; }           // pink blossom
+            else if (hs>250){ r=255; g=225; b=90; }    // yellow blossom
+          }
           break;
         }
-        case SEEDER: if (rnd()<.1) for (const d of N4){ const j=i+d; if (T[j]===WATER){ setc(j,PLANT); break; } } break;   // water touching it sprouts
-        case CLOUD: if (rnd()<g.cloudRate){ const j=i+G; if (T[j]===E) setc(j,WATER); } break;
+        case SEED: {
+          r = 176 + sh*2; g = 128 + sh; b = 70;
+          if (hs&1){ r-=40; g-=34; b-=24; }
+          break;
+        }
+        case SALT: {
+          const n = sh - 8;
+          r = 228+n; g = 230+n; b = 238+n;
+          if (((x*13 + y*7 + (t>>2)) % 71) === 0){ r=g=b=255; e=140; }
+          break;
+        }
+        case SOIL: {
+          r = 104 + (sh-8)*2; g = 70 + (sh-8); b = 44;
+          if (hs>232){ r=150; g=114; b=80; }
+          else if (hs<18){ r=64; g=40; b=24; }
+          if (open){ r = 90 + (sh<<1); g = 128 + (sh<<1); b = 54; }           // moss on top
+          else if (d<2 && above!==SOIL){ r+=10; g+=8; }
+          const k=Math.min(d,30)*.8; r-=k; g-=k*.7; b-=k*.5;
+          break;
+        }
+        case VIRUS: {
+          const p = (SIN[(t*5 + (x+y)*9)&255] + 1) * .5;
+          r = 170 + 80*p; g = 40 + 70*p; b = 200 + 55*p;
+          e = 90 + 70*p;
+          break;
+        }
+        case CLOUD: {
+          const n = SIN[(x*5 + t)&255]*SIN[(y*23 + (t<<1) + x)&255];
+          r = 210 + n*30 + (sh>>1); g = 218 + n*28 + (sh>>1); b = 245 + n*10;
+          if (open){ r+=20; g+=20; b+=10; }
+          e = 25;
+          break;
+        }
+        case MAGMA: {
+          const v = (SIN[(x*11 + t*2)&255] + SIN[(y*13 - t*3 + x*3)&255]) * .5;
+          if (v < -0.45){ r=96; g=26; b=18; e=60; }
+          else { const q=(v+1)*.5; r = 210 + 45*q; g = 50 + 160*q*q; b = 12 + 60*q*q*q; e = 120 + 135*q; }
+          break;
+        }
+        case LAVA: {
+          const h=life[i]/255, n=SIN[(x*7 + y*11 + t*2)&255]*.5 + SIN[(x*3 - t*3 + y*5)&255]*.5;
+          const q=Math.max(0,Math.min(1, h*.9 + n*.15));
+          r = 120 + 135*q; g = 22 + 150*q*q; b = 8 + 50*q*q*q;                 // glowing orange, darker crust as it cools
+          if (open && q>.4){ r=255; g=Math.min(255,g+40); b+=20; }
+          e = 60 + 190*q;
+          break;
+        }
+        case GLASS: {
+          const glint = ((x + y*2 + (hs>>6)) % 11 === 0);
+          r = 170 + (sh>>1); g = 220 + (sh>>2); b = 232; a = 120;           // pale, see-through
+          if (open || d===0){ r=225; g=248; b=255; a=200; }
+          if (glint){ r=g=b=255; a=215; e=40; }
+          break;
+        }
+        case FUMES: {
+          const n=SIN[(x*9 + y*5 + t*3)&255], p=(SIN[(t*4 + i*7)&255]+1)*.5;
+          r = 176 + 30*p + n*10; g = 214 + 30*p; b = 70 + n*12;
+          a = 70 + Math.min(life[i],200)*.6 + n*20; e = 30 + 30*p;     // sickly glowing haze that fades
+          break;
+        }
+        case SPORE: {
+          const p=(SIN[(t*6 + i*13)&255]+1)*.5;
+          r = 225 + 25*p; g = 205 + 30*p; b = 240; a = 150 + 80*p; e = 40 + 40*p;       // faint glowing dust
+          break;
+        }
+        case FUNGUS: {
+          const k=Math.min(d,14)*3.2;
+          const streak = ((x*7 + (HASH[x]>>4)) % 5);                                   // vertical stalk fibres
+          r = 172 - streak*9 + (sh>>2) - k; g = 170 - streak*9 + (sh>>2) - k; b = 176 - streak*8 - k;   // gray stalks
+          if (hs<10){ r-=30; g-=30; b-=28; }                                               // darker gills
+          if (open || d<3){                                                                // red caps with white spots
+            const p=(SIN[(t*2 + x*9 + y*5)&255]+1)*.5;
+            r = 205 + 35*p; g = 38 + 22*p; b = 36 + 18*p; e = 30 + 30*p;
+            if (hs<28){ r=246; g=238; b=232; e=20; }
+          } else e = 0;
+          break;
+        }
+        case MYCELIUM: {
+          const thread = ((x*3 + y*5 + (hs>>5)) % 7 === 0) || ((x + y*2) % 9 === 0);
+          if (thread){ const p=(SIN[(t*2 + x*5 + y*3)&255]+1)*.5; r=235; g=228; b=214; e=20+30*p; }
+          else { r=62+(sh>>2); g=50+(sh>>2); b=46; }
+          if (open){ r+=18; g+=16; b+=14; }
+          break;
+        }
+        case VAT: {
+          const rim = (y%5)===0;                                      // dark steel drum with glowing acid seams
+          r = rim?44:62+(sh>>1); g = rim?50:70+(sh>>1); b = rim?40:52;
+          if (!rim && (x%6)===0){ const p=(SIN[(t*3 + y*11)&255]+1)*.5; r=150+50*p; g=220+35*p; b=50; e=60+50*p; }
+          if (open){ r+=20; g+=24; b+=14; }
+          break;
+        }
+        case SEEDER: {
+          const leaf = (x%4===1 && y%3===1) || (x%4===3 && y%3===2);  // little sprouts on a wooden planter
+          const band = (y%4)===0;
+          if (leaf){ r=96+(sh<<1); g=190+(sh<<1); b=70; e=20; }
+          else { r = band?84:128+(sh>>1); g = band?56:90+(sh>>2); b = band?30:48; }
+          if (open){ r+=24; g+=24; b+=12; }
+          break;
+        }
+        case SHAKER: {
+          const stripe = ((x+y)>>1)&1;
+          r = stripe?196:168; g = stripe?200:172; b = stripe?214:188;
+          if ((x%3===0) && (y%3===0)){ r=70; g=74; b=88; }
+          break;
+        }
+        case SPILL: {
+          const band = (y%6)<1;
+          r = band?70:132+(sh>>1); g = band?44:86+(sh>>2); b = band?20:40;
+          break;
+        }
+        case CORE: {                                                      // glows in its owner's colour
+          const p=(SIN[(t*3 + (x+y)*7)&255]+1)*.5, edge2=((x+y)&3)===0;
+          r=coreCol[0]*.55+100*p; g=coreCol[1]*.55+100*p; b=coreCol[2]*.55+100*p; if (edge2){ r+=30; g+=30; b+=30; } e=70+60*p;
+          break;
+        }
+        case REAPER: {                                                    // gold checker
+          const c=((x>>1)+(y>>1))&1, p=(SIN[(t*4 + x*5 + y*3)&255]+1)*.5;
+          r=c?240:196; g=c?194:146; b=c?72:36; if (open){ r+=12; g+=12; } e=20+25*p;
+          break;
+        }
+        case HARVEST: {                                                   // being eaten: a golden glow
+          const p=(SIN[(t*12 + i*7)&255]+1)*.5;
+          r=255; g=196+50*p; b=80+90*p; e=200;
+          break;
+        }
+        case VENT: {                                                      // grate with warm slits
+          const slit=(x%3)===0;
+          r=slit?150:104+(sh>>1); g=slit?120:110+(sh>>1); b=slit?110:124+sh; if (slit){ e=30; }
+          break;
+        }
+        case SPOUT: {
+          const band=(y%3)===0;
+          r=band?120:200+(sh>>1); g=band?86:160+(sh>>1); b=band?40:96;
+          break;
+        }
+        case TOXIN: {
+          const hz = (((x+y)>>2)&1);
+          const p = (SIN[(t*4 + x*3)&255] + 1) * .5;
+          if (hz){ r=58; g=16; b=72; e=0; }                                // dark violet hazard stripes
+          else { r = 150 + 70*p; g = 30 + 40*p; b = 180 + 60*p; e = 80 + 60*p; }   // glowing purple, like the virus it breeds
+          break;
+        }
       }
+      P[o]=r; P[o+1]=g; P[o+2]=b; P[o+3]=a;
+      if (e){ Gd[o]=r; Gd[o+1]=g; Gd[o+2]=b; Gd[o+3]=e; } else Gd[o+3]=0;
     }
   }
 }
 
+function use(g){ cur=g; type=g.T; shade=g.Sh; life=g.L; stamp=g.St; tk=g.tk; }
+function step(g){ use(g); const got=g.got; got[0]=got[1]=got[2]=0; stepWorld(); g.tk=tk; }
 
 // =====================================================================
 //  Building globes
 // =====================================================================
+const INSIDE=new Uint8Array(GN);
+for (let y=0;y<G;y++) for (let x=0;x<G;x++){ const dx=x+.5-CX, dy=y+.5-CX; INSIDE[y*G+x] = dx*dx+dy*dy <= RAD*RAD ? 1 : 0; }
 const BIOMES={
   volcano:{name:"Volcano", res:0, icon:"🌋"},
   garden: {name:"Garden", res:1, icon:"🌿"},
   fungus: {name:"Fungal cave", res:2, icon:"🍄"},
 };
 // production per tick of a fresh globe of each biome (measured), used until a globe has been seen live
-const BASE_RATE={ volcano:[.2,0,0], garden:[0,.2,0], fungus:[0,0,.2] };
-const CORE_BOX=[56,48,71,59];
+const BASE_RATE={ volcano:[.2,0,0], garden:[0,.19,0], fungus:[0,0,.16] };
+const CORE_BOX=[79,67,100,83];
 function newGlobe(id,biome){
-  const g={id, biome, owner:-1, T:new Uint8Array(GN), L:new Uint8Array(GN), S:new Uint16Array(GN), F:new Uint8Array(GN), tk:1,
+  const g={id, biome, owner:-1, T:new Uint8Array(GN), Sh:new Uint8Array(GN), L:new Uint8Array(GN), St:new Uint16Array(GN), tk:1,
     got:[0,0,0], rate:BASE_RATE[biome].slice(), units:0, bonus:0, bonusParts:"", inv:{}, live:false,
-    spoutRate:.025, springRate:.055, ventRate:.04, cloudRate:.007, img:null, canvas:null, nb:[]};
-  T=g.T; L=g.L; S=g.S; F=g.F; tk=1;
-  for (let i=0;i<GN;i++) T[i]=INSIDE[i]?E:BOUND;
-  const fill=(x0,y0,x1,y1,t)=>{ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=y*G+x; if (INSIDE[i]) setc(i,t); } };
+    spoutRate:.018, ventRate:.028, cloudRate:.004, canvas:null, ctx:null, nb:[]};
+  use(g);
+  for (let i=0;i<GN;i++){ type[i]=INSIDE[i]?E:BOUND; shade[i]=(rnd()*16)|0; }
+  const fill=(x0,y0,x1,y1,t)=>{ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=y*G+x; if (INSIDE[i]) set(i,t); } };
   fill(...CORE_BOX,CORE);                       // the core: the globe's heart, which units defend
   if (biome==="volcano"){
-    fill(12,80,40,84,MAGMA);                    // magma ledge on the left
-    fill(22,32,29,33,SPOUT);                    // sand pours onto it
-    fill(54,114,62,118,REAPER);                 // reaper in the bowl where the lava cools
-    g.inv={[SAND]:120,[STONE]:20};
+    fill(17,112,56,118,MAGMA);                  // magma ledge on the left
+    fill(31,45,41,46,SPOUT);                    // sand pours onto it and melts into lava
+    fill(76,160,87,166,REAPER);                 // reaper in the bowl where the lava cools into glass
+    g.inv={[SAND]:150,[WALL]:30};
   } else if (biome==="garden"){
-    fill(24,40,42,41,CLOUD); fill(86,40,104,41,CLOUD);   // two rain clouds, either side of the core
-    fill(20,108,108,123,PLANT);                 // a low plant bed
-    for (let i=108*G;i<GN;i++) if (T[i]===PLANT && (T[i+G]===BOUND||T[i-1]===BOUND||T[i+1]===BOUND)) setc(i,SEEDER);   // seeder lining the bowl: rain soaking down sprouts again, so the bed regrows after it is eaten
-    fill(29,103,37,107,REAPER); fill(91,103,99,107,REAPER);   // a reaper under each cloud: rain runs off it and plants grow up into it
-    g.inv={[WATER]:120,[STONE]:20};
+    fill(34,56,59,57,CLOUD); fill(121,56,146,57,CLOUD);   // two rain clouds, either side of the core
+    fill(28,152,152,173,PLANT);                 // a low plant bed
+    for (let i=150*G;i<GN-G;i++) if (type[i]===PLANT && (type[i+G]===BOUND||type[i-1]===BOUND||type[i+1]===BOUND)) set(i,SEEDER);   // seeder lining the bowl: the bed regrows after it is eaten
+    fill(41,145,52,150,REAPER); fill(128,145,139,150,REAPER);   // a reaper under each cloud: rain runs off it and plants grow up into it
+    g.inv={[WATER]:150,[WALL]:30};
   } else {
-    fill(58,120,68,120,VENT);                   // steam vent at the bottom
-    fill(16,60,20,64,MYCEL); fill(106,60,110,64,MYCEL);
-    fill(69,116,75,121,REAPER);                 // right against the vent: grazes the mushrooms in its steam
-    g.inv={[WATER]:80,[STONE]:20};
+    fill(82,169,96,169,VENT);                   // steam vent at the bottom
+    fill(62,140,65,143,MYCELIUM); fill(114,140,117,143,MYCELIUM);   // mycelium either side of the steam column
+    fill(97,163,105,170,REAPER);                // right against the vent: grazes the mushrooms in its steam
+    g.inv={[WATER]:100,[WALL]:30};
   }
   return g;
 }
 function countG(g,t){ let n=0; const a=g.T; for (let i=0;i<GN;i++) if (a[i]===t) n++; return n; }
-function use(g){ T=g.T; L=g.L; S=g.S; F=g.F; tk=g.tk; }
 
-// Defence bonus: what surrounds the core, in a ring up to 10 cells out
-const RING=[]; { const [x0,y0,x1,y1]=CORE_BOX; for (let y=y0-10;y<=y1+10;y++) for (let x=x0-10;x<=x1+10;x++) if (x<x0||x>x1||y<y0||y>y1) RING.push(y*G+x); }
+// Defence bonus: what surrounds the core, in a ring up to 14 cells out
+const RING=[]; { const [x0,y0,x1,y1]=CORE_BOX; for (let y=y0-14;y<=y1+14;y++) for (let x=x0-14;x<=x1+14;x++) if (x<x0||x>x1||y<y0||y>y1) RING.push(y*G+x); }
 function computeBonus(g){
   let wall=0, hot=0; const A=g.T;
   for (const i of RING){ const t=A[i];
-    if (t===STONE) wall+=1; else if (t===GLASS) wall+=.7;
+    if (t===WALL) wall+=1; else if (t===GLASS) wall+=.7;
     else if (t===LAVA||t===MAGMA) hot+=2; else if (t===ACID) hot+=1.5; else if (t===FUMES) hot+=.5; }
-  const w=Math.min(.9, wall/320), h=Math.min(.9, hot/320);
+  const w=Math.min(.9, wall/450), h=Math.min(.9, hot/450);
   g.bonus=Math.min(1.5, w+h);
   g.bonusParts=[w>.04?`walls +${Math.round(w*100)}%`:"", h>.04?`heat & acid +${Math.round(h*100)}%`:""].filter(Boolean).join(", ");
 }
 
 // =====================================================================
-//  Drawing a globe
+//  Drawing a globe (the sandbox's renderer: shading, glow and shadow)
 // =====================================================================
 const OWN_COL=[[92,200,255],[255,90,90],[111,224,122]], NEU_COL=[160,166,186], NEU_CORE=[236,214,140];
-const HASH=new Uint8Array(GN); for (let i=0;i<GN;i++){ let h=(i*2654435761)>>>0; h^=h>>>15; h=Math.imul(h,0x2c1b3c6d)>>>0; HASH[i]=(h>>>8)&255; }
-const MAT_COL={};
-let frame=0;
-function cellColor(t,i,A,Lf,oc){
-  const h=HASH[i]; let r=0,gg=0,b=0,a=255;
-  switch(t){
-    case BOUND: a=0; break;
-    case E: { const y=(i/G)|0; r=18+y*.12; gg=24+y*.1; b=56-y*.12; break; }
-    case SAND: r=230+(h&15)-8; gg=196+(h&15)-8; b=128; break;
-    case WATER: r=40; gg=130; b=232; break;
-    case BRINE: r=56; gg=150; b=150; break;
-    case STEAM: r=210; gg=218; b=232; a=150; break;
-    case SALT: r=238; gg=240; b=246; break;
-    case MAGMA: { const p=(Math.sin((frame*.12)+(i%G)*.3)+1)*.5; r=230+25*p; gg=70+90*p; b=20; break; }
-    case LAVA: { const q=Lf[i]/255; r=120+135*q; gg=22+150*q*q; b=8+50*q*q*q; break; }
-    case GLASS: r=176; gg=224; b=236; if (h>240){ r=gg=b=255; } break;
-    case ACID: r=170; gg=236; b=50; break;
-    case FUMES: r=196; gg=226; b=80; a=170; break;
-    case FIRE: { const q=Math.min(1,(Lf[i]+(h&7))/34); r=200+55*q; gg=60+180*q*q; b=12+120*q*q*q; break; }
-    case SPORE: r=236; gg=214; b=246; break;
-    case FUNGUS: { const cap=A[i-G]===E||A[i-G]===STEAM; if (cap){ r=220; gg=48; b=44; if (h<40){ r=245; gg=238; b=232; } } else { r=170; gg=168; b=176; } break; }
-    case MYCEL: r=90; gg=74; b=66; if ((i+h)%5===0){ r=230; gg=222; b=210; } break;
-    case VENT: r=120; gg=128; b=140; break;
-    case SPOUT: r=168; gg=130; b=80; break;
-    case SPRING: r=60; gg=160; b=160; break;
-    case PLANT: { const top=A[i-G]===E||A[i-G]===WATER; r=40+(h&31); gg=150+(h&63); b=60; if (top){ r+=30; gg+=30; if (h<8){ r=255; gg=160; b=200; } } break; }
-    case SEEDER: { const s=(i*7+((i/G)|0))%5===0; r=s?150:96; gg=s?120:78; b=s?60:48; break; }
-    case CLOUD: { const n=Math.sin(frame*.05+(i%G)*.4); r=225+20*n; gg=230+20*n; b=250; break; }
-    case HARVEST: { const p=(Math.sin(frame*.5+i)+1)*.5; r=255; gg=200+40*p; b=80+60*p; break; }
-    case CORE: { const p=(Math.sin(frame*.08+(i%7))+1)*.5; r=oc[0]*.6+90*p; gg=oc[1]*.6+90*p; b=oc[2]*.6+90*p; break; }
-    case REAPER: { const s=((i%G)+((i/G)|0))&1; r=s?236:200; gg=s?190:150; b=s?70:40; break; }
-    case STONE: { const m=((i/G)|0)%4===0 || ((i%G)+(((i/G)>>2)&1)*4)%8===0; const n=(h&15)-8; r=(m?70:118)+n; gg=(m?72:122)+n; b=(m?84:138)+n; break; }   // stone bricks
-  }
-  return [r,gg,b,a];
+const simC=document.createElement("canvas"); simC.width=simC.height=G; const simX=simC.getContext("2d");
+const simImg=simX.createImageData(G,G), P=simImg.data;
+const glowC=document.createElement("canvas"); glowC.width=glowC.height=G; const glowX=glowC.getContext("2d");
+const glowImg=glowX.createImageData(G,G), Gd=glowImg.data;
+const blurC=document.createElement("canvas"); blurC.width=blurC.height=G; const blurX=blurC.getContext("2d");
+const haloC=document.createElement("canvas"); haloC.width=haloC.height=G>>1; const haloX=haloC.getContext("2d");
+const shadC=document.createElement("canvas"); shadC.width=shadC.height=G; const shadX=shadC.getContext("2d");
+// the inside of every globe: a night sky with faint stars
+const DISC=document.createElement("canvas"); DISC.width=DISC.height=G*2;
+{ const d=DISC.getContext("2d"), s=G*2, gr=d.createLinearGradient(0,0,0,s);
+  gr.addColorStop(0,"#1a2350"); gr.addColorStop(.4,"#121838"); gr.addColorStop(.8,"#0b0f22"); gr.addColorStop(1,"#080a14");
+  d.beginPath(); d.arc(CX*2,CX*2,RAD*2,0,7); d.fillStyle=gr; d.fill(); d.save(); d.clip();
+  const r2=d.createRadialGradient(s,s,0,s,s,s*1.1); r2.addColorStop(0,"rgba(60,26,90,.45)"); r2.addColorStop(1,"rgba(60,26,90,0)"); d.fillStyle=r2; d.fillRect(0,0,s,s);
+  for (let n=0;n<60;n++){ d.fillStyle=`rgba(180,200,255,${Math.random()*.3+.05})`; d.fillRect(Math.random()*s, Math.random()*s*.7, 1.6, 1.6); }
+  d.restore(); }
+let coreCol=NEU_CORE;
+function paintGlobe(g){
+  use(g); coreCol = g.owner>=0 ? OWN_COL[g.owner] : NEU_CORE;
+  paintCells();
+  simX.putImageData(simImg,0,0);
 }
-function paint(g){
-  if (!g.img){ g.canvas=document.createElement("canvas"); g.canvas.width=g.canvas.height=G; g.ctx=g.canvas.getContext("2d"); g.img=g.ctx.createImageData(G,G); }
-  const P=g.img.data, A=g.T, Lf=g.L, oc=g.owner>=0?OWN_COL[g.owner]:NEU_CORE;
-  for (let i=0;i<GN;i++){ const c=cellColor(A[i],i,A,Lf,oc), o=i<<2; P[o]=c[0]; P[o+1]=c[1]; P[o+2]=c[2]; P[o+3]=c[3]; }
-  g.ctx.putImageData(g.img,0,0);
+// small picture for the map
+function thumb(g){
+  if (!g.canvas){ g.canvas=document.createElement("canvas"); g.canvas.width=g.canvas.height=G; g.ctx=g.canvas.getContext("2d"); }
+  paintGlobe(g);
+  g.ctx.clearRect(0,0,G,G); g.ctx.drawImage(DISC,0,0,G,G); g.ctx.drawImage(simC,0,0);
 }
 
 // =====================================================================
@@ -458,7 +1043,7 @@ const NAMES=["You","Red","Green"], OWN_CSS=["var(--you)","var(--red)","var(--gre
 let globes=[], links=[], res=[], armies=[], running=true, view=null, focus=0, over=false, tick=0, lastHitPlayer={};
 const UNIT_COST=30;                          // paid in any mix of resources, from the biggest stock
 const TRAVEL_TICKS=240;                       // 4 s per link
-const UPKEEP_TICKS=600, AI_TICKS=360;                       // AIs decide every 6 s
+const UPKEEP_TICKS=600, AI_TICKS=360;         // AIs decide every 6 s
 // how aggressive the rivals are towards you: grace before the first attack, margin they need, gap between attacks, gang up on a leader
 const AI_LEVELS=[
   {name:"Peaceful", never:true},
@@ -466,21 +1051,18 @@ const AI_LEVELS=[
   {name:"Normal", grace:10800, margin:1.4, gap:1800, gang:true},
 ];
 let aiLevel=0; try{ const v=+localStorage.getItem("globes.ai"); if (v>=0 && v<3) aiLevel=v; }catch(e){}
-// matter: what can be dug up and placed, and what can be bought
-const MATTER=[
-  [STONE,"Stone","#8a90a8"],[SAND,"Sand","#e6c27a"],[WATER,"Water","#3a8ae8"],[BRINE,"Brine","#3f9e98"],[SALT,"Salt","#eef0f6"],
-  [GLASS,"Glass","#b0e0ec"],[ACID,"Acid","#aaec32"],[MAGMA,"Magma","#ff7a1a"],[REAPER,"Reaper","#ecbe46"],
-  [SPOUT,"Sand spout","#a88250"],[SPRING,"Brine spring","#3ca0a0"],[VENT,"Steam vent","#78808c"],[MYCEL,"Mycelium","#5a4a42"],[FUNGUS,"Fungus","#dc302c"],
-  [PLANT,"Plant","#3ec45a"],[CLOUD,"Cloud","#e2e8fa"],[SEEDER,"Seeder","#7a5a34"]];
-const DIGGABLE=new Uint8Array(32); MATTER.forEach(([t])=>DIGGABLE[t]=1);
-// what can be bought for a globe: material -> [amount, cost in 🔷 glass, 🌿 plants, 🍄 fungus]
+// what Dig can pick up (everything but the globe itself, its core, and things on fire or being eaten)
+const DIGGABLE=new Uint8Array(64); for (let t=1;t<=SPOUT;t++) DIGGABLE[t]=1; [BOUND,CORE,HARVEST,FIRE,FUMES].forEach(t=>DIGGABLE[t]=0);
+// what can be bought for a globe: element -> [amount, cost in 🔷 glass, 🌿 plants, 🍄 fungus]
 const BUY={
-  [STONE]:[30,[15,0,0]], [SAND]:[60,[0,8,0]], [WATER]:[60,[0,0,8]], [ACID]:[25,[0,25,10]], [REAPER]:[9,[30,0,0]],
-  [MAGMA]:[8,[20,20,0]], [SPOUT]:[4,[40,0,20]], [SPRING]:[4,[20,40,0]], [VENT]:[6,[0,20,40]], [MYCEL]:[6,[20,0,40]],
-  [PLANT]:[20,[0,10,0]], [CLOUD]:[8,[20,30,0]], [SEEDER]:[10,[10,20,0]],
+  [WALL]:[30,[15,0,0]], [SAND]:[60,[0,8,0]], [WATER]:[60,[0,0,8]], [OIL]:[40,[0,0,10]], [ACID]:[25,[0,25,10]], [SALT]:[40,[10,0,0]],
+  [SOIL]:[60,[0,8,0]], [SEED]:[20,[0,10,0]], [PLANT]:[20,[0,10,0]], [FIRE]:[20,[5,5,0]], [SPORE]:[30,[0,0,15]], [VIRUS]:[30,[0,10,10]],
+  [REAPER]:[9,[30,0,0]],
+  [MAGMA]:[8,[20,20,0]], [SPOUT]:[4,[40,0,20]], [VENT]:[6,[0,20,40]], [MYCELIUM]:[6,[20,0,40]], [CLOUD]:[8,[20,30,0]], [SEEDER]:[10,[10,20,0]],
+  [SHAKER]:[4,[20,20,0]], [SPILL]:[4,[20,0,20]], [VAT]:[4,[0,30,20]], [TOXIN]:[4,[10,20,20]],
 };
-const GENERATORS=new Set([MAGMA,SPOUT,SPRING,VENT,MYCEL,REAPER,CLOUD,SEEDER]);
-const TILE_ORDER=[STONE,SAND,WATER,ACID,PLANT,REAPER,MAGMA,SPOUT,CLOUD,SEEDER,VENT,MYCEL,SPRING,GLASS,FUNGUS,SALT,BRINE];
+const GROUPS=[["Elements",[SAND,WATER,BRINE,OIL,ACID,LAVA,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,SPORE,FUNGUS,GLASS,WALL]],
+              ["Generators",[REAPER,CLOUD,MAGMA,VENT,SPOUT,SEEDER,MYCELIUM,SHAKER,SPILL,VAT,TOXIN,E]]];
 
 function newGame(){
   over=false; tick=0; armies=[]; lastHitPlayer={};
@@ -517,14 +1099,12 @@ function newGame(){
   for (const g of globes) if (g.owner<0) g.units=3+((rnd()*6)|0);
   res=[[60,60,60],[60,60,60],[60,60,60]];
   focus=start[0]; view=null; closeView();
-  for (const g of globes){ for (let k=0;k<120;k++) step(g); computeBonus(g); paint(g); }   // warm up so the factories are running
+  for (const g of globes){ for (let k=0;k<120;k++) step(g); computeBonus(g); thumb(g); }   // warm up so the factories are running
   toast("Train units and drag from your globe to a neighbour to attack it.");
 }
 
 function liveSet(){
-  const s=new Set(), f = view!==null ? view : focus;
-  s.add(f); for (const n of globes[f].nb) s.add(n);
-  return s;
+  return new Set([view!==null ? view : focus]);   // only the globe you're looking at runs live; the rest produce at their measured rate
 }
 function credit(owner, amounts){ if (owner<0) return; const r=res[owner]; for (let k=0;k<3;k++) r[k]+=amounts[k]; }
 function canPay(p,cost){ return res[p].every((v,k)=>v>=cost[k]); }
@@ -567,6 +1147,7 @@ function arrive(a){
     if (a.owner===0) toast(`You captured ${gname(g)}!`);
     else if (was===0) toast(`${NAMES[a.owner]} captured your ${gname(g)}!`);
     else toast(`${NAMES[a.owner]} captured ${gname(g)}`);
+    if (view===g.id) refreshView();
     checkEnd();
   } else {
     g.units=Math.max(0, Math.round(Math.sqrt(D*D-A*A)/m));
@@ -581,42 +1162,20 @@ function checkEnd(){
   else if (!alive(1) && !alive(2)){ over=true; showOverlay("Victory! ⭐",`You rule ${owned(0).length} globes.`); }
 }
 
-// =====================================================================
-//  Shaping a globe: dig, place, buy
-// =====================================================================
-function dig(g,cx,cy,r){
-  use(g); let n=0;
-  for (let y=cy-r;y<=cy+r;y++) for (let x=cx-r;x<=cx+r;x++){
-    if (x<0||y<0||x>=G||y>=G || (x-cx)*(x-cx)+(y-cy)*(y-cy)>r*r+r) continue;
-    const i=y*G+x, t=T[i];
-    if (DIGGABLE[t]){ g.inv[t]=(g.inv[t]||0)+1; setc(i,E); n++; }
-  }
-  return n;
-}
-function place(g,cx,cy,r,mat){
-  use(g); let n=0;
-  for (let y=cy-r;y<=cy+r;y++) for (let x=cx-r;x<=cx+r;x++){
-    if (!(g.inv[mat]>0)) return n;
-    if (x<0||y<0||x>=G||y>=G || (x-cx)*(x-cx)+(y-cy)*(y-cy)>r*r+r) continue;
-    const i=y*G+x;
-    if (INSIDE[i] && (T[i]===E||T[i]===STEAM||T[i]===FUMES||T[i]===SPORE)){ setc(i,mat); g.inv[mat]--; n++; }
-  }
-  return n;
-}
-function buy(g,p,mat){
-  const [amt,cost]=BUY[mat];
+function buy(g,p,t){
+  const [amt,cost]=BUY[t];
   if (!canPay(p,cost)) return false;
-  pay(p,cost); g.inv[mat]=(g.inv[mat]||0)+amt; return true;
+  pay(p,cost); g.inv[t]=(g.inv[t]||0)+amt; return true;
 }
 // AI helper: wall the core in with stone from the globe's stock, buying stone if needed
 function aiWall(g,p){
-  if ((g.inv[STONE]||0) < 60 && canPay(p,BUY[STONE][1])) buy(g,p,STONE);
-  if ((g.inv[STONE]||0) < 30) return;
+  if ((g.inv[WALL]||0) < 80 && canPay(p,BUY[WALL][1])) buy(g,p,WALL);
+  if ((g.inv[WALL]||0) < 40) return;
   use(g); const [x0,y0,x1,y1]=CORE_BOX;
   for (let d=1; d<=3; d++) for (let y=y0-d;y<=y1+d;y++) for (let x=x0-d;x<=x1+d;x++){
     if (x>x0-d && x<x1+d && y>y0-d && y<y1+d) continue;
-    const i=y*G+x; if (!(g.inv[STONE]>0)) return;
-    if (T[i]===E||T[i]===STEAM||T[i]===SPORE){ setc(i,STONE); g.inv[STONE]--; }
+    const i=y*G+x; if (!(g.inv[WALL]>0)) return;
+    if (type[i]===E||type[i]===STEAM||type[i]===SPORE){ set(i,WALL); g.inv[WALL]--; }
   }
 }
 
@@ -704,12 +1263,12 @@ function gameTick(){
 }
 
 // =====================================================================
-//  UI
+//  UI: map
 // =====================================================================
 const $=id=>document.getElementById(id);
-const mapC=$("map"), mx=mapC.getContext("2d"), big=$("big"), bx=big.getContext("2d");
-const INS={t:0,b:0};
-window.setInsets=(t,r,b,l)=>{ const s=document.documentElement.style; s.setProperty("--it",t+"px"); s.setProperty("--ib",b+"px"); INS.t=t; INS.b=b; layout(); };
+const mapC=$("map"), mx=mapC.getContext("2d"), cv=$("c"), ctx=cv.getContext("2d"), stage=$("stage");
+const INS={t:0,r:0,b:0,l:0};
+window.setInsets=(t,r,b,l)=>{ const s=document.documentElement.style; s.setProperty("--it",t+"px"); s.setProperty("--ir",r+"px"); s.setProperty("--ib",b+"px"); s.setProperty("--il",l+"px"); Object.assign(INS,{t,r,b,l}); layout(); };
 function toast(msg){ const d=document.createElement("div"); d.className="toast"; d.textContent=msg; $("toasts").appendChild(d); setTimeout(()=>d.remove(),3600); while($("toasts").children.length>3) $("toasts").firstChild.remove(); }
 function showOverlay(t,m){ $("ovTitle").textContent=t; $("ovText").textContent=m; $("overlay").style.display="flex"; }
 
@@ -720,8 +1279,7 @@ function layout(){
   const top=$("hud").getBoundingClientRect().bottom+14, bottom=innerHeight-INS.b-12;
   const w=innerWidth, h=bottom-top, rad=Math.min(w/4, h/6)*.3;
   mapGeom={dpr, top, w, h, rad, pad:rad*1.6};
-  const bs=Math.min(innerWidth-20, innerHeight*.42);
-  big.style.width=big.style.height=bs+"px";
+  if (view!==null){ fitView(); placeBubbles(); }
 }
 addEventListener("resize",layout);
 function nodePos(g){ const m=mapGeom; return [m.pad + g.mx*(m.w-2*m.pad), m.top + m.pad*.6 + g.my*(m.h-1.4*m.pad)]; }
@@ -782,70 +1340,6 @@ function drawHud(){
   $("upkeep").innerHTML=`Income per 10 s · upkeep <b class="${totInc<up?"neg":""}">${up}</b> in ${left}s · 🪖 ${unitsOf(0)} · <span style="color:var(--red)">Red ${owned(1).length}</span> · <span style="color:var(--green)">Green ${owned(2).length}</span> · rivals ${AI_LEVELS[aiLevel].name.toLowerCase()}`;
 }
 
-// ---- globe view ----
-let tool="dig", mat=STONE, painting=false, sendAll=false;
-function openView(id){ view=id; focus=id; $("view").classList.add("open"); updateView(true); }
-function closeView(){ view=null; $("view").classList.remove("open"); }
-function updateView(full){
-  if (view===null) return;
-  const g=globes[view], mine=g.owner===0;
-  $("ginfo").querySelector(".own").style.background = g.owner>=0 ? OWN_CSS[g.owner] : "var(--neutral)";
-  $("gname").textContent=`${BIOMES[g.biome].icon} ${gname(g)}`;
-  $("gsub").textContent = g.owner>=0 ? NAMES[g.owner] : "Neutral";
-  const pr=g.rate.map((v,k)=>v>.0005 ? `${RES[k][0]} ${(v*600).toFixed(0)}/10s` : "").filter(Boolean).join(" ");
-  $("gstats").innerHTML=`🪖 <b>${g.units}</b> units · defence <b>×${(1+g.bonus).toFixed(2)}</b>${g.bonusParts?` (${g.bonusParts})`:""} · makes ${pr||"nothing yet"}`;
-  $("ownTools").style.display = mine ? "" : "none";
-  $("enemyTools").style.display = mine ? "none" : "";
-  if (mine){
-    $("unitCost").textContent=`${UNIT_COST} of any 🔷🌿🍄`;
-    $("train1").disabled=total(0)<UNIT_COST; $("train5").disabled=total(0)<UNIT_COST;
-    $("sendMode").innerHTML=` · <a href="#" id="sendToggle" style="color:var(--accent)">${sendAll?"sending all":"sending half"}</a>`;
-    $("sendToggle").onclick=e=>{ e.preventDefault(); sendAll=!sendAll; updateView(true); };
-    $("sendList").innerHTML=g.nb.map(n=>{ const t=globes[n]; const who=t.owner===0?"yours":t.owner>0?NAMES[t.owner]:"neutral";
-      return `<div class="send"><span class="who">→ ${BIOMES[t.biome].icon} ${gname(t)} · ${who} · 🪖 ${t.units}${t.bonus>=.1?` ×${(1+t.bonus).toFixed(1)}`:""}</span><button class="b" data-send="${n}" ${g.units<1?"disabled":""}>Send ${sendAll?g.units:Math.ceil(g.units/2)}</button></div>`; }).join("");
-    $("sendList").querySelectorAll("[data-send]").forEach(b=>b.onclick=()=>{ const n=+b.dataset.send; const k=send(g.id,n,0,sendAll?g.units:Math.ceil(g.units/2)); if (k) toast(`${k} units marching to ${gname(globes[n])}`); updateView(true); });
-    if (full){
-      const nameOf=t=>MATTER.find(m=>m[0]===t);
-      const priceOf=t=>BUY[t] ? BUY[t][1].map((v,j)=>v?`${v}${RES[j][0]}`:"").filter(Boolean).join(" ") : "";
-      const tiles=TILE_ORDER.filter(t=>BUY[t] || (g.inv[t]||0)>0);
-      $("tiles").innerHTML=`<div class="tile ${tool==="dig"?"on":""}" data-tool="dig"><span class="sw" style="background:repeating-linear-gradient(45deg,#3a4058 0 4px,#232838 4px 8px)"></span>⛏ Dig</div>`+
-        tiles.map(t=>{ const [,name,col]=nameOf(t), n=g.inv[t]||0;
-          return `<div class="tile ${GENERATORS.has(t)?"gen":""} ${tool==="place"&&mat===t?"on":""}" data-mat="${t}"><span class="n ${n?"":"zero"}">${n}</span><span class="sw" style="background:${col}"></span>${name}</div>`; }).join("");
-      $("tiles").querySelectorAll("[data-tool]").forEach(c=>c.onclick=()=>{ tool="dig"; updateView(true); });
-      $("tiles").querySelectorAll("[data-mat]").forEach(c=>c.onclick=()=>{ tool="place"; mat=+c.dataset.mat; updateView(true); });
-      if (tool==="dig"){
-        $("selbar").innerHTML=`<span class="t">⛏ <b>Dig</b>: drag on the globe to pick matter up into this globe's stock. Reapers and generators can be moved this way.</span>`;
-      } else {
-        const [,name]=nameOf(mat), n=g.inv[mat]||0, b=BUY[mat];
-        $("selbar").innerHTML=`<span class="t"><b>${name}</b>: ${n} here.${n?" Drag on the globe to place it.":" Buy some to place it."}</span>`+
-          (b ? `<button class="b" id="buyBtn" ${canPay(0,b[1])?"":"disabled"}>Buy +${b[0]}<small>${priceOf(mat)}</small></button>` : `<span class="sub">dig only</span>`);
-        if (b) $("buyBtn").onclick=()=>{ if (buy(g,0,mat)) toast(`+${b[0]} ${name.toLowerCase()} for ${gname(g)}`); else toast("Not enough resources"); updateView(true); };
-      }
-    }
-  } else {
-    const from=g.nb.filter(n=>globes[n].owner===0);
-    $("attackList").innerHTML = from.length ? from.map(n=>{ const s=globes[n];
-      return `<div class="send"><span class="who">from ${BIOMES[s.biome].icon} ${gname(s)} · 🪖 ${s.units}</span><button class="b" data-from="${n}" data-k="h" ${s.units<1?"disabled":""}>Send ${Math.ceil(s.units/2)}</button><button class="b" data-from="${n}" data-k="a" ${s.units<1?"disabled":""}>All ${s.units}</button></div>`; }).join("")
-      + `<div class="sub">To win you need more than ${g.units} × ${(1+g.bonus).toFixed(2)} ≈ ${Math.ceil(g.units*(1+g.bonus))} units.</div>`
-      : `<div class="sub">Not next to any of your globes.</div>`;
-    $("attackList").querySelectorAll("[data-from]").forEach(b=>b.onclick=()=>{ const s=globes[+b.dataset.from]; const n=b.dataset.k==="a"?s.units:Math.ceil(s.units/2); const k=send(s.id,g.id,0,n); if (k) toast(`${k} units marching on ${gname(g)}`); updateView(true); });
-  }
-}
-$("backMap").onclick=()=>closeView();
-$("train1").onclick=()=>{ if (view!==null && train(globes[view],0,1)) updateView(true); };
-$("train5").onclick=()=>{ if (view!==null){ const n=train(globes[view],0,5); if (n) toast(`Trained ${n} units`); updateView(true); } };
-
-function cellAt(e){ const r=big.getBoundingClientRect(); return [Math.floor((e.clientX-r.left)/r.width*G), Math.floor((e.clientY-r.top)/r.height*G)]; }
-function useTool(e){
-  if (view===null) return; const g=globes[view]; if (g.owner!==0) return;
-  const [cx,cy]=cellAt(e);
-  if (tool==="dig") dig(g,cx,cy,3); else place(g,cx,cy,2,mat);
-}
-big.addEventListener("pointerdown",e=>{ painting=true; try{ big.setPointerCapture(e.pointerId); }catch(err){} useTool(e); });
-big.addEventListener("pointermove",e=>{ if (painting) useTool(e); });
-const endPaint=()=>{ if (painting){ painting=false; if (view!==null){ computeBonus(globes[view]); updateView(true); } } };
-big.addEventListener("pointerup",endPaint); big.addEventListener("pointercancel",endPaint);
-
 function nodeAt(x,y){ for (const g of globes){ const [nx,ny]=nodePos(g); if (Math.hypot(x-nx,y-ny) < mapGeom.rad*1.35) return g; } return null; }
 mapC.addEventListener("pointerdown",e=>{
   if (view!==null) return;
@@ -865,6 +1359,354 @@ mapC.addEventListener("pointerup",e=>{
 });
 mapC.addEventListener("pointercancel",()=>drag=null);
 
+// =====================================================================
+//  UI: inside a globe, played like the sandbox
+// =====================================================================
+let tool=SAND, shape="brush", brush=3, preview=null, drawing=false, last=null, sendAll=false;
+function openView(id){
+  view=id; focus=id; closeMenus(); preview=null; drawing=false;
+  document.body.classList.add("viewing"); $("view").classList.add("open");
+  fitView(); resetView(); placeBubbles(); refreshView();
+}
+function closeView(){
+  if (view!==null && globes[view]) thumb(globes[view]);
+  view=null; closeMenus(); document.body.classList.remove("viewing"); $("view").classList.remove("open");
+}
+function mine(){ return view!==null && globes[view].owner===0; }
+function fitView(){
+  const top=$("gbar").getBoundingClientRect().bottom + 8, bottom=innerHeight - INS.b - 8;
+  const S=Math.max(120, Math.min(innerWidth-12, bottom-top));
+  const dpr=Math.min(devicePixelRatio||1,3), px=Math.max(1, Math.round(S/G*dpr));
+  if (cv.width!==G*px){ cv.width=cv.height=G*px; buildShade(); }
+  cv.style.width=cv.style.height=S+"px";
+  cv.style.left=((innerWidth-S)/2)+"px"; cv.style.top=(top + Math.max(0,(bottom-top-S)/2))+"px";
+  applyView();
+}
+// a soft inner shadow that makes each globe look round
+let shadeC=null;
+function buildShade(){
+  const s=cv.width; shadeC=document.createElement("canvas"); shadeC.width=shadeC.height=s;
+  const d=shadeC.getContext("2d"), c=s/2, r=RAD*s/G;
+  const g=d.createRadialGradient(c-r*.25,c-r*.3,r*.2,c,c,r);
+  g.addColorStop(0,"rgba(255,255,255,.035)"); g.addColorStop(.7,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(0,0,0,.42)");
+  d.fillStyle=g; d.beginPath(); d.arc(c,c,r,0,7); d.fill();
+  d.lineWidth=Math.max(2,s/G*1.8); d.strokeStyle="rgba(210,236,255,.38)"; d.beginPath(); d.arc(c,c,r+d.lineWidth/2,0,7); d.stroke();
+  d.lineWidth*=.8; d.strokeStyle="rgba(255,255,255,.07)"; d.beginPath(); d.arc(c,c,r*.94,Math.PI*1.1,Math.PI*1.4); d.stroke();   // glass highlight
+}
+function renderView(){
+  const g=globes[view]; paintGlobe(g); glowX.putImageData(glowImg,0,0);
+  const cw=cv.width, s=cw/G, c=cw/2;
+  ctx.globalCompositeOperation="source-over"; ctx.globalAlpha=1;
+  ctx.clearRect(0,0,cw,cw);
+  ctx.save(); ctx.beginPath(); ctx.arc(c,c,RAD*s,0,7); ctx.clip();
+  ctx.imageSmoothingEnabled=true; ctx.drawImage(DISC,0,0,cw,cw);
+  shadX.clearRect(0,0,G,G); shadX.filter="blur(1.2px) brightness(0)"; shadX.drawImage(simC,0,0);   // soft shadow for depth
+  ctx.globalAlpha=.45; ctx.drawImage(shadC, s*.7, s*1.1, cw, cw); ctx.globalAlpha=1;
+  ctx.imageSmoothingEnabled=false; ctx.drawImage(simC,0,0,cw,cw);
+  blurX.clearRect(0,0,G,G); blurX.filter="blur(1.5px)"; blurX.drawImage(glowC,0,0);                // glow: a tight bloom and a wide halo
+  haloX.clearRect(0,0,haloC.width,haloC.height); haloX.filter="blur(3px)"; haloX.drawImage(glowC,0,0,haloC.width,haloC.height);
+  ctx.imageSmoothingEnabled=true; ctx.globalCompositeOperation="lighter";
+  ctx.globalAlpha=.75; ctx.drawImage(blurC,0,0,cw,cw);
+  ctx.globalAlpha=.6;  ctx.drawImage(haloC,0,0,cw,cw);
+  ctx.globalCompositeOperation="source-over"; ctx.globalAlpha=1;
+  ctx.restore();
+  ctx.drawImage(shadeC,0,0);
+  if (preview){                                                   // shape preview while dragging a line or box
+    ctx.strokeStyle="rgba(255,255,255,.85)"; ctx.lineWidth=Math.max(1,s*.5); ctx.setLineDash([s*2,s*2]);
+    const {a,b}=preview; ctx.beginPath();
+    if (shape==="line"){ ctx.moveTo((a.x+.5)*s,(a.y+.5)*s); ctx.lineTo((b.x+.5)*s,(b.y+.5)*s); }
+    else ctx.rect(Math.min(a.x,b.x)*s, Math.min(a.y,b.y)*s, (Math.abs(a.x-b.x)+1)*s, (Math.abs(a.y-b.y)+1)*s);
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+}
+
+// ---- the bar at the top and the army bubble ----
+function setHTML(el,h){ if (el._h!==h){ el._h=h; el.innerHTML=h; } }   // only rebuild when something changed, so taps aren't lost
+function refreshView(){
+  if (view===null) return;
+  const g=globes[view], own=g.owner===0;
+  const col = g.owner>=0 ? OWN_CSS[g.owner] : "var(--neutral)";
+  $("gbar").querySelector(".own").style.background=col;
+  $("gname").textContent=`${BIOMES[g.biome].icon} ${gname(g)} · ${g.owner>=0?NAMES[g.owner]:"Neutral"}`;
+  const pr=g.rate.map((v,k)=>v>.0005 ? `${RES[k][0]} ${(v*600).toFixed(0)}/10s` : "").filter(Boolean).join(" ");
+  $("gsub").textContent=`🪖 ${g.units} · defence ×${(1+g.bonus).toFixed(2)} · makes ${pr||"nothing yet"}`;
+  $("elBtn").classList.toggle("hidden", !own);
+  if (!own && menus.el[1].classList.contains("open")) closeMenus();
+  $("armyBtn").querySelector(".bud").textContent = g.units || "";
+  $("ahead").querySelector(".own").style.background=col;
+  $("aname").textContent=`${BIOMES[g.biome].icon} ${gname(g)}`;
+  setHTML($("astats"), `${g.owner>=0?NAMES[g.owner]:"Neutral"} · 🪖 <b>${g.units}</b> units · defence <b>×${(1+g.bonus).toFixed(2)}</b>${g.bonusParts?` (${g.bonusParts})`:""}`);
+  if (own){
+    const sendN = sendAll ? g.units : Math.ceil(g.units/2);
+    setHTML($("army"), `<div class="lbl">Train</div>
+      <div class="row"><button class="b" data-train="1" ${total(0)<UNIT_COST?"disabled":""}>🪖 Train 1<small>${UNIT_COST} of any 🔷🌿🍄</small></button><button class="b" data-train="5" ${total(0)<UNIT_COST?"disabled":""}>🪖 Train 5</button></div>
+      <div class="lbl">Send units · <a href="#" id="sendToggle" style="color:var(--accent);text-transform:none;letter-spacing:0">${sendAll?"sending all":"sending half"}</a></div>`+
+      g.nb.map(n=>{ const t=globes[n]; const who=t.owner===0?"yours":t.owner>0?NAMES[t.owner]:"neutral";
+        return `<div class="send"><span class="who">→ ${BIOMES[t.biome].icon} ${gname(t)} · ${who} · 🪖 ${t.units}${t.bonus>=.1?` ×${(1+t.bonus).toFixed(1)}`:""}</span><button class="b" data-send="${n}" ${g.units<1?"disabled":""}>Send ${sendN}</button></div>`; }).join(""));
+  } else {
+    const from=g.nb.filter(n=>globes[n].owner===0);
+    setHTML($("army"), `<div class="lbl">Attack from your globes</div>` + (from.length ? from.map(n=>{ const s=globes[n];
+      return `<div class="send"><span class="who">from ${BIOMES[s.biome].icon} ${gname(s)} · 🪖 ${s.units}</span><button class="b" data-from="${n}" data-k="h" ${s.units<1?"disabled":""}>Send ${Math.ceil(s.units/2)}</button><button class="b" data-from="${n}" data-k="a" ${s.units<1?"disabled":""}>All ${s.units}</button></div>`; }).join("")
+      + `<div class="sub">To win you need more than ${g.units} × ${(1+g.bonus).toFixed(2)} ≈ ${Math.ceil(g.units*(1+g.bonus))} units.</div>`
+      : `<div class="sub">Not next to any of your globes.</div>`));
+  }
+  refreshPalette();
+}
+$("army").addEventListener("click",e=>{
+  const b=e.target.closest("button,a"); if (!b || view===null) return;
+  const g=globes[view];
+  if (b.id==="sendToggle"){ e.preventDefault(); sendAll=!sendAll; }
+  else if (b.dataset.train){ const n=train(g,0,+b.dataset.train); if (n>1) toast(`Trained ${n} units`); }
+  else if (b.dataset.send){ const n=+b.dataset.send, k=send(g.id,n,0,sendAll?g.units:Math.ceil(g.units/2)); if (k) toast(`${k} units marching to ${gname(globes[n])}`); }
+  else if (b.dataset.from){ const s=globes[+b.dataset.from], n=b.dataset.k==="a"?s.units:Math.ceil(s.units/2), k=send(s.id,g.id,0,n); if (k) toast(`${k} units marching on ${gname(g)}`); }
+  refreshView(); drawHud();
+});
+$("backMap").onclick=()=>closeView();
+
+// ---- the elements bubble: palette with this globe's stock, buying, brushes ----
+const elBtns={};
+for (const [name,list] of GROUPS){
+  const h=document.createElement("div"); h.className="cat"; h.textContent=name; $("palette").appendChild(h);
+  const grid=document.createElement("div"); grid.className="grid5"; $("palette").appendChild(grid);
+  for (const t of list){
+    const b=document.createElement("button"); b.className="el";
+    b.innerHTML=`<span class="sw" style="background:${INFO[t][2]}"></span><span>${INFO[t][0]}</span><span class="n"></span>`;
+    // tap selects; a long press shows what the element does
+    b.onclick=()=>{ if (b._held){ b._held=false; return; } selectTool(t); };
+    b.addEventListener("pointerdown",()=>{ clearTimeout(b._lt); b._held=false;
+      b._lt=setTimeout(()=>{ b._held=true; toast(`${INFO[t][0]} — ${INFO[t][1]}`); try{ navigator.vibrate && navigator.vibrate(12); }catch(e){} }, 450); });
+    for (const ev of ["pointerup","pointercancel","pointerleave"]) b.addEventListener(ev,()=>clearTimeout(b._lt));
+    b.addEventListener("contextmenu",e=>e.preventDefault());
+    grid.appendChild(b); elBtns[t]=b;
+  }
+}
+const priceOf=t=>BUY[t][1].map((v,j)=>v?`${v}${RES[j][0]}`:"").filter(Boolean).join(" ");
+function selectTool(t){
+  tool=t; if (shape==="pan") setShape("brush");
+  const g=view!==null?globes[view]:null;
+  refreshPalette();
+  if (t===E || (g && g.inv[t]>0)) closeMenus();                // ready to draw; with none in stock, stay open to buy
+}
+function refreshPalette(){
+  if (view===null) return;
+  const g=globes[view];
+  for (const k in elBtns){ const t=+k, n=g.inv[t]||0, b=elBtns[k];
+    b.classList.toggle("on", t===tool); b.classList.toggle("none", t!==E && !n && !BUY[t]);
+    b.querySelector(".n").textContent = t===E ? "" : n; }
+  $("elBtn").querySelector(".sw").style.background=INFO[tool][2];
+  $("elBtn").querySelector(".bud").textContent = tool===E ? "" : (g.inv[tool]||0);
+  const n=g.inv[tool]||0, b=BUY[tool];
+  setHTML($("selRow"), `<span class="sw" style="background:${INFO[tool][2]}"></span>` + (tool===E
+    ? `<span class="t"><b>Dig</b>: drag on the globe to pick cells up into this globe's stock. Reapers and generators can be moved this way.</span>`
+    : `<span class="t"><b>${INFO[tool][0]}</b>: ${n} here.${n?"":b?" Buy some to draw it.":" Dig some up to draw it."}</span>`+
+      (b ? `<button class="b" id="buyBtn" ${canPay(0,b[1])?"":"disabled"}>Buy +${b[0]}<small>${priceOf(tool)}</small></button>` : "")));
+}
+$("selRow").addEventListener("click",e=>{
+  if (!e.target.closest("#buyBtn") || view===null) return;
+  const g=globes[view], b=BUY[tool];
+  if (buy(g,0,tool)) toast(`+${b[0]} ${INFO[tool][0].toLowerCase()} for ${gname(g)}`); else toast("Not enough resources");
+  refreshPalette(); drawHud();
+});
+function setShape(sh){
+  shape=sh;
+  document.querySelectorAll("[data-shape]").forEach(o=>o.classList.toggle("on",o.dataset.shape===sh));
+  $("elBtn").classList.toggle("panning", sh==="pan");
+}
+document.querySelectorAll("[data-shape]").forEach(b=>b.onclick=()=>{
+  setShape(b.dataset.shape);
+  if (shape==="pan"){ closeMenus(); toast("Move & zoom: drag to move, pinch to zoom, double-tap to reset"); }
+});
+function showSize(){ const d=4+brush*2; const i=$("sizeDot").firstElementChild; i.style.width=i.style.height=d+"px"; }
+$("size").value=brush; showSize();
+$("size").oninput=()=>{ brush=+$("size").value; showSize(); };
+
+// ---- menus and floating bubbles (as in the sandbox) ----
+const menus={ el:[$("elBtn"),$("elMenu")], army:[$("armyBtn"),$("armyMenu")] };
+function openMenu(name){
+  for (const k in menus){
+    const on = k===name && !menus[k][1].classList.contains("open");
+    if (on){ if (k==="el") refreshPalette(); else refreshView(); placeMenu(k); }
+    menus[k][0].classList.toggle("open",on); menus[k][1].classList.toggle("open",on);
+  }
+  document.body.classList.toggle("menuopen", Object.keys(menus).some(k=>menus[k][1].classList.contains("open")));
+}
+function closeMenus(){
+  let was=false;
+  for (const k in menus){ if (menus[k][1].classList.contains("open")) was=true; menus[k][0].classList.remove("open"); menus[k][1].classList.remove("open"); }
+  document.body.classList.remove("menuopen");
+  return was;
+}
+document.querySelectorAll(".mclose").forEach(b=>b.onclick=()=>closeMenus());
+const BUB=62, EDGE=14;
+const bubbles={ el:{side:"l", y:null}, army:{side:"r", y:null} };    // y = fraction of the screen height
+try{ const b=JSON.parse(localStorage.getItem("globes.bubbles")||"null"); if (b && b.el && b.army) Object.assign(bubbles,b); }catch(e){}
+const clampY=y=>Math.max(INS.t + 130, Math.min(innerHeight - INS.b - EDGE - BUB, y));
+function bubbleLeft(side){ return side==="l" ? INS.l + EDGE + 4 : innerWidth - INS.r - EDGE - 4 - BUB; }
+function placeBubbles(){
+  for (const k in bubbles){
+    const b=menus[k][0], st=bubbles[k];
+    const y = st.y==null ? innerHeight - INS.b - 18 - BUB : st.y*innerHeight;
+    b.style.left=bubbleLeft(st.side)+"px"; b.style.top=clampY(y)+"px";
+    if (menus[k][1].classList.contains("open")) placeMenu(k);
+  }
+}
+// open the menu beside its bubble: on the bubble's side, above or below it (wherever there's more room)
+function placeMenu(k){
+  const b=menus[k][0].getBoundingClientRect(), m=menus[k][1], st=m.style, vw=innerWidth, vh=innerHeight;
+  const w=m.offsetWidth;
+  const left = bubbles[k].side==="l" ? Math.max(INS.l+10, b.left-4) : Math.min(vw-INS.r-10, b.right+4) - w;
+  st.left=Math.max(8, Math.min(vw-w-8, left))+"px";
+  const top0=$("gbar").getBoundingClientRect().bottom+8, above=b.top-top0, below=vh-INS.b-12-b.bottom;
+  if (above>=below){ st.top="auto"; st.bottom=(vh-b.top+10)+"px"; st.maxHeight=(above-10)+"px"; st.setProperty("--oy","100%"); }
+  else { st.bottom="auto"; st.top=(b.bottom+10)+"px"; st.maxHeight=(below-10)+"px"; st.setProperty("--oy","0%"); }
+  st.setProperty("--ox", bubbles[k].side==="l" ? "0%" : "100%");
+}
+for (const k in menus){
+  const b=menus[k][0];
+  let pid=null, sx=0, sy=0, ox=0, oy=0, dragging=false;
+  b.addEventListener("pointerdown",e=>{
+    pid=e.pointerId; try{ b.setPointerCapture(pid); }catch(err){} sx=e.clientX; sy=e.clientY;
+    const r=b.getBoundingClientRect(); ox=r.left; oy=r.top; dragging=false;
+    b.classList.remove("drift"); b.classList.add("held");
+  });
+  b.addEventListener("pointermove",e=>{
+    if (e.pointerId!==pid) return;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    if (!dragging && Math.hypot(dx,dy)>8){ dragging=true; closeMenus(); b.classList.add("dragging"); }
+    if (dragging){ b.style.left=Math.max(0,Math.min(innerWidth-BUB,ox+dx))+"px"; b.style.top=Math.max(0,Math.min(innerHeight-BUB,oy+dy))+"px"; }
+  });
+  const release=(e,tap)=>{
+    if (e.pointerId!==pid) return;
+    pid=null; b.classList.remove("held","dragging");
+    if (dragging){
+      const r=b.getBoundingClientRect();
+      let side = r.left+BUB/2 < innerWidth/2 ? "l" : "r", top=clampY(r.top);
+      const o=bubbles[k==="el"?"army":"el"];                       // don't land on top of the other bubble
+      if (o.side===side){
+        const oy2=clampY(o.y==null ? innerHeight-INS.b-18-BUB : o.y*innerHeight);
+        if (Math.abs(top-oy2) < BUB+12){ const up=oy2-BUB-12, down=oy2+BUB+12; top = (top<oy2 && clampY(up)===up) || clampY(down)!==down ? clampY(up) : clampY(down); }
+      }
+      bubbles[k]={side, y:top/innerHeight};
+      b.classList.add("drift"); placeBubbles();
+      try{ localStorage.setItem("globes.bubbles", JSON.stringify(bubbles)); }catch(err){}
+    } else if (tap) openMenu(k);
+  };
+  b.addEventListener("pointerup",e=>release(e,true));
+  b.addEventListener("pointercancel",e=>release(e,false));
+  b.addEventListener("click",e=>{ if (e.detail===0) openMenu(k); });
+}
+
+// ---- drawing on the globe ----
+function gridPos(e){ const r=cv.getBoundingClientRect(); return { x:Math.floor((e.clientX-r.left)/r.width*G), y:Math.floor((e.clientY-r.top)/r.height*G) }; }
+function paintCell(g,x,y,t,sparse){
+  const i=idx(x,y); if (i<0) return;
+  const o=type[i];
+  if (t===E){ if (DIGGABLE[o]){ g.inv[o]=(g.inv[o]||0)+1; vanish(i); } return; }        // dig: back into this globe's stock
+  if (!(g.inv[t]>0)) return;
+  if (!(o===E||o===STEAM||o===FUMES||o===SPORE)) return;                             // only into open space
+  if (sparse && GRAIN[t] && rnd()<.35) return;
+  set(i,t); g.inv[t]--;
+}
+function disk(cx,cy,t){
+  const g=globes[view]; use(g);
+  const r=brush, r2=(r+.5)*(r+.5);
+  for (let dy=-r;dy<=r;dy++) for (let dx=-r;dx<=r;dx++) if (dx*dx+dy*dy<=r2) paintCell(g,cx+dx,cy+dy,t,true);
+}
+function lineCells(a,b,fn){
+  let x=a.x,y=a.y; const dx=Math.abs(b.x-x), dy=-Math.abs(b.y-y), sx=x<b.x?1:-1, sy=y<b.y?1:-1; let err=dx+dy;
+  for(;;){ fn(x,y); if(x===b.x&&y===b.y) break; const e2=2*err; if(e2>=dy){err+=dy;x+=sx;} if(e2<=dx){err+=dx;y+=sy;} }
+}
+function commitShape(a,b,t){
+  if (shape==="line") lineCells(a,b,(x,y)=>disk(x,y,t));
+  else {
+    const g=globes[view]; use(g);
+    const x0=Math.max(0,Math.min(a.x,b.x)),x1=Math.min(G-1,Math.max(a.x,b.x)),y0=Math.max(0,Math.min(a.y,b.y)),y1=Math.min(G-1,Math.max(a.y,b.y));
+    const th=Math.max(1,brush>>1);
+    for (let y=y0;y<=y1;y++) for (let x=x0;x<=x1;x++)
+      if (shape==="frect" || x-x0<th||x1-x<th||y-y0<th||y1-y<th) paintCell(g,x,y,t,false);
+  }
+}
+function strokeDone(){ if (view!==null){ computeBonus(globes[view]); refreshView(); } }
+
+// ---- move & zoom: one finger pans with the tool (or on a globe that isn't yours), two fingers pinch with any tool ----
+let vz=1, vtx=0, vty=0, pinch=null, panLast=null, lastTap=0, tapMoved=false, tapStart=null;
+const ptrs=new Map();
+function baseRect(){ return { L:parseFloat(cv.style.left)||0, T:parseFloat(cv.style.top)||0, w:parseFloat(cv.style.width)||1, h:parseFloat(cv.style.height)||1 }; }
+function applyView(){
+  const b=baseRect();
+  vz=Math.max(1,Math.min(8,vz));
+  vtx=Math.min(0,Math.max(b.w-b.w*vz,vtx)); vty=Math.min(0,Math.max(b.h-b.h*vz,vty));
+  const z=vz>1.001;
+  cv.style.transform = z ? `translate(${vtx}px,${vty}px) scale(${vz})` : "";
+  cv.classList.toggle("zoomed",z); $("zoomReset").classList.toggle("hidden",!z);
+}
+function resetView(){ vz=1; vtx=vty=0; applyView(); }
+$("zoomReset").onclick=()=>resetView();
+function startPinch(){ const [a,b]=[...ptrs.values()]; pinch={ d0:Math.hypot(a.x-b.x,a.y-b.y)||1, mx:(a.x+b.x)/2, my:(a.y+b.y)/2, z0:vz, tx0:vtx, ty0:vty }; }
+function viewDown(e){
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  try{ stage.setPointerCapture(e.pointerId); }catch(err){}
+  if (ptrs.size===2){ startPinch(); panLast=null; tapMoved=true; }
+  else if (ptrs.size===1){ panLast={x:e.clientX,y:e.clientY}; tapStart={x:e.clientX,y:e.clientY}; tapMoved=false; }
+}
+function viewMove(e){
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if (ptrs.size>=2 && pinch){
+    const [a,b]=[...ptrs.values()], B=baseRect();
+    const d=Math.hypot(a.x-b.x,a.y-b.y), mx2=(a.x+b.x)/2, my2=(a.y+b.y)/2;
+    const ux=(pinch.mx-B.L-pinch.tx0)/pinch.z0, uy=(pinch.my-B.T-pinch.ty0)/pinch.z0;   // globe point under the fingers
+    vz=Math.max(1,Math.min(8,pinch.z0*d/pinch.d0)); vtx=mx2-B.L-ux*vz; vty=my2-B.T-uy*vz; applyView();
+  } else if (panLast){
+    vtx+=e.clientX-panLast.x; vty+=e.clientY-panLast.y; panLast={x:e.clientX,y:e.clientY};
+    if (tapStart && Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y)>8) tapMoved=true;
+    applyView();
+  }
+}
+function viewUp(e){
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.delete(e.pointerId);
+  if (ptrs.size<2) pinch=null;
+  if (ptrs.size===1){ const [a]=[...ptrs.values()]; panLast={x:a.x,y:a.y}; }
+  if (ptrs.size===0){
+    panLast=null;
+    if (!tapMoved && e.type==="pointerup"){ const now=Date.now(); if (now-lastTap<320){ resetView(); lastTap=0; } else lastTap=now; }
+  }
+}
+let drawPtr=null;   // the finger that is drawing, so a second finger can turn it into a pinch
+stage.addEventListener("contextmenu",e=>e.preventDefault());
+stage.addEventListener("pointerdown",e=>{
+  if (!mine() || shape==="pan"){ if (e.isPrimary && closeMenus()) return; viewDown(e); return; }
+  if (!e.isPrimary){
+    if (drawPtr && !ptrs.size){ if (drawing){ drawing=false; preview=null; strokeDone(); } ptrs.set(drawPtr.id,{x:drawPtr.x,y:drawPtr.y}); }
+    if (ptrs.size) viewDown(e);
+    return;
+  }
+  drawPtr={id:e.pointerId,x:e.clientX,y:e.clientY};
+  if (closeMenus()) return;
+  try{ stage.setPointerCapture(e.pointerId); }catch(err){}
+  const p=gridPos(e); last=p; drawing=true;
+  if (shape==="brush") disk(p.x,p.y,tool); else preview={a:p,b:p};
+});
+stage.addEventListener("pointermove",e=>{
+  if (drawPtr && e.pointerId===drawPtr.id){ drawPtr.x=e.clientX; drawPtr.y=e.clientY; }
+  if (ptrs.size){ viewMove(e); return; }
+  if (!e.isPrimary || !drawing) return;
+  const p=gridPos(e);
+  if (shape==="brush"){ lineCells(last,p,(x,y)=>disk(x,y,tool)); last=p; } else if (preview) preview.b=p;
+});
+function endDraw(e){
+  if (e && !e.isPrimary) return;
+  if (drawing && preview) commitShape(preview.a,preview.b,tool);
+  if (drawing) strokeDone();
+  drawing=false; preview=null;
+}
+stage.addEventListener("pointerup",e=>{ if (drawPtr && e.pointerId===drawPtr.id) drawPtr=null; if (ptrs.size){ viewUp(e); return; } endDraw(e); });
+stage.addEventListener("pointercancel",e=>{ if (drawPtr && e.pointerId===drawPtr.id) drawPtr=null; if (ptrs.size){ viewUp(e); return; } if (!e.isPrimary) return; if (drawing) strokeDone(); drawing=false; preview=null; });
+
+// =====================================================================
+//  Buttons, back, loop
+// =====================================================================
 function goBack(){ location.href="index.html"; }
 $("exitBtn").onclick=goBack; $("ovExit").onclick=goBack; $("ovAgain").onclick=()=>newGame();
 $("pauseBtn").onclick=()=>{ running=!running; $("pauseBtn").style.background = running ? "" : "rgba(255,176,87,.35)"; toast(running?"Resumed":"Paused"); };
@@ -876,9 +1718,10 @@ function showAiPick(){ document.querySelectorAll("#aiPick [data-ai]").forEach(b=
 document.querySelectorAll("#aiPick [data-ai]").forEach(b=>b.onclick=()=>{ aiLevel=+b.dataset.ai; try{ localStorage.setItem("globes.ai",aiLevel); }catch(e){} showAiPick(); drawHud(); toast(`Rivals: ${AI_LEVELS[aiLevel].name}`); });
 showAiPick();
 $("helpBtn").onclick=()=>{ showAiPick(); $("help").style.display="flex"; };
-$("helpClose").onclick=()=>{ $("help").style.display="none"; try{ localStorage.setItem("globes.help2","1"); }catch(e){} };
+$("helpClose").onclick=()=>{ $("help").style.display="none"; try{ localStorage.setItem("globes.help3","1"); }catch(e){} };
 window.onAndroidBack=()=>{
   if ($("help").style.display==="flex"){ $("help").style.display="none"; return true; }
+  if (closeMenus()) return true;
   if (view!==null){ closeView(); return true; }
   goBack(); return true;
 };
@@ -888,16 +1731,21 @@ function loop(now){
   const dt=Math.min(100, now-lastT); lastT=now;
   if (running && !over){ acc += dt/(1000/60)*speed; let n=0; while (acc>=1 && n<3*Math.max(1,speed)){ gameTick(); acc--; n++; } if (acc>3*speed) acc=0; }
   frame++;
-  for (const g of globes) if (g.live && (g.id===view || frame%6===g.id%6)) paint(g);
-  if (view!==null){ bx.imageSmoothingEnabled=false; bx.clearRect(0,0,G,G); bx.drawImage(globes[view].canvas,0,0); if (frame%15===0) updateView(false); }
-  drawMap(); if (frame%10===0) drawHud();
+  if (view!==null){
+    renderView();
+    if (frame%15===0) refreshView();
+  } else {
+    for (const g of globes) if (g.live && frame%6===g.id%6) thumb(g);
+    drawMap();
+  }
+  if (frame%10===0) drawHud();
   requestAnimationFrame(loop);
 }
 
 layout();
 setTimeout(()=>{
   newGame(); $("loading").remove(); layout(); drawHud();
-  let seen=false; try{ seen = localStorage.getItem("globes.help2")==="1"; }catch(e){}
+  let seen=false; try{ seen = localStorage.getItem("globes.help3")==="1"; }catch(e){}
   if (!seen) $("help").style.display="flex";
   requestAnimationFrame(loop);
 }, 30);
