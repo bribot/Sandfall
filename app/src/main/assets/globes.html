@@ -58,6 +58,17 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
 .chip.on{background:rgba(124,200,255,.22);border-color:var(--accent)}
 .chip i{display:block;width:14px;height:14px;border-radius:4px}
 .chip.empty{opacity:.35}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px 5px;border-radius:12px;
+  background:rgba(255,255,255,.06);border:1px solid transparent;cursor:pointer;font-size:11px;text-align:center;line-height:1.15}
+.tile.on{border-color:var(--accent);background:rgba(124,200,255,.2)}
+.tile .sw{width:22px;height:22px;border-radius:7px;box-shadow:inset 0 -2px 4px rgba(0,0,0,.35),inset 0 1px 2px rgba(255,255,255,.35)}
+.tile .n{position:absolute;top:3px;right:5px;font-size:10px;font-weight:700;color:var(--accent2)}
+.tile .n.zero{color:var(--dim);font-weight:400}
+.tile.gen .sw{outline:2px dashed rgba(255,255,255,.35);outline-offset:1px}
+.selbar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);min-height:44px}
+.selbar .t{flex:1;font-size:12.5px;color:#d6dcea}
+.selbar .b{flex:none;min-height:34px;padding:4px 12px}
 .send{display:flex;align-items:center;gap:6px}
 .send .who{flex:1;font-size:12.5px}
 .send .b{flex:none;min-height:34px;padding:4px 10px}
@@ -100,11 +111,9 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
       </div>
       <div class="lbl">Send units <span id="sendMode" style="text-transform:none;letter-spacing:0"></span></div>
       <div id="sendList"></div>
-      <div class="lbl">Shape the globe <span style="text-transform:none;letter-spacing:0">· drag on the globe</span></div>
-      <div class="chips" id="matChips"></div>
-      <div class="sub" id="toolHint"></div>
-      <div class="lbl">Buy matter for this globe</div>
-      <div class="chips" id="buyChips"></div>
+      <div class="lbl">Shape the globe <span style="text-transform:none;letter-spacing:0">· pick a tile, then drag on the globe</span></div>
+      <div class="tiles" id="tiles"></div>
+      <div class="selbar" id="selbar"></div>
     </div>
     <div id="enemyTools">
       <div class="lbl">Attack from your globes</div>
@@ -119,9 +128,9 @@ canvas#big{display:block;border-radius:50%;touch-action:none;image-rendering:pix
     <li>Every node is a falling-sand world. <b>Volcanoes</b> melt sand into lava that cools into <b>🔷 glass</b>, <b>salt pans</b> boil brine into <b>🧂 salt</b>, <b>fungal caves</b> grow mushrooms that puff <b>🍄 spores</b>. Gold <b>reapers</b> harvest what touches them.</li>
     <li><b>Train units</b> in your globes (30 resources each, any mix). <b>Drag</b> from one of your globes to a linked one on the map to send half its units, or use the buttons inside a globe.</li>
     <li>Units arriving at an enemy or neutral globe fight its garrison. The defenders get a <b>defence bonus</b> from what surrounds their core: stone and glass walls, and lava, magma or acid in a ring around it.</li>
-    <li><b>Shape your globes</b>: each globe has its own limited matter. <b>Dig</b> picks cells up into that globe's stock, then pick a material and drag to <b>place</b> it. <b>Buy</b> more matter with your resources: stone walls, reapers, magma, acid…</li>
+    <li><b>Shape your globes</b>: each globe has its own limited matter. <b>Dig</b> picks cells up into that globe's stock, then pick a material and drag to <b>place</b> it. <b>Buy</b> more with your resources: stone walls, acid, reapers, and <b>generators</b> (magma, sand spouts, brine springs, steam vents, mycelium) to build any factory in any globe.</li>
     <li><b>Upkeep</b> every 10 s grows with your globes and units and is paid from your biggest stock. Can't pay, and units desert.</li>
-    <li>Red and Green expand and fight each other too. Take all their globes to win. Only the globe you're looking at and its neighbours run live; the rest produce at their measured rate.</li>
+    <li>Red and Green expand and fight each other too, but leave you alone for the first 3 minutes. Take all their globes to win. Only the globe you're looking at and its neighbours run live; the rest produce at their measured rate.</li>
   </ul>
   <button class="b" id="helpClose" style="width:100%">Got it</button>
 </div></div>
@@ -394,20 +403,26 @@ function paint(g){
 //  Game state
 // =====================================================================
 const NAMES=["You","Red","Green"], OWN_CSS=["var(--you)","var(--red)","var(--green)"];
-let globes=[], links=[], res=[], armies=[], running=true, view=null, focus=0, over=false, tick=0;
+let globes=[], links=[], res=[], armies=[], running=true, view=null, focus=0, over=false, tick=0, lastHitPlayer={};
 const UNIT_COST=30;                          // paid in any mix of resources, from the biggest stock
 const TRAVEL_TICKS=240;                       // 4 s per link
-const UPKEEP_TICKS=600, AI_TICKS=300, GRACE_TICKS=3600;
+const UPKEEP_TICKS=600, AI_TICKS=360, GRACE_TICKS=10800;   // AIs decide every 6 s and leave you alone for 3 minutes
 // matter: what can be dug up and placed, and what can be bought
 const MATTER=[
   [STONE,"Stone","#8a90a8"],[SAND,"Sand","#e6c27a"],[WATER,"Water","#3a8ae8"],[BRINE,"Brine","#3f9e98"],[SALT,"Salt","#eef0f6"],
   [GLASS,"Glass","#b0e0ec"],[ACID,"Acid","#aaec32"],[MAGMA,"Magma","#ff7a1a"],[REAPER,"Reaper","#ecbe46"],
   [SPOUT,"Sand spout","#a88250"],[SPRING,"Brine spring","#3ca0a0"],[VENT,"Steam vent","#78808c"],[MYCEL,"Mycelium","#5a4a42"],[FUNGUS,"Fungus","#dc302c"]];
 const DIGGABLE=new Uint8Array(32); MATTER.forEach(([t])=>DIGGABLE[t]=1);
-const BUY=[ [STONE,30,[15,0,0]], [SAND,60,[0,8,0]], [WATER,60,[0,0,8]], [REAPER,9,[30,0,0]], [ACID,25,[0,25,10]], [MAGMA,8,[20,20,0]] ];
+// what can be bought for a globe: material -> [amount, cost in 🔷 🧂 🍄]
+const BUY={
+  [STONE]:[30,[15,0,0]], [SAND]:[60,[0,8,0]], [WATER]:[60,[0,0,8]], [ACID]:[25,[0,25,10]], [REAPER]:[9,[30,0,0]],
+  [MAGMA]:[8,[20,20,0]], [SPOUT]:[4,[40,0,20]], [SPRING]:[4,[20,40,0]], [VENT]:[6,[0,20,40]], [MYCEL]:[6,[20,0,40]],
+};
+const GENERATORS=new Set([MAGMA,SPOUT,SPRING,VENT,MYCEL,REAPER]);
+const TILE_ORDER=[STONE,SAND,WATER,ACID,REAPER,MAGMA,SPOUT,SPRING,VENT,MYCEL,GLASS,SALT,BRINE,FUNGUS];
 
 function newGame(){
-  over=false; tick=0; armies=[];
+  over=false; tick=0; armies=[]; lastHitPlayer={};
   $("overlay").style.display="none";
   globes=[]; links=[];
   const cols=4, rows=6, kinds=["volcano","salt","fungus"];
@@ -527,14 +542,14 @@ function place(g,cx,cy,r,mat){
   }
   return n;
 }
-function buy(g,p,k){
-  const [mat,amt,cost]=BUY[k];
+function buy(g,p,mat){
+  const [amt,cost]=BUY[mat];
   if (!canPay(p,cost)) return false;
   pay(p,cost); g.inv[mat]=(g.inv[mat]||0)+amt; return true;
 }
 // AI helper: wall the core in with stone from the globe's stock, buying stone if needed
 function aiWall(g,p){
-  if ((g.inv[STONE]||0) < 60 && canPay(p,BUY[0][2])) buy(g,p,0);
+  if ((g.inv[STONE]||0) < 60 && canPay(p,BUY[STONE][1])) buy(g,p,STONE);
   if ((g.inv[STONE]||0) < 30) return;
   use(g); const [x0,y0,x1,y1]=CORE_BOX;
   for (let d=1; d<=3; d++) for (let y=y0-d;y<=y1+d;y++) for (let x=x0-d;x<=x1+d;x++){
@@ -553,22 +568,42 @@ function aiThink(p){
   const reserve=upkeepCost(p)*1.5;
   // train in frontier globes while there is money above the upkeep reserve
   const front=mine.filter(g=>frontier(g)>0).sort((a,b)=>frontier(b)-frontier(a));
-  for (let k=0;k<4;k++){
+  for (let k=0;k<3;k++){
     const g=front[k%Math.max(1,front.length)]||mine[0];
     if (total(p) >= UNIT_COST+reserve) train(g,p,1); else break;
   }
   // wall in a threatened frontier core
   for (const g of front){ const threat=g.nb.reduce((s,n)=>s+(globes[n].owner!==p&&globes[n].owner>=0?globes[n].units:0),0);
     if (threat>g.units && g.bonus<.4 && res[p][0]>40){ aiWall(g,p); computeBonus(g); break; } }
-  // attack the most winnable neighbour
-  let best=null, bestMargin=0;
-  for (const g of mine) for (const n of g.nb){
-    const t=globes[n]; if (t.owner===p || (t.owner===0 && tick<GRACE_TICKS)) continue;
-    if (armies.some(a=>a.owner===p && a.to===n)) continue;
-    const need=t.units*(1+t.bonus)*1.3+1, have=g.units-1;
-    if (have>need && have-need>bestMargin){ bestMargin=have-need; best=[g.id,n,Math.ceil(Math.min(have, need+2))]; }
+  // pick a target: the neighbouring globe with the smallest shortfall, staged from the strongest adjacent globe
+  let best=null;
+  const youLead = owned(0).length > Math.max(owned(1).length, owned(2).length);   // gang up on a runaway leader
+  for (const t of globes){
+    if (t.owner===p) continue;
+    const vsYou=t.owner===0;
+    if (vsYou && (tick<GRACE_TICKS || tick-(lastHitPlayer[p]||-1e9)<(youLead?900:1800))) continue;
+    if (armies.some(a=>a.owner===p && a.to===t.id)) continue;
+    const stages=t.nb.map(n=>globes[n]).filter(g=>g.owner===p); if (!stages.length) continue;
+    const st=stages.reduce((a,b)=>a.units>b.units?a:b);
+    const need=t.units*(1+t.bonus)*(vsYou?1.4:1.3)+1;
+    const score=(need-(st.units-1)) + (vsYou ? (youLead?-2:4) : 0);    // prefers neutral globes and the other AI, unless you lead
+    if (!best || score<best.score) best={t, st, need, score};
   }
-  if (best){ send(best[0],best[1],p,best[2]); if (globes[best[1]].owner===0) toast(`${NAMES[p]} is attacking your ${gname(globes[best[1]])} with ${best[2]} units!`); return; }
+  if (best){
+    const {t,st,need}=best, have=st.units-1;
+    if (have>need){
+      const n=Math.ceil(Math.min(have, need+2)); send(st.id,t.id,p,n);
+      if (t.owner===0){ lastHitPlayer[p]=tick; toast(`${NAMES[p]} is attacking your ${gname(t)} with ${n} units!`); }
+      return;
+    }
+    // not strong enough yet: funnel spare units from a neighbouring globe of ours into the staging globe
+    const feeders=st.nb.map(n=>globes[n]).filter(g=>g.owner===p && g.units>2);
+    if (feeders.length){
+      const f=feeders.reduce((a,b)=>a.units>b.units?a:b);
+      const keep = frontier(f)>0 ? Math.ceil(f.units/3) : 1;
+      if (f.units-keep>0){ send(f.id,st.id,p,f.units-keep); return; }
+    }
+  }
   // otherwise move spare units from safe globes towards the front
   for (const g of mine) if (frontier(g)===0 && g.units>2){
     const to=g.nb.slice().sort((a,b)=>frontier(globes[b])-frontier(globes[a]))[0];
@@ -602,7 +637,7 @@ function gameTick(){
     }
   }
   if (tick%AI_TICKS===60) aiThink(1);
-  if (tick%AI_TICKS===210) aiThink(2);
+  if (tick%AI_TICKS===240) aiThink(2);
   if (tick%30===0) checkEnd();
 }
 
@@ -708,14 +743,22 @@ function updateView(full){
       return `<div class="send"><span class="who">→ ${BIOMES[t.biome].icon} ${gname(t)} · ${who} · 🪖 ${t.units}${t.bonus>=.1?` ×${(1+t.bonus).toFixed(1)}`:""}</span><button class="b" data-send="${n}" ${g.units<1?"disabled":""}>Send ${sendAll?g.units:Math.ceil(g.units/2)}</button></div>`; }).join("");
     $("sendList").querySelectorAll("[data-send]").forEach(b=>b.onclick=()=>{ const n=+b.dataset.send; const k=send(g.id,n,0,sendAll?g.units:Math.ceil(g.units/2)); if (k) toast(`${k} units marching to ${gname(globes[n])}`); updateView(true); });
     if (full){
-      $("matChips").innerHTML=`<span class="chip ${tool==="dig"?"on":""}" data-tool="dig">⛏ Dig</span>`+
-        MATTER.filter(([t])=>(g.inv[t]||0)>0 || t===STONE).map(([t,name,col])=>`<span class="chip ${tool==="place"&&mat===t?"on":""} ${(g.inv[t]||0)?"":"empty"}" data-mat="${t}"><i style="background:${col}"></i>${name} <b>${g.inv[t]||0}</b></span>`).join("");
-      $("matChips").querySelectorAll("[data-tool]").forEach(c=>c.onclick=()=>{ tool="dig"; updateView(true); });
-      $("matChips").querySelectorAll("[data-mat]").forEach(c=>c.onclick=()=>{ tool="place"; mat=+c.dataset.mat; updateView(true); });
-      $("buyChips").innerHTML=BUY.map(([t,amt,cost],k)=>{ const nm=MATTER.find(m=>m[0]===t); const c=cost.map((v,j)=>v?`${v}${RES[j][0]}`:"").filter(Boolean).join(" ");
-        return `<span class="chip ${canPay(0,cost)?"":"empty"}" data-buy="${k}"><i style="background:${nm[2]}"></i>+${amt} ${nm[1]} · ${c}</span>`; }).join("");
-      $("buyChips").querySelectorAll("[data-buy]").forEach(c=>c.onclick=()=>{ const k=+c.dataset.buy; if (buy(g,0,k)){ tool="place"; mat=BUY[k][0]; toast(`Bought ${BUY[k][1]} ${MATTER.find(m=>m[0]===BUY[k][0])[1].toLowerCase()} for this globe`); } else toast("Not enough resources"); updateView(true); });
-      $("toolHint").textContent = tool==="dig" ? "Drag on the globe to dig matter up into this globe's stock. Reapers and generators can be dug up and moved too." : `Drag on the globe to place ${MATTER.find(m=>m[0]===mat)[1].toLowerCase()}.`;
+      const nameOf=t=>MATTER.find(m=>m[0]===t);
+      const priceOf=t=>BUY[t] ? BUY[t][1].map((v,j)=>v?`${v}${RES[j][0]}`:"").filter(Boolean).join(" ") : "";
+      const tiles=TILE_ORDER.filter(t=>BUY[t] || (g.inv[t]||0)>0);
+      $("tiles").innerHTML=`<div class="tile ${tool==="dig"?"on":""}" data-tool="dig"><span class="sw" style="background:repeating-linear-gradient(45deg,#3a4058 0 4px,#232838 4px 8px)"></span>⛏ Dig</div>`+
+        tiles.map(t=>{ const [,name,col]=nameOf(t), n=g.inv[t]||0;
+          return `<div class="tile ${GENERATORS.has(t)?"gen":""} ${tool==="place"&&mat===t?"on":""}" data-mat="${t}"><span class="n ${n?"":"zero"}">${n}</span><span class="sw" style="background:${col}"></span>${name}</div>`; }).join("");
+      $("tiles").querySelectorAll("[data-tool]").forEach(c=>c.onclick=()=>{ tool="dig"; updateView(true); });
+      $("tiles").querySelectorAll("[data-mat]").forEach(c=>c.onclick=()=>{ tool="place"; mat=+c.dataset.mat; updateView(true); });
+      if (tool==="dig"){
+        $("selbar").innerHTML=`<span class="t">⛏ <b>Dig</b>: drag on the globe to pick matter up into this globe's stock. Reapers and generators can be moved this way.</span>`;
+      } else {
+        const [,name]=nameOf(mat), n=g.inv[mat]||0, b=BUY[mat];
+        $("selbar").innerHTML=`<span class="t"><b>${name}</b>: ${n} here.${n?" Drag on the globe to place it.":" Buy some to place it."}</span>`+
+          (b ? `<button class="b" id="buyBtn" ${canPay(0,b[1])?"":"disabled"}>Buy +${b[0]}<small>${priceOf(mat)}</small></button>` : `<span class="sub">dig only</span>`);
+        if (b) $("buyBtn").onclick=()=>{ if (buy(g,0,mat)) toast(`+${b[0]} ${name.toLowerCase()} for ${gname(g)}`); else toast("Not enough resources"); updateView(true); };
+      }
     }
   } else {
     const from=g.nb.filter(n=>globes[n].owner===0);
