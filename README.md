@@ -61,13 +61,14 @@ The whole screen is the play area, held upright (portrait).
 
 ## Globe Wars (prototype)
 
-A real-time strategy prototype, opened from the options menu (mode list → **⚔ Globe Wars**). A map of 24 connected globes, each a tiny falling-sand world:
+A real-time strategy prototype, opened from the options menu (mode list → **⚔ Globe Wars**). A map of 24 linked globes, each a 128×128 falling-sand world:
 
-- **Volcano** globes melt sand into lava that cools into **🔷 glass**; **salt pans** boil brine into **🧂 salt**; **fungal caves** grow mushrooms that puff **🍄 spores**.
-- **Reapers** harvest the product that touches them; build more to earn more.
-- Capture a neighbouring globe by raining **acid** on it (paid with salt and spores) until half its **core** is eaten. Defend with **shields**, which acid only slowly etches.
-- **Upkeep** every 10 s grows faster than your empire and is paid from your biggest stock; failing it crumbles your weakest core.
-- Two AI rivals, Red and Green, expand and fight each other. Only the viewed globe, its neighbours and globes under attack run live; the rest produce at their measured rate.
+- **Volcano** globes melt sand into lava that cools into **🔷 glass**; **salt pans** boil brine into **🧂 salt**; **fungal caves** grow mushrooms that puff **🍄 spores**. **Reapers** harvest the product that touches them.
+- **Units**: train them in your globes (30 resources each, any mix). **Drag** from one of your globes to a linked one on the map to send half its units, or use the buttons inside a globe. They march along the link.
+- **Battles**: attackers fight the garrison, whose strength is multiplied by the **defence bonus** from what surrounds its core (stone and glass walls, lava, magma, acid). Losses follow a square-law attrition, so a narrow win leaves few survivors.
+- **Shaping a globe**: each globe has its own limited stock of matter. **Dig** cells up into it, **place** them elsewhere, and **buy** more (stone, sand, water, reapers, acid, magma) with your resources. Captured globes keep their stock.
+- **Upkeep** every 10 s grows with your globes and units and is paid from your biggest stock; if you can't pay, units desert.
+- Two AI rivals, Red and Green, train, wall in threatened cores, attack winnable neighbours (each other too) and move spare units to the front. Only the viewed globe and its neighbours simulate; the rest produce at their measured rate.
 
 It lives in `app/src/main/assets/globes.html` with its own trimmed copy of the element rules. A match isn't saved when you leave.
 
