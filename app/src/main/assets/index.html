@@ -298,7 +298,7 @@ body.land .sl,body.land .sizeRow{touch-action:none}
 // The grid is 180 cells wide and as tall as the screen's shape needs, so the play area fills the whole phone.
 const VW0 = innerWidth || screen.width, VH0 = innerHeight || screen.height;
 const W = 180, H = Math.max(200, Math.min(520, Math.ceil(W * VH0 / VW0))), N = W * H;
-const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20,SPORE=21,FUNGUS=22,MYCELIUM=23,FUMES=24;
+const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20,SPORE=21,FUNGUS=22,MYCELIUM=23,FUMES=24,LAVA=25,GLASS=26;
 const INFO = [
   ["Eraser","Removes anything.","radial-gradient(circle at 35% 30%,#3a4058,#141826)"],
   ["Wall","Blocks everything.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
@@ -325,9 +325,11 @@ const INFO = [
   ["Fungus","Grows into steam, eats plants and virus, slowly grows into water. Without food it dies into soil, nothing or a seed. Heat dries it out.","radial-gradient(circle at 35% 30%,#ffb2a6,#d8302a 45%,#8e8c94 82%)"],
   ["Mycelium","Indestructible. Releases spores into the air.","radial-gradient(circle at 35% 30%,#fffaf0,#c9b9a0 40%,#4a3a30 80%)"],
   ["Fumes","Toxic gas from acid boiling on magma. Floats like steam, eats like acid, then fades.","radial-gradient(circle at 35% 30%,#f6ffc8,#bcd84e 48%,rgba(104,132,36,.75))"],
+  ["Lava","Molten sand. Oozes slowly, sets things alight, boils water. Cools into glass.","radial-gradient(circle at 40% 35%,#ffe58a,#ff7a1a 45%,#8a1e08 85%)"],
+  ["Glass","Cooled lava. Solid and see-through. Acid and fumes can't eat it.","radial-gradient(circle at 32% 28%,#ffffff,#bfe8f2 40%,rgba(110,170,190,.75) 85%)"],
 ];
 const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM,ACID,SPORE].forEach(t=>GRAIN[t]=1);
-const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
+const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3; DENS[LAVA]=2.8;
 const FLAMMABLE = new Float32Array(32); FLAMMABLE[PLANT]=0.2; FLAMMABLE[OIL]=0.45; FLAMMABLE[SEED]=0.3; FLAMMABLE[VIRUS]=0.5; FLAMMABLE[FUNGUS]=0.25; FLAMMABLE[SPORE]=0.6;
 
 const type = new Uint8Array(N), shade = new Uint8Array(N), life = new Uint8Array(N);
@@ -349,7 +351,7 @@ const rnd = Math.random;
 
 function set(i, t){
   type[i] = t; shade[i] = (rnd()*16)|0;
-  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 100 + ((rnd()*100)|0) : t===SPORE ? 150 + ((rnd()*100)|0) : t===FUNGUS ? FUNGUS_REACH : t===FUMES ? 150 + ((rnd()*100)|0) : 0;
+  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 100 + ((rnd()*100)|0) : t===SPORE ? 150 + ((rnd()*100)|0) : t===FUNGUS ? FUNGUS_REACH : t===FUMES ? 150 + ((rnd()*100)|0) : t===LAVA ? 200 + ((rnd()*55)|0) : 0;
   stamp[i] = tk;
 }
 function vanish(i){ type[i]=E; life[i]=0; }
@@ -363,7 +365,7 @@ function idx(x,y){ return (x<0||y<0||x>=W||y>=H) ? -1 : y*W+x; }
 function canDisplace(s, o){
   if (o===E) return true;
   if (o===FIRE || o===STEAM || o===SPORE || o===FUMES) return DENS[s] > 0;
-  if (o===WATER || o===OIL || o===BRINE || o===ACID) {
+  if (o===WATER || o===OIL || o===BRINE || o===ACID || o===LAVA) {
     if (!(DENS[s] > DENS[o])) return false;
     return rnd() < (s===SALT && o===OIL ? 0.08 : 0.5);
   }
@@ -509,6 +511,27 @@ function stepWorld(){
           if (!corrode(i,x,y,WATER)) liquid(i,x,y);
           break;
         }
+        case LAVA: {
+          // molten sand: oozes slowly, burns and boils what it touches, cools into glass
+          let done=false, hot=0;
+          for (const [dx,dy] of ORTH){
+            const j=idx(x+dx,y+dy); if(j<0) continue;
+            const o=type[j];
+            if (o===MAGMA) life[i]=255;                                       // stays molten on the vent
+            else if (o===LAVA && life[j]-8>hot) hot=life[j]-8;                // heat spreads through the pool, fading with distance
+            else if (FLAMMABLE[o] && rnd()<FLAMMABLE[o]*.6) set(j,FIRE);
+            else if (o===WATER){ set(j,STEAM); if (rnd()<.5){ set(i,GLASS); done=true; break; } }   // quenched
+            else if (o===BRINE && rnd()<.5){ set(j, rnd()<.25 ? SALT : STEAM); }
+            else if (o===ACID && rnd()<.3) set(j, rnd()<FUMES_FRAC ? FUMES : E);
+            else if (o===SALT && rnd()<.05) set(j,E);
+            else if (o===SAND && life[i]>235 && rnd()<.03){ set(j,LAVA); life[j]=life[i]-12; }   // very hot lava melts sand it touches (a little cooler)
+          }
+          if (done) break;
+          if (hot>life[i]) life[i]=hot;
+          if (tk%3===0){ if (life[i]<=1){ set(i,GLASS); break; } life[i]--; }   // the whole pool cools together: ~10-13 s away from magma
+          if (rnd()<.35) liquid(i,x,y);                                        // thick: moves a third as often as water
+          break;
+        }
         case FUMES: {
           // acid boiled into a gas: eats like acid, drifts like steam, fades away (never turns back into acid)
           if (life[i]<=1){ set(i,E); break; }
@@ -557,7 +580,7 @@ function stepWorld(){
             const o=type[j];
             if (o===STEAM){ set(j,FUNGUS); set(i,FUNGUS); gone=true; break; }
             if ((o===PLANT||o===SEED) && rnd() < .12*fungusK){ set(i,FUNGUS); gone=true; break; }   // a mushroom sprouts on the plant
-            if (o===FIRE||o===MAGMA||o===WATER||o===ACID||o===FUMES||o===SALT||o===BRINE){ set(i,E); gone=true; break; }
+            if (o===FIRE||o===MAGMA||o===LAVA||o===WATER||o===ACID||o===FUMES||o===SALT||o===BRINE){ set(i,E); gone=true; break; }
           }
           if (gone) break;
           if (rnd()<.2){ if (life[i]<=1){ set(i,E); break; } life[i]--; }   // a spore lasts roughly 10-20 s
@@ -579,7 +602,7 @@ function stepWorld(){
           if (rnd()<.08){                                                          // heat nearby dries it out
             let hot=false;
             for (let dy=-3; dy<=3 && !hot; dy++) for (let dx=-3; dx<=3; dx++){
-              const j=idx(x+dx,y+dy); if (j>=0 && (type[j]===FIRE||type[j]===MAGMA)){ hot=true; break; }
+              const j=idx(x+dx,y+dy); if (j>=0 && (type[j]===FIRE||type[j]===MAGMA||type[j]===LAVA)){ hot=true; break; }
             }
             if (hot && rnd()<.6){ set(i,E); break; }
           }
@@ -655,6 +678,7 @@ function stepWorld(){
             else if (o===BRINE && rnd()<.3) set(j, rnd()<.25 ? SALT : STEAM);
             else if (o===SALT && rnd()<.2) set(j,E);                      // melts away
             else if (o===ACID && rnd()<.3) set(j, rnd()<FUMES_FRAC ? FUMES : E);   // acid boils: some toxic fumes, the rest evaporates
+            else if (o===SAND && rnd()<.04) set(j,LAVA);                  // sand melts into lava
           }
           emit(i,x,y,FIRE,.35,(rnd()*8)|0);
           break;
@@ -870,6 +894,21 @@ function paintCells(){
           const v = (SIN[(x*11 + t*2)&255] + SIN[(y*13 - t*3 + x*3)&255]) * .5;
           if (v < -0.45){ r=96; g=26; b=18; e=60; }
           else { const q=(v+1)*.5; r = 210 + 45*q; g = 50 + 160*q*q; b = 12 + 60*q*q*q; e = 120 + 135*q; }
+          break;
+        }
+        case LAVA: {
+          const h=life[i]/255, n=SIN[(x*7 + y*11 + t*2)&255]*.5 + SIN[(x*3 - t*3 + y*5)&255]*.5;
+          const q=Math.max(0,Math.min(1, h*.9 + n*.15));
+          r = 120 + 135*q; g = 22 + 150*q*q; b = 8 + 50*q*q*q;                 // glowing orange, darker crust as it cools
+          if (open && q>.4){ r=255; g=Math.min(255,g+40); b+=20; }
+          e = 60 + 190*q;
+          break;
+        }
+        case GLASS: {
+          const glint = ((x + y*2 + (hs>>6)) % 11 === 0);
+          r = 170 + (sh>>1); g = 220 + (sh>>2); b = 232; a = 120;           // pale, see-through
+          if (open || d===0){ r=225; g=248; b=255; a=200; }
+          if (glint){ r=g=b=255; a=215; e=40; }
           break;
         }
         case FUMES: {
@@ -1190,10 +1229,12 @@ const GUIDE = {
   [SPORE]:"Glowing dust that floats and slowly sinks, fading after 10-20 s. Turns steam into fungus and can sprout mushrooms on plants and seeds. Killed by fire, magma, water, acid, salt and brine.",
   [FUNGUS]:"Mushrooms. Grow into steam, eat plants and virus, slowly grow into water, and puff out spores. Need food (steam, water, plants or virus) within ~30 cells or they die, leaving nothing, soil or a seed. Heat dries them out; fire, acid and salt kill them.",
   [WALL]:"Blocks everything. Nothing destroys it.",
-  [CLOUD]:"Rains water.", [MAGMA]:"Spews fire. Sets anything flammable touching it alight, boils water and brine, melts salt, and boils acid into toxic fumes.",
+  [CLOUD]:"Rains water.", [MAGMA]:"Spews fire. Sets anything flammable touching it alight, boils water and brine, melts salt, boils acid into toxic fumes and melts sand into lava.",
   [SHAKER]:"Sprinkles salt.", [SPILL]:"Leaks oil.", [TOXIN]:"Breeds virus around it.",
   [SEEDER]:"Turns water touching it into plants.", [VAT]:"Drips acid.",
   [MYCELIUM]:"Releases spores into the air. Indestructible: only the Eraser removes it.",
+  [LAVA]:"Molten sand: sand touching magma melts into it. A thick, glowing liquid that oozes slowly downhill. Sets flammable things alight, boils water and brine, boils acid into fumes. Water quenches it straight into glass; otherwise it cools into glass after about 10 s. Magma keeps it molten.",
+  [GLASS]:"Cooled lava. A solid, see-through block. Acid and fumes can't eat it, so it makes acid-proof containers.",
   [FUMES]:"Toxic gas made when acid touches magma (40% of the acid becomes fumes, the rest evaporates). Floats and spreads like steam and eats like acid: dissolves salt, turns brine into water, eats plants, seeds, spores and fungus fast and sand, soil and virus slowly. Gets used up as it eats and fades after a few seconds; it never turns back into acid.",
   [E]:"Erases anything, generators included.",
 };
@@ -1241,7 +1282,7 @@ $("exitBtn").onclick=()=>{
 };
 
 const palette = $("palette");
-const groups = [["Elements",[SAND,WATER,BRINE,OIL,ACID,FIRE,STEAM,FUMES,PLANT,SEED,SALT,SOIL,VIRUS,SPORE,FUNGUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,VAT,MYCELIUM,E]]];
+const groups = [["Elements",[SAND,WATER,BRINE,OIL,ACID,LAVA,FIRE,STEAM,FUMES,PLANT,SEED,SALT,SOIL,VIRUS,SPORE,FUNGUS,GLASS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,VAT,MYCELIUM,E]]];
 const elBtns = {};
 for (const [g,list] of groups){
   const h=document.createElement("div"); h.className="cat"; h.textContent=g; palette.appendChild(h);
