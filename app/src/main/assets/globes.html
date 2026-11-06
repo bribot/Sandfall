@@ -162,7 +162,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
       <div class="row"><button class="b" data-shape="rect">▢ Box</button><button class="b" data-shape="frect">■ Fill</button></div>
       <div class="row"><button class="b" data-shape="pan"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/><path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg>Move &amp; zoom</button></div>
     </div>
-    <div class="row sizeRow"><span id="sizeDot"><i></i></span><input id="size" type="range" min="0" max="10" value="3" aria-label="Brush size"></div>
+    <div class="row sizeRow"><span id="sizeDot"><i></i></span><input id="size" type="range" min="0" max="5" value="1" aria-label="Brush size"></div>
   </div>
 
   <div id="armyMenu" class="menu glass">
@@ -181,7 +181,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
     <li>Units arriving at an enemy or neutral globe fight its garrison. The defenders get a <b>defence bonus</b> from what surrounds their core: stone and glass walls, and lava, magma or acid in a ring around it.</li>
     <li><b>Tap a globe</b> to open it. Like the sandbox, the <b>elements bubble</b> holds the elements, brushes and brush size, and <b>Move &amp; zoom</b>; two fingers zoom and pan with any tool. Each globe has its own limited <b>stock</b> of every element (the number on it): drawing uses it up, <b>Dig</b> picks cells back up into it, and you can <b>buy</b> more with your resources, generators included, to build any factory in any globe.</li>
     <li><b>Upkeep</b> every 10 s grows with your globes and units and is paid from your biggest stock. Can't pay, and units desert.</li>
-    <li>Red and Green expand and fight each other too. Below, choose how hard they go after you. Take all their globes to win. Only the globe you're looking at (or the one last opened) runs live; the rest produce at their measured rate.</li>
+    <li>Red and Green expand and fight each other too. Below, choose how hard they go after you. Take all their globes to win. Every globe runs all the time.</li>
   </ul>
   <div class="lbl" style="margin:10px 2px 6px">Rivals</div>
   <div class="row" id="aiPick" style="margin-bottom:10px">
@@ -199,9 +199,9 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 <script>
 "use strict";
 // =====================================================================
-//  Globe simulation: Sandfall's own element rules, on 180x180 round worlds
+//  Globe simulation: Sandfall's own element rules, on 64x64 round worlds
 // =====================================================================
-const G=180, W=G, H=G, N=G*G, GN=N, CX=90, RAD=87;
+const G=64, W=G, H=G, N=G*G, GN=N, CX=32, RAD=30.5;
 const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20,SPORE=21,FUNGUS=22,MYCELIUM=23,FUMES=24,LAVA=25,GLASS=26,
       BOUND=27,CORE=28,REAPER=29,HARVEST=30,VENT=31,SPOUT=32;
 const INFO = [
@@ -477,7 +477,7 @@ function stepWorld(){
             else if (o===SAND && life[i]>235 && rnd()<.03){ set(j,LAVA); life[j]=life[i]-12; }   // very hot lava melts sand it touches (a little cooler)
           }
           if (done) break;
-          if (hot>life[i]) life[i]=hot;
+          if (fed && hot>life[i]) life[i]=hot;   // (globes: only vent-fed lava is kept hot by its neighbours, so a pool that flowed away cools)
           if (life[i]>150 && rnd()<.012) emit(i,x,y,FIRE,1,up+(((rnd()*3)|0)-1));   // hot lava throws off the odd flame
           if (life[i]<=1){ set(i,GLASS); break; } life[i]--;   // the whole pool cools together: ~4 s away from magma (faster than the sandbox)
           if (rnd()<.35) liquid(i,x,y);                                        // thick: moves a third as often as water
@@ -566,7 +566,7 @@ function stepWorld(){
             if (hot && rnd()<.6){ set(i,E); break; }
           }
           if (life[i]===0 && fungusK>0 && rnd() < .004){                          // starving: dies, leaving soil, nothing or (rarely) a seed
-            const r=rnd(); set(i, r<.7 ? E : r<.93 ? SOIL : SEED); if (type[i]===SOIL) life[i]=2; break;   // nothing 70%, crumbly soil 23%, seed 7%
+            const r=rnd(); set(i, r<.9 ? E : r<.97 ? SOIL : SEED);   // (globes: mostly nothing, so small caves don't fill up) if (type[i]===SOIL) life[i]=2; break;   // nothing 70%, crumbly soil 23%, seed 7%
           }
           if (rnd()<.35){
             for (const [dx,dy] of ORTH){
@@ -658,7 +658,7 @@ function stepWorld(){
           life[i]--; break;
         }
         case VENT: {                                                    // breathes steam, boils water touching it
-          for (const [dx,dy] of ORTH){ const j=idx(x+dx,y+dy); if (j<0) continue; const o=type[j]; if (o===WATER && rnd()<.3) set(j,STEAM); else if ((o===SOIL||o===SEED||o===SAND||o===SALT) && rnd()<.05) vanish(j); }   // blows away dirt that would bury it
+          for (const [dx,dy] of ORTH){ const j=idx(x+dx,y+dy); if (j<0) continue; const o=type[j]; if (o===WATER && rnd()<.3) set(j,STEAM); else if ((o===SOIL||o===SEED||o===SAND||o===SALT) && rnd()<.15) vanish(j); }   // blows away dirt that would bury it
           const j=idx(x,y-1); if (j>=0 && type[j]===E && rnd()<cur.ventRate) set(j,STEAM);
           break;
         }
@@ -962,44 +962,44 @@ const BIOMES={
 };
 // production per tick of a fresh globe of each biome (measured), used until a globe has been seen live
 const BASE_RATE={ volcano:[.2,0,0], garden:[0,.19,0], fungus:[0,0,.16] };
-const CORE_BOX=[79,67,100,83];
+const CORE_BOX=[28,24,35,29];
 function newGlobe(id,biome){
   const g={id, biome, owner:-1, T:new Uint8Array(GN), Sh:new Uint8Array(GN), L:new Uint8Array(GN), St:new Uint16Array(GN), tk:1,
     got:[0,0,0], rate:BASE_RATE[biome].slice(), units:0, bonus:0, bonusParts:"", inv:{}, live:false,
-    spoutRate:.018, ventRate:.028, cloudRate:.004, canvas:null, ctx:null, nb:[]};
+    spoutRate:.045, ventRate:.045, cloudRate:.008, canvas:null, ctx:null, nb:[]};
   use(g);
   for (let i=0;i<GN;i++){ type[i]=INSIDE[i]?E:BOUND; shade[i]=(rnd()*16)|0; }
   const fill=(x0,y0,x1,y1,t)=>{ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=y*G+x; if (INSIDE[i]) set(i,t); } };
   fill(...CORE_BOX,CORE);                       // the core: the globe's heart, which units defend
   if (biome==="volcano"){
-    fill(17,112,56,118,MAGMA);                  // magma ledge on the left
-    fill(31,45,41,46,SPOUT);                    // sand pours onto it and melts into lava
-    fill(76,160,87,166,REAPER);                 // reaper in the bowl where the lava cools into glass
-    g.inv={[SAND]:150,[WALL]:30};
+    fill(6,40,20,42,MAGMA);                     // magma ledge on the left
+    fill(11,16,14,16,SPOUT);                    // sand pours onto it and melts into lava
+    fill(40,55,44,57,REAPER);                   // reaper across the bowl, where the lava has cooled into glass
+    g.inv={[SAND]:60,[WALL]:15};
   } else if (biome==="garden"){
-    fill(34,56,59,57,CLOUD); fill(121,56,146,57,CLOUD);   // two rain clouds, either side of the core
-    fill(28,152,152,173,PLANT);                 // a low plant bed
-    for (let i=150*G;i<GN-G;i++) if (type[i]===PLANT && (type[i+G]===BOUND||type[i-1]===BOUND||type[i+1]===BOUND)) set(i,SEEDER);   // seeder lining the bowl: the bed regrows after it is eaten
-    fill(41,145,52,150,REAPER); fill(128,145,139,150,REAPER);   // a reaper under each cloud: rain runs off it and plants grow up into it
-    g.inv={[WATER]:150,[WALL]:30};
+    fill(12,20,21,20,CLOUD); fill(43,20,52,20,CLOUD);   // two rain clouds, either side of the core
+    fill(10,54,54,62,PLANT);                    // a low plant bed
+    for (let i=52*G;i<GN-G;i++) if (type[i]===PLANT && (type[i+G]===BOUND||type[i-1]===BOUND||type[i+1]===BOUND)) set(i,SEEDER);   // seeder lining the bowl: the bed regrows after it is eaten
+    fill(15,51,18,53,REAPER); fill(46,51,49,53,REAPER);   // a reaper under each cloud: rain runs off it and plants grow up into it
+    g.inv={[WATER]:60,[WALL]:15};
   } else {
-    fill(82,169,96,169,VENT);                   // steam vent at the bottom
-    fill(62,140,65,143,MYCELIUM); fill(114,140,117,143,MYCELIUM);   // mycelium either side of the steam column
-    fill(97,163,105,170,REAPER);                // right against the vent: grazes the mushrooms in its steam
-    g.inv={[WATER]:100,[WALL]:30};
+    fill(28,60,33,60,VENT);                     // steam vent at the bottom
+    fill(21,49,22,50,MYCELIUM); fill(40,49,41,50,MYCELIUM);   // mycelium either side of the steam column
+    fill(34,57,36,60,REAPER);                   // right against the vent: grazes the mushrooms in its steam
+    g.inv={[WATER]:40,[WALL]:15};
   }
   return g;
 }
 function countG(g,t){ let n=0; const a=g.T; for (let i=0;i<GN;i++) if (a[i]===t) n++; return n; }
 
-// Defence bonus: what surrounds the core, in a ring up to 14 cells out
-const RING=[]; { const [x0,y0,x1,y1]=CORE_BOX; for (let y=y0-14;y<=y1+14;y++) for (let x=x0-14;x<=x1+14;x++) if (x<x0||x>x1||y<y0||y>y1) RING.push(y*G+x); }
+// Defence bonus: what surrounds the core, in a ring up to 5 cells out
+const RING=[]; { const [x0,y0,x1,y1]=CORE_BOX; for (let y=y0-5;y<=y1+5;y++) for (let x=x0-5;x<=x1+5;x++) if (x<x0||x>x1||y<y0||y>y1) RING.push(y*G+x); }
 function computeBonus(g){
   let wall=0, hot=0; const A=g.T;
   for (const i of RING){ const t=A[i];
     if (t===WALL) wall+=1; else if (t===GLASS) wall+=.7;
     else if (t===LAVA||t===MAGMA) hot+=2; else if (t===ACID) hot+=1.5; else if (t===FUMES) hot+=.5; }
-  const w=Math.min(.9, wall/450), h=Math.min(.9, hot/450);
+  const w=Math.min(.9, wall/60), h=Math.min(.9, hot/60);
   g.bonus=Math.min(1.5, w+h);
   g.bonusParts=[w>.04?`walls +${Math.round(w*100)}%`:"", h>.04?`heat & acid +${Math.round(h*100)}%`:""].filter(Boolean).join(", ");
 }
@@ -1068,7 +1068,7 @@ function newGame(){
   over=false; tick=0; armies=[]; lastHitPlayer={};
   $("overlay").style.display="none";
   globes=[]; links=[];
-  const cols=4, rows=6, kinds=["volcano","garden","fungus"];
+  const cols=3, rows=4, kinds=["volcano","garden","fungus"];
   for (let r=0;r<rows;r++) for (let c=0;c<cols;c++){
     const id=r*cols+c;
     const g=newGlobe(id, kinds[(id*7+((rnd()*3)|0))%3]);
@@ -1094,7 +1094,7 @@ function newGame(){
     const a=[...seen][(rnd()*seen.size)|0]; const c=a%cols;
     for (const o of [a+1,a-1,a+cols,a-cols]){ if (o>=0 && o<globes.length && !seen.has(o) && Math.abs((o%cols)-c)<=1){ link(a,o); break; } }
   }
-  const start=[21+((rnd()*2)|0), 0, 3], startBiome=["volcano","garden","fungus"];
+  const start=[9+((rnd()*3)|0), 0, 2], startBiome=["volcano","garden","fungus"];
   start.forEach((id,p)=>{ const old=globes[id], g=newGlobe(id,startBiome[p]); Object.assign(g,{mx:old.mx,my:old.my,nb:old.nb}); g.owner=p; g.units=8; globes[id]=g; });
   for (const g of globes) if (g.owner<0) g.units=3+((rnd()*6)|0);
   res=[[60,60,60],[60,60,60],[60,60,60]];
@@ -1103,8 +1103,9 @@ function newGame(){
   toast("Train units and drag from your globe to a neighbour to attack it.");
 }
 
+const ALL={ has:()=>true };
 function liveSet(){
-  return new Set([view!==null ? view : focus]);   // only the globe you're looking at runs live; the rest produce at their measured rate
+  return ALL;   // every globe runs all the time
 }
 function credit(owner, amounts){ if (owner<0) return; const r=res[owner]; for (let k=0;k<3;k++) r[k]+=amounts[k]; }
 function canPay(p,cost){ return res[p].every((v,k)=>v>=cost[k]); }
@@ -1169,8 +1170,8 @@ function buy(g,p,t){
 }
 // AI helper: wall the core in with stone from the globe's stock, buying stone if needed
 function aiWall(g,p){
-  if ((g.inv[WALL]||0) < 80 && canPay(p,BUY[WALL][1])) buy(g,p,WALL);
-  if ((g.inv[WALL]||0) < 40) return;
+  if ((g.inv[WALL]||0) < 40 && canPay(p,BUY[WALL][1])) buy(g,p,WALL);
+  if ((g.inv[WALL]||0) < 20) return;
   use(g); const [x0,y0,x1,y1]=CORE_BOX;
   for (let d=1; d<=3; d++) for (let y=y0-d;y<=y1+d;y++) for (let x=x0-d;x<=x1+d;x++){
     if (x>x0-d && x<x1+d && y>y0-d && y<y1+d) continue;
@@ -1277,7 +1278,7 @@ function layout(){
   const dpr=Math.min(devicePixelRatio||1,2.5);
   mapC.width=innerWidth*dpr; mapC.height=innerHeight*dpr; mapC.style.width=innerWidth+"px"; mapC.style.height=innerHeight+"px";
   const top=$("hud").getBoundingClientRect().bottom+14, bottom=innerHeight-INS.b-12;
-  const w=innerWidth, h=bottom-top, rad=Math.min(w/4, h/6)*.3;
+  const w=innerWidth, h=bottom-top, rad=Math.min(w/3, h/4)*.3;
   mapGeom={dpr, top, w, h, rad, pad:rad*1.6};
   if (view!==null){ fitView(); placeBubbles(); }
 }
@@ -1337,7 +1338,8 @@ function drawHud(){
   const up=upkeepCost(0), totInc=inc[0]+inc[1]+inc[2];
   $("res").innerHTML=RES.map(([ic],k)=>`<span class="r">${ic} <b>${Math.floor(r[k])}</b><small>+${Math.round(inc[k])}</small></span>`).join("");
   const left=Math.ceil((UPKEEP_TICKS - tick%UPKEEP_TICKS)/60);
-  $("upkeep").innerHTML=`Income per 10 s · upkeep <b class="${totInc<up?"neg":""}">${up}</b> in ${left}s · 🪖 ${unitsOf(0)} · <span style="color:var(--red)">Red ${owned(1).length}</span> · <span style="color:var(--green)">Green ${owned(2).length}</span> · rivals ${AI_LEVELS[aiLevel].name.toLowerCase()}`;
+  $("upkeep").innerHTML=`per 10 s · upkeep <b class="${totInc<up?"neg":""}">${up}</b> in ${left}s · 🪖 ${unitsOf(0)} · <span style="color:var(--red)">Red ${owned(1).length}</span> · <span style="color:var(--green)">Green ${owned(2).length}</span> · sim ${simMs.toFixed(1)}ms`;
+  const gb=$("hud").getBoundingClientRect().bottom+6+"px"; if ($("gbar").style.top!==gb){ $("gbar").style.top=gb; if (view!==null){ fitView(); placeBubbles(); } }   // the globe's bar sits under the top bar, however tall
 }
 
 function nodeAt(x,y){ for (const g of globes){ const [nx,ny]=nodePos(g); if (Math.hypot(x-nx,y-ny) < mapGeom.rad*1.35) return g; } return null; }
@@ -1362,7 +1364,7 @@ mapC.addEventListener("pointercancel",()=>drag=null);
 // =====================================================================
 //  UI: inside a globe, played like the sandbox
 // =====================================================================
-let tool=SAND, shape="brush", brush=3, preview=null, drawing=false, last=null, sendAll=false;
+let tool=SAND, shape="brush", brush=1, preview=null, drawing=false, last=null, sendAll=false;
 function openView(id){
   view=id; focus=id; closeMenus(); preview=null; drawing=false;
   document.body.classList.add("viewing"); $("view").classList.add("open");
@@ -1390,7 +1392,7 @@ function buildShade(){
   const g=d.createRadialGradient(c-r*.25,c-r*.3,r*.2,c,c,r);
   g.addColorStop(0,"rgba(255,255,255,.035)"); g.addColorStop(.7,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(0,0,0,.42)");
   d.fillStyle=g; d.beginPath(); d.arc(c,c,r,0,7); d.fill();
-  d.lineWidth=Math.max(2,s/G*1.8); d.strokeStyle="rgba(210,236,255,.38)"; d.beginPath(); d.arc(c,c,r+d.lineWidth/2,0,7); d.stroke();
+  d.lineWidth=Math.max(2,Math.min(6,s/G*.8)); d.strokeStyle="rgba(210,236,255,.38)"; d.beginPath(); d.arc(c,c,r+d.lineWidth/2,0,7); d.stroke();
   d.lineWidth*=.8; d.strokeStyle="rgba(255,255,255,.07)"; d.beginPath(); d.arc(c,c,r*.94,Math.PI*1.1,Math.PI*1.4); d.stroke();   // glass highlight
 }
 function renderView(){
@@ -1726,10 +1728,12 @@ window.onAndroidBack=()=>{
   goBack(); return true;
 };
 
-let acc=0, lastT=performance.now();
+let acc=0, lastT=performance.now(), simMs=0;
 function loop(now){
   const dt=Math.min(100, now-lastT); lastT=now;
+  const t0=performance.now();
   if (running && !over){ acc += dt/(1000/60)*speed; let n=0; while (acc>=1 && n<3*Math.max(1,speed)){ gameTick(); acc--; n++; } if (acc>3*speed) acc=0; }
+  simMs = simMs*.95 + (performance.now()-t0)*.05;   // time the simulation takes per frame (shown in the top bar)
   frame++;
   if (view!==null){
     renderView();

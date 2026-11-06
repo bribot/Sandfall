@@ -61,7 +61,7 @@ The whole screen is the play area, held upright (portrait).
 
 ## Globe Wars (prototype)
 
-A real-time strategy prototype, opened from the options menu (mode list → **⚔ Globe Wars**). A map of 24 linked globes, each a round 180×180 falling-sand world that runs on Sandfall's own element rules and looks like the sandbox (glow, shading, shadows):
+A real-time strategy prototype, opened from the options menu (mode list → **⚔ Globe Wars**). A map of 12 linked globes, each a round 64×64 falling-sand world that runs on Sandfall's own element rules and looks like the sandbox (glow, shading, shadows):
 
 - **Volcano** globes melt sand into lava that cools into **🔷 glass**; **gardens** grow **🌿 plants** in the rain from their clouds, and a seeder lining the bowl sprouts the bed again after it is eaten; **fungal caves** grow **🍄 fungus** on the steam from a vent (the vent's heat also clears away dirt that would bury it). **Reapers** eat glass, plants and fungus that touch them. The eating spreads through the whole connected body, like fire through a plant bed, and each cell eaten is one resource.
 - **Inside a globe**: tap a globe on the map to open it full screen. Like the sandbox, the **elements bubble** holds every element and generator, the brushes (draw, line, box, filled box), the brush size and **Move & zoom**; two fingers zoom and pan with any tool. The **army bubble** trains and sends units (or, in a globe that isn't yours, attacks it from your neighbouring globes). Both bubbles can be dragged anywhere.
@@ -70,9 +70,9 @@ A real-time strategy prototype, opened from the options menu (mode list → **�
 - **Units**: train them in your globes (30 resources each, any mix). **Drag** from one of your globes to a linked one on the map to send half its units, or use the army bubble inside a globe. They march along the link.
 - **Battles**: attackers fight the garrison, whose strength is multiplied by the **defence bonus** from what surrounds its core (stone and glass walls, lava, magma, acid). Losses follow a square-law attrition, so a narrow win leaves few survivors.
 - **Upkeep** every 10 s grows with your globes and units and is paid from your biggest stock; if you can't pay, units desert.
-- Two AI rivals, Red and Green, train, wall in threatened cores, mass units in a staging globe and attack winnable neighbours. In the help screen you choose how hard they go after you: **Peaceful** (the default: they never attack you), **Easy** (after 5 minutes, needing a ×2 advantage, at most every 90 s) or **Normal** (after 3 minutes, ×1.4, every 30 s, and they gang up on you once you lead). Only the globe you're looking at (or last opened) simulates; the rest produce at their measured rate.
+- Two AI rivals, Red and Green, train, wall in threatened cores, mass units in a staging globe and attack winnable neighbours. In the help screen you choose how hard they go after you: **Peaceful** (the default: they never attack you), **Easy** (after 5 minutes, needing a ×2 advantage, at most every 90 s) or **Normal** (after 3 minutes, ×1.4, every 30 s, and they gang up on you once you lead). Every globe runs all the time; the top bar shows how long the simulation takes per frame ("sim … ms").
 
-It lives in `app/src/main/assets/globes.html`, with a copy of the sandbox's element rules and renderer. In globes lava cools faster and steam lasts longer and rains back less than in the sandbox. A match isn't saved when you leave.
+It lives in `app/src/main/assets/globes.html`, with a copy of the sandbox's element rules and renderer. In globes lava cools faster (and only lava fed by magma is kept hot by its neighbours), steam lasts longer and rains back less, and dead mushrooms rarely leave soil, so the small worlds don't clog up. A match isn't saved when you leave.
 
 ## Building
 
