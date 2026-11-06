@@ -37,7 +37,7 @@ The whole screen is the play area, held upright (portrait).
 | Plant | Drinks neighbouring water and grows into it. Won't drink brine |
 | Seed | Falls. Sprouts into a plant when wet |
 | Salt | Piles up, sinks slowly through oil, dissolves in water into brine, kills virus, makes flames burn yellow, melts away on magma |
-| Soil | Solid ground |
+| Soil | Solid ground. Tiny loose bits (pieces of fewer than 10 connected cells) and the soil left by dead fungus fall like sand |
 | Virus | Lives by Life rules (B3/S23 by default) in air and water. Eats any plant it touches |
 | Spores | Float in the air and slowly sink; fade after 10-20 s. Turn steam they touch into fungus, and may sprout a mushroom when they land on a plant or seed. Killed by fire, magma, water, acid, salt and brine |
 | Fungus | Mushrooms: gray stalks with red, white-spotted caps that glow faintly. Grows into steam, eats plants and virus, slowly grows into water (water doesn't kill it). Puffs out spores into open air. Needs food: fungus more than ~30 cells (through the colony) from steam, water, plants or virus dies, leaving nothing (70%), soil (23%) or a seed (7%). Dries out within 3 cells of fire or magma. Burns; acid eats it; salt and brine slowly kill it |

@@ -329,7 +329,7 @@ const INFO = [
   ["Glass","Cooled lava. Solid and see-through. Acid and fumes can't eat it.","radial-gradient(circle at 32% 28%,#ffffff,#bfe8f2 40%,rgba(110,170,190,.75) 85%)"],
 ];
 const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM,ACID,SPORE].forEach(t=>GRAIN[t]=1);
-const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3; DENS[LAVA]=2.8;
+const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3; DENS[LAVA]=2.8; DENS[SOIL]=3;
 const FLAMMABLE = new Float32Array(32); FLAMMABLE[PLANT]=0.2; FLAMMABLE[OIL]=0.45; FLAMMABLE[SEED]=0.3; FLAMMABLE[VIRUS]=0.5; FLAMMABLE[FUNGUS]=0.25; FLAMMABLE[SPORE]=0.6;
 
 const type = new Uint8Array(N), shade = new Uint8Array(N), life = new Uint8Array(N);
@@ -467,6 +467,28 @@ function corrode(i,x,y,diluted){
 }
 const FUMES_FRAC = .4;   // share of acid boiled on magma that becomes toxic fumes (the rest just evaporates)
 
+// Every few frames, find connected pieces of soil (diagonals count). Pieces smaller than
+// LOOSE_SOIL cells are marked loose (life=1, which moves with the cell) and fall; bigger ones stay rigid.
+const LOOSE_SOIL = 10;
+const soilSeen = new Uint8Array(N), soilStack = new Int32Array(N), soilComp = new Int32Array(N);
+function markLooseSoil(){
+  soilSeen.fill(0);
+  for (let s0=0; s0<N; s0++){
+    if (type[s0]!==SOIL || soilSeen[s0]) continue;
+    let sp=0, n=0; soilStack[sp++]=s0; soilSeen[s0]=1;
+    while (sp){
+      const c=soilStack[--sp]; soilComp[n++]=c;
+      const cx=c%W, cy=(c/W)|0;
+      for (let k=0;k<8;k++){
+        const j=idx(cx+DX[k], cy+DY[k]);
+        if (j>=0 && !soilSeen[j] && type[j]===SOIL){ soilSeen[j]=1; soilStack[sp++]=j; }
+      }
+    }
+    const loose = n<LOOSE_SOIL ? 1 : 0;
+    for (let q=0;q<n;q++){ const c=soilComp[q]; if (life[c]!==2) life[c]=loose; }   // crumbly soil stays crumbly
+  }
+}
+
 function stepWorld(){
   tk = ((tk + 1) & 0xffff) || 1;
   const gx = DX[grav], gy = DY[grav], up = (grav+4)&7;
@@ -534,6 +556,14 @@ function stepWorld(){
           if (hot>life[i]) life[i]=hot;
           if (tk%3===0){ if (life[i]<=1){ set(i,GLASS); break; } life[i]--; }   // the whole pool cools together: ~10-13 s away from magma
           if (rnd()<.35) liquid(i,x,y);                                        // thick: moves a third as often as water
+          break;
+        }
+        case SOIL: {
+          // soil is solid ground, but tiny loose pieces (life 1, from markLooseSoil) and crumbly soil
+          // left by dead fungus (life 2) fall like sand when there is room below
+          if (life[i]===0) break;
+          const j=idx(x+DX[grav], y+DY[grav]);
+          if (j<0 ? edgesOpen : (type[j]===E || canDisplace(SOIL,type[j]))) powder(i,x,y);
           break;
         }
         case FUMES: {
@@ -611,7 +641,7 @@ function stepWorld(){
             if (hot && rnd()<.6){ set(i,E); break; }
           }
           if (life[i]===0 && fungusK>0 && rnd() < .004){                          // starving: dies, leaving soil, nothing or (rarely) a seed
-            const r=rnd(); set(i, r<.7 ? E : r<.93 ? SOIL : SEED); break;   // nothing 70%, soil 23%, seed 7%
+            const r=rnd(); set(i, r<.7 ? E : r<.93 ? SOIL : SEED); if (type[i]===SOIL) life[i]=2; break;   // nothing 70%, crumbly soil 23%, seed 7%
           }
           if (rnd()<.35){
             for (const [dx,dy] of ORTH){
@@ -695,6 +725,7 @@ function stepWorld(){
     }
   }
   if (tk % 5 === 0) lifeStep();
+  if (tk % 20 === 0) markLooseSoil();
 }
 
 let BIRTH = new Uint8Array(9), SURV = new Uint8Array(9);
@@ -1228,7 +1259,7 @@ const GUIDE = {
   [PLANT]:"Drinks water and grows into it. Won't drink brine.",
   [SEED]:"Falls. Sprouts into a plant when it touches water.",
   [SALT]:"Piles up. Dissolves in water into brine. Kills virus, spores and (slowly) fungus. Melts on magma. Makes flames burn yellow.",
-  [SOIL]:"Solid ground. Water slowly erodes it into sand.",
+  [SOIL]:"Solid ground. Water slowly erodes it into sand. Tiny loose bits (fewer than 10 connected cells) and soil left by dead fungus fall like sand.",
   [VIRUS]:"Lives by Conway's Game of Life (rule in the options). Eats plants it touches. Killed by salt, brine, fire and fungus.",
   [SPORE]:"Glowing dust that floats and slowly sinks, fading after 10-20 s. Turns steam into fungus and can sprout mushrooms on plants and seeds. Killed by fire, magma, water, acid, salt and brine.",
   [FUNGUS]:"Mushrooms. Grow into steam, eat plants and virus, slowly grow into water, and puff out spores. Need food (steam, water, plants or virus) within ~30 cells or they die, leaving nothing, soil or a seed. Heat dries them out; fire, acid and salt kill them.",
