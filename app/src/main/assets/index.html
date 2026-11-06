@@ -298,7 +298,7 @@ body.land .sl,body.land .sizeRow{touch-action:none}
 // The grid is 180 cells wide and as tall as the screen's shape needs, so the play area fills the whole phone.
 const VW0 = innerWidth || screen.width, VH0 = innerHeight || screen.height;
 const W = 180, H = Math.max(200, Math.min(520, Math.ceil(W * VH0 / VW0))), N = W * H;
-const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20,SPORE=21,FUNGUS=22,MYCELIUM=23;
+const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20,SPORE=21,FUNGUS=22,MYCELIUM=23,FUMES=24;
 const INFO = [
   ["Eraser","Removes anything.","radial-gradient(circle at 35% 30%,#3a4058,#141826)"],
   ["Wall","Blocks everything.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
@@ -324,6 +324,7 @@ const INFO = [
   ["Spores","Float in the air. Turn steam into fungus and may sprout mushrooms on plants. Killed by fire, water, acid and salt.","radial-gradient(circle at 35% 30%,#fff4ff,#d7c2ec 45%,#8a74a8 80%)"],
   ["Fungus","Grows into steam, eats plants and virus, slowly grows into water. Without food it dies into soil, nothing or a seed. Heat dries it out.","radial-gradient(circle at 35% 30%,#ffb2a6,#d8302a 45%,#8e8c94 82%)"],
   ["Mycelium","Indestructible. Releases spores into the air.","radial-gradient(circle at 35% 30%,#fffaf0,#c9b9a0 40%,#4a3a30 80%)"],
+  ["Fumes","Toxic gas from acid boiling on magma. Floats like steam, eats like acid, then fades.","radial-gradient(circle at 35% 30%,#f6ffc8,#bcd84e 48%,rgba(104,132,36,.75))"],
 ];
 const GRAIN = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,STEAM,ACID,SPORE].forEach(t=>GRAIN[t]=1);
 const DENS = new Float32Array(32); DENS[OIL]=1; DENS[WATER]=2; DENS[ACID]=2.2; DENS[BRINE]=2.5; DENS[SAND]=3; DENS[SALT]=3; DENS[SEED]=3;
@@ -348,7 +349,7 @@ const rnd = Math.random;
 
 function set(i, t){
   type[i] = t; shade[i] = (rnd()*16)|0;
-  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 100 + ((rnd()*100)|0) : t===SPORE ? 150 + ((rnd()*100)|0) : t===FUNGUS ? FUNGUS_REACH : 0;
+  life[i] = t===FIRE ? 10 + ((rnd()*26)|0) : t===STEAM ? 100 + ((rnd()*100)|0) : t===SPORE ? 150 + ((rnd()*100)|0) : t===FUNGUS ? FUNGUS_REACH : t===FUMES ? 150 + ((rnd()*100)|0) : 0;
   stamp[i] = tk;
 }
 function vanish(i){ type[i]=E; life[i]=0; }
@@ -361,7 +362,7 @@ function swap(i, j){
 function idx(x,y){ return (x<0||y<0||x>=W||y>=H) ? -1 : y*W+x; }
 function canDisplace(s, o){
   if (o===E) return true;
-  if (o===FIRE || o===STEAM || o===SPORE) return DENS[s] > 0;
+  if (o===FIRE || o===STEAM || o===SPORE || o===FUMES) return DENS[s] > 0;
   if (o===WATER || o===OIL || o===BRINE || o===ACID) {
     if (!(DENS[s] > DENS[o])) return false;
     return rnd() < (s===SALT && o===OIL ? 0.08 : 0.5);
@@ -446,6 +447,24 @@ function steamMove(i,x,y,up){
 // A fire that touches salt burns yellow (sodium flame).
 function yellow(j){ shade[j] |= 16; if (life[j]<30) life[j]+=8; }
 
+// Acid and toxic fumes eat what they touch. Returns true if the corroding cell was used up.
+// `diluted` is what it becomes when water dilutes it (acid -> water, fumes -> nothing).
+function corrode(i,x,y,diluted){
+  for (const [dx,dy] of ORTH){
+    const j=idx(x+dx,y+dy); if(j<0) continue;
+    const o=type[j];
+    let ate=false;
+    if (o===SALT) ate=true;                                                        // salt dissolves into nothing
+    else if (o===BRINE && rnd()<.2){ set(j,WATER); if (rnd()<.5){ set(i,E); return true; } continue; }   // takes the salt out
+    else if ((o===PLANT||o===SEED||o===FUNGUS||o===SPORE) && rnd()<.12) ate=true;  // soft things go fast
+    else if ((o===SAND||o===SOIL||o===VIRUS) && rnd()<.02) ate=true;
+    else if (o===WATER && rnd()<.001){ set(i,diluted); return true; }               // diluted
+    if (ate){ set(j,E); if (rnd()<.5){ set(i,E); return true; } }                   // each bite may use it up
+  }
+  return false;
+}
+const FUMES_FRAC = .4;   // share of acid boiled on magma that becomes toxic fumes (the rest just evaporates)
+
 function stepWorld(){
   tk = ((tk + 1) & 0xffff) || 1;
   const gx = DX[grav], gy = DY[grav], up = (grav+4)&7;
@@ -487,19 +506,14 @@ function stepWorld(){
           break;
         }
         case ACID: {
-          let used=false;
-          for (const [dx,dy] of ORTH){
-            const j=idx(x+dx,y+dy); if(j<0) continue;
-            const o=type[j];
-            let ate=false;
-            if (o===SALT) ate=true;                                        // salt dissolves into nothing
-            else if (o===BRINE && rnd()<.2){ set(j,WATER); if (rnd()<.5){ set(i,E); used=true; break; } continue; }   // takes the salt out
-            else if ((o===PLANT||o===SEED||o===FUNGUS||o===SPORE) && rnd()<.12) ate=true;              // soft things go fast
-            else if ((o===SAND||o===SOIL||o===VIRUS) && rnd()<.02) ate=true;
-            else if (o===WATER && rnd()<.001){ set(i,WATER); used=true; break; }   // diluted
-            if (ate){ set(j,E); if (rnd()<.5){ set(i,E); used=true; break; } }    // each bite may use the acid up
-          }
-          if (!used) liquid(i,x,y);
+          if (!corrode(i,x,y,WATER)) liquid(i,x,y);
+          break;
+        }
+        case FUMES: {
+          // acid boiled into a gas: eats like acid, drifts like steam, fades away (never turns back into acid)
+          if (life[i]<=1){ set(i,E); break; }
+          life[i]--;
+          if (!corrode(i,x,y,E)) steamMove(i,x,y,up);
           break;
         }
         case BRINE: {
@@ -543,7 +557,7 @@ function stepWorld(){
             const o=type[j];
             if (o===STEAM){ set(j,FUNGUS); set(i,FUNGUS); gone=true; break; }
             if ((o===PLANT||o===SEED) && rnd() < .12*fungusK){ set(i,FUNGUS); gone=true; break; }   // a mushroom sprouts on the plant
-            if (o===FIRE||o===MAGMA||o===WATER||o===ACID||o===SALT||o===BRINE){ set(i,E); gone=true; break; }
+            if (o===FIRE||o===MAGMA||o===WATER||o===ACID||o===FUMES||o===SALT||o===BRINE){ set(i,E); gone=true; break; }
           }
           if (gone) break;
           if (rnd()<.2){ if (life[i]<=1){ set(i,E); break; } life[i]--; }   // a spore lasts roughly 10-20 s
@@ -640,6 +654,7 @@ function stepWorld(){
             else if (o===WATER && rnd()<.3) set(j,STEAM);
             else if (o===BRINE && rnd()<.3) set(j, rnd()<.25 ? SALT : STEAM);
             else if (o===SALT && rnd()<.2) set(j,E);                      // melts away
+            else if (o===ACID && rnd()<.3) set(j, rnd()<FUMES_FRAC ? FUMES : E);   // acid boils: some toxic fumes, the rest evaporates
           }
           emit(i,x,y,FIRE,.35,(rnd()*8)|0);
           break;
@@ -855,6 +870,12 @@ function paintCells(){
           const v = (SIN[(x*11 + t*2)&255] + SIN[(y*13 - t*3 + x*3)&255]) * .5;
           if (v < -0.45){ r=96; g=26; b=18; e=60; }
           else { const q=(v+1)*.5; r = 210 + 45*q; g = 50 + 160*q*q; b = 12 + 60*q*q*q; e = 120 + 135*q; }
+          break;
+        }
+        case FUMES: {
+          const n=SIN[(x*9 + y*5 + t*3)&255], p=(SIN[(t*4 + i*7)&255]+1)*.5;
+          r = 176 + 30*p + n*10; g = 214 + 30*p; b = 70 + n*12;
+          a = 70 + Math.min(life[i],200)*.6 + n*20; e = 30 + 30*p;     // sickly glowing haze that fades
           break;
         }
         case SPORE: {
@@ -1158,7 +1179,7 @@ const GUIDE = {
   [WATER]:"Flows and spreads. Puts out fire and boils into steam on fire or magma. Dissolves salt into brine. Slowly erodes soil into sand.",
   [BRINE]:"Salty water. Heavier than water, so it sinks. Withers plants and kills virus. Boils into steam, leaving some salt behind (with a yellow flame). Acid turns it back into water.",
   [OIL]:"Floats on water. Very flammable, and burning oil lasts long.",
-  [ACID]:"A little heavier than water. Dissolves salt into nothing and turns brine into water. Slowly eats sand, soil, plants, seeds, virus and fungus, but never walls or generators. Gets used up as it eats; water slowly dilutes it.",
+  [ACID]:"A little heavier than water. Dissolves salt into nothing and turns brine into water. Quickly eats plants, seeds, spores and fungus; slowly eats sand, soil and virus; never walls or generators. Gets used up as it eats; water slowly dilutes it. Boils into toxic fumes on magma.",
   [FIRE]:"Rises and burns out. Clings to and burns plants, oil, seeds, virus, spores and fungus. Burns yellow next to salt.",
   [STEAM]:"Floats up and spreads like a gas along ceilings, then cools and rains down as water (or fades). Plants touching it may grow into it.",
   [PLANT]:"Drinks water and grows into it. Won't drink brine.",
@@ -1169,10 +1190,11 @@ const GUIDE = {
   [SPORE]:"Glowing dust that floats and slowly sinks, fading after 10-20 s. Turns steam into fungus and can sprout mushrooms on plants and seeds. Killed by fire, magma, water, acid, salt and brine.",
   [FUNGUS]:"Mushrooms. Grow into steam, eat plants and virus, slowly grow into water, and puff out spores. Need food (steam, water, plants or virus) within ~30 cells or they die, leaving nothing, soil or a seed. Heat dries them out; fire, acid and salt kill them.",
   [WALL]:"Blocks everything. Nothing destroys it.",
-  [CLOUD]:"Rains water.", [MAGMA]:"Spews fire. Sets anything flammable touching it alight, boils water and brine, melts salt.",
+  [CLOUD]:"Rains water.", [MAGMA]:"Spews fire. Sets anything flammable touching it alight, boils water and brine, melts salt, and boils acid into toxic fumes.",
   [SHAKER]:"Sprinkles salt.", [SPILL]:"Leaks oil.", [TOXIN]:"Breeds virus around it.",
   [SEEDER]:"Turns water touching it into plants.", [VAT]:"Drips acid.",
   [MYCELIUM]:"Releases spores into the air. Indestructible: only the Eraser removes it.",
+  [FUMES]:"Toxic gas made when acid touches magma (40% of the acid becomes fumes, the rest evaporates). Floats and spreads like steam and eats like acid: dissolves salt, turns brine into water, eats plants, seeds, spores and fungus fast and sand, soil and virus slowly. Gets used up as it eats and fades after a few seconds; it never turns back into acid.",
   [E]:"Erases anything, generators included.",
 };
 function buildGuide(){
@@ -1219,7 +1241,7 @@ $("exitBtn").onclick=()=>{
 };
 
 const palette = $("palette");
-const groups = [["Elements",[SAND,WATER,BRINE,OIL,ACID,FIRE,STEAM,PLANT,SEED,SALT,SOIL,VIRUS,SPORE,FUNGUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,VAT,MYCELIUM,E]]];
+const groups = [["Elements",[SAND,WATER,BRINE,OIL,ACID,FIRE,STEAM,FUMES,PLANT,SEED,SALT,SOIL,VIRUS,SPORE,FUNGUS,WALL]],["Generators",[CLOUD,MAGMA,SHAKER,SPILL,TOXIN,SEEDER,VAT,MYCELIUM,E]]];
 const elBtns = {};
 for (const [g,list] of groups){
   const h=document.createElement("div"); h.className="cat"; h.textContent=g; palette.appendChild(h);
