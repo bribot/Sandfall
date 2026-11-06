@@ -53,7 +53,7 @@ The whole screen is the play area, held upright (portrait).
   3. **Quarantine** – wipe out a virus colony with salt.
   4. **Green Thumb** – get rain past a magma vent to the seeds.
   5. **Fresh Water** – boiled brine makes fresh rain; roof it over to the garden.
-  6. **Salt Mine** – dissolve a salt mountain with Vats without the acid flooding the orchard.
+  6. **Salt Mine** – dissolve most of a salt mountain with Vats and wall off the orchard pit from the acid.
   7. **Fungal Bloom** – grow 450 mushrooms in a steamy cave from 40 spores.
 
 ## Building

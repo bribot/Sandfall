@@ -1639,9 +1639,9 @@ const CHALLENGES = [
   },
   {
     name:"5 · Fresh Water",
-    desc:"The garden needs rain, but the only water is a brine lake boiling on a magma vent. Steam slides along ceilings: build a roof that carries it over the seeds. Grow 350 plants.",
-    tools:{[WALL]:400,[E]:Infinity}, limit:60*SEC,
-    goalN:350,
+    desc:"The garden needs rain, but the only water is a brine lake boiling on a magma vent. Steam slides along ceilings: build a roof that carries it over the seeds. Grow 200 plants.",
+    tools:{[WALL]:400,[E]:Infinity}, limit:90*SEC,
+    goalN:200,
     setup(){
       box(0,H-10,W-1,H-1,SOIL);
       const lx=X(.45);
@@ -1655,8 +1655,8 @@ const CHALLENGES = [
   },
   {
     name:"6 · Salt Mine",
-    desc:"Dissolve the salt mountain with acid-dripping Vats, then keep it that way for 5 seconds. Acid that runs off drains into the orchard pit and eats the trees: keep 95% of them alive.",
-    tools:{[VAT]:14,[WALL]:300,[E]:Infinity}, limit:90*SEC, holdTicks:5*SEC, first:VAT,
+    desc:"Dissolve most of the salt mountain with acid-dripping Vats and hold for 5 seconds. Acid that runs off drains into the orchard pit and eats the trees: wall it off to keep 92% of them alive.",
+    tools:{[VAT]:18,[WALL]:300,[E]:Infinity}, limit:90*SEC, holdTicks:5*SEC, first:VAT, keepFrac:.92, saltFrac:.08,
     setup(){
       const c=X(.3), hw=X(.22), floor=H-24, top=floor-1-Math.round(H*.18), px=c+hw+3;
       box(0,floor,px-1,H-1,WALL);                                       // the mine floor...
@@ -1666,7 +1666,7 @@ const CHALLENGES = [
       this.p0=countAll(PLANT); this.s0=countAll(SALT); this.px=px; this.floor=floor;
     },
     measure(){
-      const salt=countAll(SALT), pl=countAll(PLANT), keep=Math.ceil(this.p0*.95), maxSalt=Math.round(this.s0*.03);
+      const salt=countAll(SALT), pl=countAll(PLANT), keep=Math.ceil(this.p0*this.keepFrac), maxSalt=Math.round(this.s0*this.saltFrac);
       return {salt, pl, keep, maxSalt, v:salt, start:this.s0, goal:maxSalt,
               text:`🧂 <b>${salt}</b> (≤ ${maxSalt}) · 🌳 <b>${pl}</b> (≥ ${keep})`};
     },
