@@ -518,7 +518,11 @@ function stepWorld(){
             const j=idx(x+dx,y+dy); if(j<0) continue;
             const o=type[j];
             if (o===MAGMA) life[i]=255;                                       // stays molten on the vent
-            else if (o===LAVA && life[j]-8>hot) hot=life[j]-8;                // heat spreads through the pool, fading with distance
+            else if (o===LAVA){                                                // heat spreads through the pool: rises easily, fades sideways
+              const below = dx*DX[grav] + dy*DY[grav] > 0;
+              const h = life[j] - (below ? 1 : 8);
+              if (h>hot) hot=h;
+            }
             else if (FLAMMABLE[o] && rnd()<FLAMMABLE[o]*.6) set(j,FIRE);
             else if (o===WATER){ set(j,STEAM); if (rnd()<.5){ set(i,GLASS); done=true; break; } }   // quenched
             else if (o===BRINE && rnd()<.5){ set(j, rnd()<.25 ? SALT : STEAM); }
@@ -1233,7 +1237,7 @@ const GUIDE = {
   [SHAKER]:"Sprinkles salt.", [SPILL]:"Leaks oil.", [TOXIN]:"Breeds virus around it.",
   [SEEDER]:"Turns water touching it into plants.", [VAT]:"Drips acid.",
   [MYCELIUM]:"Releases spores into the air. Indestructible: only the Eraser removes it.",
-  [LAVA]:"Molten sand: sand touching magma melts into it. A thick, glowing liquid that oozes slowly downhill. Sets flammable things alight, boils water and brine, boils acid into fumes. Water quenches it straight into glass; otherwise it cools into glass after about 10 s. Magma keeps it molten.",
+  [LAVA]:"Molten sand: sand touching magma melts into it. A thick, glowing liquid that oozes slowly downhill. Sets flammable things alight, boils water and brine, boils acid into fumes. Water quenches it straight into glass; otherwise it cools into glass after about 10 s. Lava on or above magma stays molten, since heat rises; lava that flows away cools.",
   [GLASS]:"Cooled lava. A solid, see-through block. Acid and fumes can't eat it, so it makes acid-proof containers.",
   [FUMES]:"Toxic gas made when acid touches magma (40% of the acid becomes fumes, the rest evaporates). Floats and spreads like steam and eats like acid: dissolves salt, turns brine into water, eats plants, seeds, spores and fungus fast and sand, soil and virus slowly. Gets used up as it eats and fades after a few seconds; it never turns back into acid.",
   [E]:"Erases anything, generators included.",
