@@ -61,7 +61,7 @@ The whole screen is the play area, held upright (portrait).
 
 ## Globe Wars (prototype)
 
-A real-time strategy prototype, opened from the options menu (mode list → **⚔ Globe Wars**). A map of 12 linked globes, each a round 64×64 falling-sand world that runs on Sandfall's own element rules and looks like the sandbox (glow, shading, shadows):
+A real-time strategy prototype, opened from the options menu (mode list → **⚔ Globe Wars**). A map of 8 linked globes, each a round 80×80 falling-sand world that runs on Sandfall's own element rules and looks like the sandbox (glow, shading, shadows):
 
 - **Volcano** globes melt sand into lava that cools into **🔷 glass**; **gardens** grow **🌿 plants** in the rain from their clouds, and a seeder lining the bowl sprouts the bed again after it is eaten; **fungal caves** grow **🍄 fungus** on the steam from a vent. **Reapers** eat glass, plants and fungus that touch them; the eating spreads through the whole connected body, like fire through a plant bed, and each cell eaten is one resource.
 - **Build your factories**: every globe starts with a small factory and spare pieces in stock (sand spouts, a cloud, or a steam vent and reapers). Placing them makes two to three times as much: more spouts over the magma, a cloud over a reaper, another vent with a reaper beside it.

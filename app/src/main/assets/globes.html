@@ -202,9 +202,9 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 <script>
 "use strict";
 // =====================================================================
-//  Globe simulation: Sandfall's own element rules, on 64x64 round worlds
+//  Globe simulation: Sandfall's own element rules, on 80x80 round worlds
 // =====================================================================
-const G=64, W=G, H=G, N=G*G, GN=N, CX=32, RAD=30.5;
+const G=80, W=G, H=G, N=G*G, GN=N, CX=40, RAD=38;
 const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20,SPORE=21,FUNGUS=22,MYCELIUM=23,FUMES=24,LAVA=25,GLASS=26,
       BOUND=27,CORE=28,REAPER=29,HARVEST=30,VENT=31,SPOUT=32,SWARM=33;
 const INFO = [
@@ -269,7 +269,7 @@ const rnd = Math.random;
 // swarm units: how fast attackers chew through things, and the core they fly at
 const CHEW=new Float32Array(64); CHEW[SAND]=CHEW[SOIL]=CHEW[SALT]=.08; CHEW[PLANT]=CHEW[SEED]=CHEW[FUNGUS]=.12; CHEW[VIRUS]=.1;
 CHEW[GLASS]=.01; CHEW[WALL]=.004; [CLOUD,SHAKER,SPILL,VAT,TOXIN,SEEDER,VENT,SPOUT,REAPER].forEach(t=>CHEW[t]=.01);
-const CORE_CX=32, CORE_CY=27;
+const CORE_CX=40, CORE_CY=33;
 const DIRK=[]; for (let k=0;k<8;k++) DIRK[(DY[k]+1)*3+(DX[k]+1)]=k;
 function dirTo(tx,ty){ const sx=tx>.5?1:tx<-.5?-1:0, sy=ty>.5?1:ty<-.5?-1:0; return sx||sy ? DIRK[(sy+1)*3+(sx+1)] : (rnd()*8)|0; }
 function set(i, t){
@@ -695,7 +695,7 @@ function stepWorld(){
           const tx=CORE_CX-x, ty=CORE_CY-y;
           let k;
           if (alarm && rnd()<.6) k=dirTo(cur.ax-x, cur.ay-y);                              // defenders hunt the invaders
-          else if (def) k = (tx*tx+ty*ty > (alarm ? 20 : 49) && rnd()<(alarm ? .8 : .6)) ? dirTo(tx,ty) : (rnd()*8)|0;
+          else if (def) k = (tx*tx+ty*ty > (alarm ? 31 : 77) && rnd()<(alarm ? .8 : .6)) ? dirTo(tx,ty) : (rnd()*8)|0;
           else k = rnd()<.7 ? dirTo(tx,ty) : (rnd()*8)|0;
           const j=idx(x+DX[k],y+DY[k]); if (j<0) break;
           const o=type[j];
@@ -1009,7 +1009,7 @@ const BIOMES={
 // production per tick of a fresh globe of each biome (measured), used until a globe has been seen live
 const BASE_RATE={ volcano:[.085,0,0], garden:[0,.07,0], fungus:[0,0,.12] };
 const CORE_HP=20;
-const CORE_BOX=[28,24,35,29];
+const CORE_BOX=[35,30,44,36];
 function newGlobe(id,biome){
   const g={id, biome, owner:-1, T:new Uint8Array(GN), Sh:new Uint8Array(GN), L:new Uint8Array(GN), St:new Uint16Array(GN), tk:1,
     got:[0,0,0], rate:BASE_RATE[biome].slice(), units:0, foes:0, ax:CORE_CX, ay:CORE_CY, coreHP:CORE_HP, hitBy:3, queue:[], bonus:0, bonusParts:"", inv:{}, live:false,
@@ -1019,34 +1019,34 @@ function newGlobe(id,biome){
   const fill=(x0,y0,x1,y1,t)=>{ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=y*G+x; if (INSIDE[i]) set(i,t); } };
   fill(...CORE_BOX,CORE);                       // the core: the globe's heart, which units defend
   if (biome==="volcano"){
-    fill(6,40,20,42,MAGMA);                     // magma ledge on the left
-    fill(12,16,13,16,SPOUT);                    // a small sand spout pours onto it and melts into lava
-    fill(40,55,44,57,REAPER);                   // reaper across the bowl, where the lava has cooled into glass
+    fill(8,50,25,52,MAGMA);                     // magma ledge on the left
+    fill(15,20,16,20,SPOUT);                    // a small sand spout pours onto it and melts into lava
+    fill(50,69,55,71,REAPER);                   // reaper across the bowl, where the lava has cooled into glass
     g.inv={[SAND]:60,[WALL]:15,[SPOUT]:4};   // a small factory to start: more spouts over the magma make much more
   } else if (biome==="garden"){
-    fill(12,20,19,20,CLOUD);                    // one small rain cloud to start
-    fill(10,54,54,62,PLANT);                    // a low plant bed
-    for (let i=52*G;i<GN-G;i++) if (type[i]===PLANT && (type[i+G]===BOUND||type[i-1]===BOUND||type[i+1]===BOUND)) set(i,SEEDER);   // seeder lining the bowl: the bed regrows after it is eaten
-    fill(15,51,18,53,REAPER); fill(46,51,49,53,REAPER);   // a reaper under each cloud: rain runs off it and plants grow up into it
+    fill(15,25,24,25,CLOUD);                    // one small rain cloud to start
+    fill(12,67,68,78,PLANT);                    // a low plant bed
+    for (let i=65*G;i<GN-G;i++) if (type[i]===PLANT && (type[i+G]===BOUND||type[i-1]===BOUND||type[i+1]===BOUND)) set(i,SEEDER);   // seeder lining the bowl: the bed regrows after it is eaten
+    fill(19,64,23,66,REAPER); fill(57,64,61,66,REAPER);   // a reaper under each cloud: rain runs off it and plants grow up into it
     g.inv={[WATER]:60,[WALL]:15,[CLOUD]:12};
   } else {
-    fill(29,60,33,60,VENT);                     // a small steam vent at the bottom
-    fill(21,49,22,50,MYCELIUM); fill(40,49,41,50,MYCELIUM);   // mycelium either side of the steam column
-    fill(34,57,36,60,REAPER);                   // right against the vent: grazes the mushrooms in its steam
+    fill(36,75,41,75,VENT);                     // a small steam vent at the bottom
+    fill(26,61,27,62,MYCELIUM); fill(50,61,51,62,MYCELIUM);   // mycelium either side of the steam column
+    fill(42,71,45,75,REAPER);                   // right against the vent: grazes the mushrooms in its steam
     g.inv={[WATER]:40,[WALL]:15,[VENT]:4,[REAPER]:6};   // another vent with a reaper beside it doubles the crop
   }
   return g;
 }
 function countG(g,t){ let n=0; const a=g.T; for (let i=0;i<GN;i++) if (a[i]===t) n++; return n; }
 
-// Defence bonus: what surrounds the core, in a ring up to 5 cells out
-const RING=[]; { const [x0,y0,x1,y1]=CORE_BOX; for (let y=y0-5;y<=y1+5;y++) for (let x=x0-5;x<=x1+5;x++) if (x<x0||x>x1||y<y0||y>y1) RING.push(y*G+x); }
+// Defence bonus: what surrounds the core, in a ring up to 6 cells out
+const RING=[]; { const [x0,y0,x1,y1]=CORE_BOX; for (let y=y0-6;y<=y1+6;y++) for (let x=x0-6;x<=x1+6;x++) if (x<x0||x>x1||y<y0||y>y1) RING.push(y*G+x); }
 function computeBonus(g){
   let wall=0, hot=0; const A=g.T;
   for (const i of RING){ const t=A[i];
     if (t===WALL) wall+=1; else if (t===GLASS) wall+=.7;
     else if (t===LAVA||t===MAGMA) hot+=2; else if (t===ACID) hot+=1.5; else if (t===FUMES) hot+=.5; }
-  const w=Math.min(.9, wall/60), h=Math.min(.9, hot/60);
+  const w=Math.min(.9, wall/80), h=Math.min(.9, hot/80);
   g.bonus=Math.min(1.5, w+h);
   g.bonusParts=[w>.04?`walls +${Math.round(w*100)}%`:"", h>.04?`heat & acid +${Math.round(h*100)}%`:""].filter(Boolean).join(", ");
 }
@@ -1116,7 +1116,7 @@ function newGame(){
   over=false; tick=0; armies=[]; lastHitPlayer={};
   $("overlay").style.display="none";
   globes=[]; links=[];
-  const cols=3, rows=4, kinds=["volcano","garden","fungus"];
+  const cols=2, rows=4, kinds=["volcano","garden","fungus"];
   for (let r=0;r<rows;r++) for (let c=0;c<cols;c++){
     const id=r*cols+c;
     const g=newGlobe(id, kinds[(id*7+((rnd()*3)|0))%3]);
@@ -1142,7 +1142,7 @@ function newGame(){
     const a=[...seen][(rnd()*seen.size)|0]; const c=a%cols;
     for (const o of [a+1,a-1,a+cols,a-cols]){ if (o>=0 && o<globes.length && !seen.has(o) && Math.abs((o%cols)-c)<=1){ link(a,o); break; } }
   }
-  const start=[9+((rnd()*3)|0), 0, 2], startBiome=["volcano","garden","fungus"];
+  const start=[6+((rnd()*2)|0), 0, 3], startBiome=["volcano","garden","fungus"];
   start.forEach((id,p)=>{ const old=globes[id], g=newGlobe(id,startBiome[p]); Object.assign(g,{mx:old.mx,my:old.my,nb:old.nb}); g.owner=p; globes[id]=g; });
   for (const g of globes) hatch(g, g.owner<0?3:g.owner, g.owner<0 ? 8+((rnd()*12)|0) : 20);
   res=[[60,60,60],[60,60,60],[60,60,60]];
@@ -1187,7 +1187,7 @@ function countSwarm(g){
 function hatch(g,o,n){
   use(g); let made=0;
   for (let k=0;k<n*30 && made<n;k++){
-    const a=rnd()*Math.PI*2, r=6+rnd()*6, x=Math.round(CORE_CX+Math.cos(a)*r), y=Math.round(CORE_CY+Math.sin(a)*r*.8), i=idx(x,y);
+    const a=rnd()*Math.PI*2, r=7.5+rnd()*7.5, x=Math.round(CORE_CX+Math.cos(a)*r), y=Math.round(CORE_CY+Math.sin(a)*r*.8), i=idx(x,y);
     if (i>=0 && (type[i]===E||type[i]===STEAM||type[i]===SPORE)){ set(i,SWARM); shade[i]=o|(((rnd()*4)|0)<<2); made++; }
   }
   if (o===oc(g.owner)) g.units+=made;
@@ -1230,12 +1230,12 @@ function spawnQueue(g){
 // ---- strikes: drop elements into a neighbouring globe ----
 function topCell(g,x){ for (let y=0;y<G;y++){ const i=y*G+x; if (g.T[i]!==BOUND) return g.T[i]===E ? i : -1; } return -1; }   // first cell inside the globe, if open
 const STRIKES=[
-  {name:"🔥 Fire rain", cost:[15,10,0], fn:g=>{ use(g); for (let n=0;n<26;n++){ const i=topCell(g,8+((rnd()*48)|0)); if (i<0) continue; set(i,OIL); const j=i+G; if (type[j]===E) set(j,OIL); const k=i+1; if (type[k]===E) set(k,FIRE); } }},
-  {name:"🧪 Acid rain", cost:[0,25,0], fn:g=>{ use(g); for (let n=0;n<40;n++){ const i=topCell(g,6+((rnd()*52)|0)); if (i>=0) set(i,ACID); } }},
+  {name:"🔥 Fire rain", cost:[15,10,0], fn:g=>{ use(g); for (let n=0;n<26;n++){ const i=topCell(g,10+((rnd()*60)|0)); if (i<0) continue; set(i,OIL); const j=i+G; if (type[j]===E) set(j,OIL); const k=i+1; if (type[k]===E) set(k,FIRE); } }},
+  {name:"🧪 Acid rain", cost:[0,25,0], fn:g=>{ use(g); for (let n=0;n<40;n++){ const i=topCell(g,8+((rnd()*64)|0)); if (i>=0) set(i,ACID); } }},
   {name:"🦠 Virus", cost:[0,0,25], fn:g=>{ use(g); const food=[]; for (let i=0;i<GN;i++) if (type[i]===PLANT||type[i]===FUNGUS) food.push(i);
-      const c = food.length ? food[(rnd()*food.length)|0] : idx(CORE_CX, 45), cx=c%G, cy=(c/G)|0;
+      const c = food.length ? food[(rnd()*food.length)|0] : idx(CORE_CX, 56), cx=c%G, cy=(c/G)|0;
       for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){ const i=idx(cx+dx,cy+dy); if (i>=0 && (type[i]===E||type[i]===WATER||type[i]===PLANT||type[i]===FUNGUS) && rnd()<.5) set(i,VIRUS); } }},
-  {name:"☄️ Meteor", cost:[30,0,20], fn:g=>{ use(g); const cx=CORE_CX+((rnd()*9)|0)-4, cy=8;
+  {name:"☄️ Meteor", cost:[30,0,20], fn:g=>{ use(g); const cx=CORE_CX+((rnd()*9)|0)-4, cy=10;
       for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){ const i=idx(cx+dx,cy+dy); if (i>=0 && dx*dx+dy*dy<=10 && (type[i]===E||type[i]===STEAM||type[i]===SPORE)){ set(i,LAVA); life[i]=255; } } }},
 ];
 const costText=c=>c.map((v,j)=>v?`${v}${RES[j][0]}`:"").filter(Boolean).join(" ");
@@ -1381,7 +1381,7 @@ function layout(){
   const dpr=Math.min(devicePixelRatio||1,2.5);
   mapC.width=innerWidth*dpr; mapC.height=innerHeight*dpr; mapC.style.width=innerWidth+"px"; mapC.style.height=innerHeight+"px";
   const top=$("hud").getBoundingClientRect().bottom+14, bottom=innerHeight-INS.b-12;
-  const w=innerWidth, h=bottom-top, rad=Math.min(w/3, h/4)*.3;
+  const w=innerWidth, h=bottom-top, rad=Math.min(w/2.4, h/4)*.3;
   mapGeom={dpr, top, w, h, rad, pad:rad*1.6};
   if (view!==null){ fitView(); placeBubbles(); }
 }
