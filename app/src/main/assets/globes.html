@@ -178,8 +178,9 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
   <h2>Globe Wars (prototype)</h2>
   <ul>
     <li>Every node is a falling-sand world that runs on Sandfall's own rules. <b>Volcanoes</b> melt sand into lava that cools into <b>🔷 glass</b>, <b>gardens</b> grow <b>🌿 plants</b> in the rain, <b>fungal caves</b> grow <b>🍄 fungus</b> on steam. Gold <b>reapers</b> eat glass, plants and fungus that touch them; the eating spreads through everything connected to it, like fire through a plant bed, and each cell eaten is one resource.</li>
-    <li><b>Units are a swarm</b> of glowing bugs that live in the globe. <b>Hatch</b> them next to a core (10 resources each, any mix) with the army bubble. <b>Drag</b> from one of your globes to a linked one on the map to send half its bugs, or use the army bubble.</li>
-    <li>Sent bugs fly in from the side facing where they came from and head for the core, <b>chewing</b> through sand and plants fast, glass slowly and stone very slowly. <b>Fire, lava and magma burn them, acid eats them, water drowns them</b>, and bugs of different owners fight (defenders win more often). Each one that reaches the core takes a bite out of it; when the core's ❤ runs out the globe is captured. So build defences: walls, moats, fire.</li>
+    <li><b>Units are a swarm</b> of glowing bugs that live in the globe. <b>Hatch</b> them next to a core (10 resources each, any mix) with the army bubble. <b>Drag</b> from one of your globes to a linked one on the map to send half its bugs, or use the army bubble: they fly to the gate and through it.</li>
+    <li><b>Gates</b>: every link is a pair of doors in the glass, each on the side facing the neighbour. <b>Open</b> one of yours (army bubble) and whatever touches it pours through into the linked globe: sand, water, lava and acid fall <b>downhill</b> into globes below you on the map, steam, fire and fumes rise into globes above. Lava, acid and fumes eating at a core wear it down, and when it falls the globe goes to whoever poured them in. You can't close a rival's gate, but you can wall off the inside of yours.</li>
+    <li>Bugs coming through a gate head for the core, <b>chewing</b> through sand and plants fast, glass slowly and stone very slowly. <b>Fire, lava and magma burn them, acid eats them, water drowns them</b>, and bugs of different owners fight (defenders win more often). Each one that reaches the core takes a bite out of it; when the core's ❤ runs out the globe is captured. So build defences: walls, moats, fire.</li>
     <li><b>Strikes</b>: from the army bubble of a globe next to one of yours, drop fire rain, acid rain, a virus or a meteor into it. A roof keeps rain out.</li>
     <li>Every globe starts with a <b>small factory</b> and a few generator pieces in stock: place them (and buy more) to make much more.</li>
     <li><b>Tap a globe</b> to open it. Like the sandbox, the <b>elements bubble</b> holds the elements, brushes and brush size, and <b>Move &amp; zoom</b>; two fingers zoom and pan with any tool. Each globe has its own limited <b>stock</b> of every element (the number on it): drawing uses it up, <b>Dig</b> picks cells back up into it, and you can <b>buy</b> more with your resources, generators included, to build any factory in any globe.</li>
@@ -206,7 +207,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 // =====================================================================
 const G=80, W=G, H=G, N=G*G, GN=N, CX=40, RAD=38;
 const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20,SPORE=21,FUNGUS=22,MYCELIUM=23,FUMES=24,LAVA=25,GLASS=26,
-      BOUND=27,CORE=28,REAPER=29,HARVEST=30,VENT=31,SPOUT=32,SWARM=33;
+      BOUND=27,CORE=28,REAPER=29,HARVEST=30,VENT=31,SPOUT=32,SWARM=33,GATE=34;
 const INFO = [
   ["Dig","Picks cells up into this globe's stock.","repeating-linear-gradient(45deg,#3a4058 0 4px,#232838 4px 8px)"],
   ["Stone","Blocks everything. Stone around the core strengthens its defence.","repeating-linear-gradient(0deg,#5c6276 0 5px,#3f4456 5px 6px)"],
@@ -242,6 +243,7 @@ const INFO = [
   ["Steam vent","Breathes steam, and boils water sitting on it.","radial-gradient(circle at 35% 30%,#e8eef8,#78808c 50%,#3a4048)"],
   ["Sand spout","Pours sand.","radial-gradient(circle at 35% 30%,#ffe7a8,#a88250 55%,#5a4020)"],
   ["Swarm","Units: glowing bugs in their owner's colour. Defenders hover round their core; attackers fly at it, chewing through what's in the way. Fire, lava and magma burn them, acid eats them, water drowns them.",""],
+  ["Gate","A door in the globe's glass to a linked globe.",""],
 ];
 const RES_OF=new Int8Array(64).fill(-1); RES_OF[GLASS]=0; RES_OF[PLANT]=1; RES_OF[FUNGUS]=2;
 const KIND_TYPE=[GLASS,PLANT,FUNGUS];
@@ -421,7 +423,7 @@ function stepWorld(){
     const x0 = xs<0 ? W-1 : 0, x1 = xs<0 ? -1 : W;
     for (let x=x0; x!==x1; x+=xs) {
       const i = y*W+x, t = type[i];
-      if (t===E || t===WALL || t===BOUND || t===CORE || stamp[i]===tk) continue;
+      if (t===E || t===WALL || t===BOUND || t===GATE || t===CORE || stamp[i]===tk) continue;
       switch (t) {
         case SAND: powder(i,x,y); break;
         case SEED: {
@@ -575,7 +577,7 @@ function stepWorld(){
             }
             if (hot && rnd()<.6){ set(i,E); break; }
           }
-          if (life[i]===0 && fungusK>0 && rnd() < .004){                          // starving: dies, leaving soil, nothing or (rarely) a seed
+          if (life[i]===0 && fungusK>0 && rnd() < .0006){                         // starving: slowly dies (about a minute), leaving soil, nothing or (rarely) a seed
             const r=rnd(); set(i, r<.9 ? E : r<.97 ? SOIL : SEED);   // (globes: mostly nothing, so small caves don't fill up) if (type[i]===SOIL) life[i]=2; break;   // nothing 70%, crumbly soil 23%, seed 7%
           }
           if (rnd()<.35){
@@ -689,6 +691,14 @@ function stepWorld(){
           }
           if (gone) break;
           if (wet>=2 && !def && rnd()<.02){ vanish(i); break; }                            // invaders drown
+          if (def && (shade[i]&4)){                                                         // sent through a gate: fly to it (the gate pass takes it through)
+            const gt=cur.gates[(shade[i]>>3)&7];
+            if (!gt){ shade[i]&=~60; break; }
+            if (rnd() > .4) break;
+            const k = rnd()<.8 ? dirTo(gt.cx-x, gt.cy-y) : (rnd()*8)|0, j=idx(x+DX[k],y+DY[k]); if (j<0) break;
+            const o=type[j]; if (o===E||o===STEAM||o===SPORE||o===WATER||o===BRINE||o===OIL) swap(i,j);
+            break;
+          }
           const alarm=def && cur.foes>0;                                                    // invaders inside: defenders close in round the core
           if (rnd() > (alarm ? .35 : def ? .2 : .3)) break;                                // flies now and then
           if (!def){ cur.ax=x; cur.ay=y; }                                                   // where an invader was last seen
@@ -751,7 +761,7 @@ function paintCells(){
   for (let y=ya; y!==yb; y+=ysd) {
     for (let x=xa; x!==xb; x+=xsd) {
       const i = y*W+x, ty = type[i], o = i<<2;
-      if (ty===E || ty===BOUND){ P[o+3]=0; Gd[o+3]=0; depth[i]=0; continue; }
+      if (ty===E || ty===BOUND || ty===GATE){ P[o+3]=0; Gd[o+3]=0; depth[i]=0; continue; }
       const ux2=x+ux, uy2=y+uy;
       const j = (ux2<0||uy2<0||ux2>=W||uy2>=H) ? -1 : uy2*W+ux2;
       const above = j<0 ? edge : type[j];
@@ -1146,6 +1156,7 @@ function newGame(){
   start.forEach((id,p)=>{ const old=globes[id], g=newGlobe(id,startBiome[p]); Object.assign(g,{mx:old.mx,my:old.my,nb:old.nb}); g.owner=p; globes[id]=g; });
   for (const g of globes) hatch(g, g.owner<0?3:g.owner, g.owner<0 ? 8+((rnd()*12)|0) : 20);
   res=[[60,60,60],[60,60,60],[60,60,60]];
+  for (const g of globes) buildGates(g);
   focus=start[0]; view=null; closeView();
   for (const g of globes){ for (let k=0;k<120;k++) step(g); computeBonus(g); thumb(g); }   // warm up so the factories are running
   toast("Train units and drag from your globe to a neighbour to attack it.");
@@ -1188,7 +1199,7 @@ function hatch(g,o,n){
   use(g); let made=0;
   for (let k=0;k<n*30 && made<n;k++){
     const a=rnd()*Math.PI*2, r=7.5+rnd()*7.5, x=Math.round(CORE_CX+Math.cos(a)*r), y=Math.round(CORE_CY+Math.sin(a)*r*.8), i=idx(x,y);
-    if (i>=0 && (type[i]===E||type[i]===STEAM||type[i]===SPORE)){ set(i,SWARM); shade[i]=o|(((rnd()*4)|0)<<2); made++; }
+    if (i>=0 && (type[i]===E||type[i]===STEAM||type[i]===SPORE)){ set(i,SWARM); shade[i]=o; made++; }
   }
   if (o===oc(g.owner)) g.units+=made;
   return made;
@@ -1206,11 +1217,66 @@ function train(g,p,n){
   for (let k=0;k<n;k++){ if (total(p)<UNIT_COST) break; if (!hatch(g,p,1)) break; payAny(p,UNIT_COST); made++; }
   return made;
 }
+// send n bugs through the gate to a linked globe: they fly to the gate and through it
 function send(from,to,p,n){
-  const g=globes[from]; n=Math.min(n, g.units); if (n<=0 || g.owner!==p || !g.nb.includes(to)) return 0;
-  n=takeSwarm(g,p,n); if (n<=0) return 0;
-  armies.push({from,to,owner:p,n,t:0});
+  const g=globes[from]; if (g.owner!==p) return 0;
+  const gt=g.gates.find(x=>x.to===to); if (!gt) return 0;
+  const A=g.T, Sh=g.Sh, own=[]; for (let i=0;i<GN;i++) if (A[i]===SWARM && (Sh[i]&3)===p && !(Sh[i]&4)) own.push(i);
+  n=Math.min(n,own.length);
+  for (let k=0;k<n;k++){ const q=k+((rnd()*(own.length-k))|0); const t=own[q]; own[q]=own[k]; own[k]=t; Sh[t]=p|4|(gt.slot<<3); }
   return n;
+}
+// ---- gates: doors in the glass between linked globes ----
+const MOV=new Uint8Array(64); [SAND,WATER,OIL,FIRE,SEED,SALT,BRINE,STEAM,ACID,SPORE,FUMES,LAVA].forEach(t=>MOV[t]=1);
+const HAZARD=new Uint8Array(64); [LAVA,ACID,FUMES].forEach(t=>HAZARD[t]=1);
+const GATE_HALF=.13;                                                    // half the gate's width, in radians
+function buildGates(g){
+  g.gates=[];
+  g.nb.forEach((n,slot)=>{
+    const o=globes[n], ang=Math.atan2((o.my-g.my)*2, o.mx-g.mx);         // the side of the globe facing that neighbour on the map
+    const cells=[], inner=new Set();
+    for (let y=0;y<G;y++) for (let x=0;x<G;x++){
+      const i=y*G+x; if (INSIDE[i]) continue;
+      let rim=false; for (const [dx,dy] of ORTH){ const j=idx(x+dx,y+dy); if (j>=0 && INSIDE[j]){ rim=true; } }
+      if (!rim) continue;
+      let d=Math.atan2(y+.5-CX, x+.5-CX)-ang; d=Math.atan2(Math.sin(d),Math.cos(d));
+      if (Math.abs(d)>GATE_HALF) continue;
+      cells.push(i); g.T[i]=GATE;
+      for (const [dx,dy] of ORTH){ const j=idx(x+dx,y+dy); if (j>=0 && INSIDE[j]) inner.add(j); }
+    }
+    g.gates.push({to:n, slot, ang, cells, inner:[...inner], open:false, cx:Math.round(CX-.5+Math.cos(ang)*(RAD+2)), cy:Math.round(CX-.5+Math.sin(ang)*(RAD+2)), flow:0, rate:0, flowT:E});
+  });
+}
+// carry what touches an open gate (and bugs sent that way) through to the linked globe
+function gatePass(g){
+  const home=oc(g.owner);
+  for (const gt of g.gates){
+    const P=globes[gt.to], pg=P.gates.find(x=>x.to===g.id);
+    if (pg) for (const i of gt.inner){
+      const t=g.T[i];
+      let go;
+      if (t===SWARM){ const sh=g.Sh[i]; go = (sh&3)===home && (sh&4) && ((sh>>3)&7)===gt.slot; }
+      else go = gt.open && (MOV[t] || (t===SOIL && g.L[i]>0)) && rnd()<.3;
+      if (!go) continue;
+      const n=pg.inner.length; let e=-1;
+      for (let k=0,s=(rnd()*n)|0;k<n;k++){ const c=pg.inner[(s+k)%n]; if (P.T[c]===E){ e=c; break; } }
+      if (e<0) continue;                                                  // no room on the other side
+      P.T[e]=t; P.Sh[e] = t===SWARM ? (g.Sh[i]&3) : g.Sh[i]; P.L[e]=g.L[i]; P.St[e]=P.tk;
+      g.T[i]=E; g.L[i]=0;
+      if (t===SWARM){
+        g.units=Math.max(0,g.units-1);
+        if (home===oc(P.owner)) P.units++;
+        else { P.foes++; if (P.owner===0 && tick-(P.alertT||-1e9)>600){ P.alertT=tick; toast(`${NAMES[home]||"Rebel"} bugs are coming through the gate into your ${gname(P)}!`); } }
+      } else { gt.flow++; gt.flowT=t; if (HAZARD[t]) P.lastIn=home; }
+    }
+    gt.rate=gt.rate*.97+gt.flow*.03; gt.flow=0;
+  }
+}
+// lava, acid and fumes touching a core wear it down; it falls to whoever poured them in
+const CORE_EDGE=[]; { const [x0,y0,x1,y1]=CORE_BOX; for (let y=y0-1;y<=y1+1;y++) for (let x=x0-1;x<=x1+1;x++) if (x<x0||x>x1||y<y0||y>y1) CORE_EDGE.push(y*G+x); }
+function coreHazards(g){
+  let n=0; for (const i of CORE_EDGE) if (HAZARD[g.T[i]]) n++;
+  if (n && rnd() < n/8){ g.coreHP--; if (g.lastIn!==undefined) g.hitBy=g.lastIn; g.burning=tick; }
 }
 // an army reaching a globe flies in from the side facing where it came from, a few bugs at a time
 function arrive(a){
@@ -1223,7 +1289,7 @@ function spawnQueue(g){
   const q=g.queue[0]; use(g);
   for (let tries=0;tries<8;tries++){
     const a=q.ang+(rnd()-.5)*.7, r=RAD-2-rnd()*3, x=Math.round(CX-.5+Math.cos(a)*r), y=Math.round(CX-.5+Math.sin(a)*r), i=idx(x,y);
-    if (i>=0 && (type[i]===E||type[i]===STEAM||type[i]===SPORE)){ set(i,SWARM); shade[i]=q.o|(((rnd()*4)|0)<<2); if (q.o===oc(g.owner)) g.units++; else g.foes++; break; }
+    if (i>=0 && (type[i]===E||type[i]===STEAM||type[i]===SPORE)){ set(i,SWARM); shade[i]=q.o; if (q.o===oc(g.owner)) g.units++; else g.foes++; break; }
   }
   if (--q.n<=0) g.queue.shift();
 }
@@ -1238,11 +1304,12 @@ const STRIKES=[
   {name:"☄️ Meteor", cost:[30,0,20], fn:g=>{ use(g); const cx=CORE_CX+((rnd()*9)|0)-4, cy=10;
       for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){ const i=idx(cx+dx,cy+dy); if (i>=0 && dx*dx+dy*dy<=10 && (type[i]===E||type[i]===STEAM||type[i]===SPORE)){ set(i,LAVA); life[i]=255; } } }},
 ];
+const FLOW_COL={[LAVA]:"#ff7a1a",[WATER]:"#4aa2ff",[SAND]:"#e6c27a",[ACID]:"#aaec32",[FIRE]:"#ffcc40",[STEAM]:"#e8eef8",[OIL]:"#8a5a2a",[BRINE]:"#3f9e98",[SALT]:"#eef0f6",[FUMES]:"#c4e250",[SPORE]:"#e4d4f4"};
 const costText=c=>c.map((v,j)=>v?`${v}${RES[j][0]}`:"").filter(Boolean).join(" ");
 // the core has fallen to the bugs of owner code o
 function capture(g,o){
   const was=g.owner, now = o===3 ? -1 : o;
-  g.owner=now; g.coreHP=CORE_HP>>1; g.hitBy=3; countSwarm(g);
+  g.owner=now; g.coreHP=CORE_HP>>1; g.hitBy=3; g.lastIn=undefined; for (const gt of g.gates) gt.open=false; countSwarm(g);
   if (now===0) toast(`You captured ${gname(g)}!`);
   else if (was===0) toast(`${now<0?"Rebels":NAMES[now]} captured your ${gname(g)}!`);
   else if (now>0) toast(`${NAMES[now]} captured ${gname(g)}`);
@@ -1293,6 +1360,12 @@ function aiThink(p){
   let best=null;
   const LV=AI_LEVELS[aiLevel];
   const youLead = LV.gang && owned(0).length > Math.max(owned(1).length, owned(2).length);   // gang up on a runaway leader
+  // open gates towards rivals' globes when lava or acid has pooled by them; keep the rest closed
+  for (const g of mine) for (const gt of g.gates){
+    const t=globes[gt.to], target = t.owner>=0 && t.owner!==p && (t.owner!==0 || (!LV.never && tick>=LV.grace));
+    let haz=0; if (target) for (const i of gt.inner) for (const d of [0,-G,-2*G,G,2*G]){ const j=i+d; if (j>=0 && j<GN && HAZARD[g.T[j]]) haz++; }
+    gt.open = target && haz>=3;
+  }
   // now and then, with money to spare, hit a rival's neighbouring globe with a strike
   if (rnd()<.2 && total(p) > reserve+120){
     const ts=globes.filter(t=>t.owner>=0 && t.owner!==p && t.nb.some(n=>globes[n].owner===p) && (t.owner!==0 || (!LV.never && tick>=LV.grace)));
@@ -1342,10 +1415,12 @@ function gameTick(){
     g.live=live.has(g.id);
     if (g.live){
       step(g);
+      gatePass(g);
+      if (tick%10===g.id%10) coreHazards(g);
       if (g.queue.length && tick%2===0) spawnQueue(g);
       if (tick%15===g.id%15) countSwarm(g);
       if (g.coreHP<=0) capture(g,g.hitBy);
-      else if (tick%120===g.id && g.coreHP<CORE_HP && !g.foes) g.coreHP++;   // the core heals while no enemies are inside
+      else if (tick%120===g.id && g.coreHP<CORE_HP && !g.foes && tick-(g.burning||-1e9)>300) g.coreHP++;   // the core heals while nothing attacks it
       credit(g.owner, g.got);
       for (let r=0;r<3;r++) g.rate[r]=g.rate[r]*.998 + g.got[r]*.002;
       if (tick%60===g.id%60) computeBonus(g);
@@ -1418,12 +1493,15 @@ function drawMap(){
     mx.fillStyle="#fff"; mx.textAlign="center"; mx.textBaseline="middle"; mx.fillText(label, x, y+rad+6);
     mx.font="11px system-ui"; mx.fillText(BIOMES[g.biome].icon, x+rad*.85, y-rad*.8);
   }
-  // marching armies
-  for (const a of armies){
-    const [x1,y1]=nodePos(globes[a.from]), [x2,y2]=nodePos(globes[a.to]);
-    const x=x1+(x2-x1)*a.t, y=y1+(y2-y1)*a.t;
-    mx.fillStyle=`rgb(${OWN_COL[a.owner].join(",")})`; mx.beginPath(); mx.arc(x,y,9,0,7); mx.fill();
-    mx.fillStyle="#0b1020"; mx.font="bold 10px system-ui"; mx.textAlign="center"; mx.textBaseline="middle"; mx.fillText(a.n,x,y+.5);
+  // gates: open ones glow on the globe's ring, and what pours through runs along the link
+  for (const g of globes) for (const gt of g.gates){
+    const [x1,y1]=nodePos(g);
+    if (gt.open){ mx.strokeStyle=`rgb(${(g.owner>=0?OWN_COL[g.owner]:NEU_COL).join(",")})`; mx.lineWidth=6; mx.beginPath(); mx.arc(x1,y1,rad+1.5,gt.ang-.32,gt.ang+.32); mx.stroke(); }
+    if (gt.rate>.02){
+      const [x2,y2]=nodePos(globes[gt.to]), c=FLOW_COL[gt.flowT]||"#c8d0e0";
+      mx.fillStyle=c; const k=Math.min(5,1+gt.rate*4);
+      for (let q=0;q<k;q++){ const f=((frame*.012)+q/k)%1, x=x1+(x2-x1)*f, y=y1+(y2-y1)*f; mx.beginPath(); mx.arc(x,y,3.5,0,7); mx.fill(); }
+    }
   }
   // drag-to-send preview
   if (drag){
@@ -1460,6 +1538,7 @@ mapC.addEventListener("pointerup",e=>{
   if (src.owner!==0){ toast("Drag from one of your own globes"); return; }
   if (!tgt || !src.nb.includes(tgt.id)){ toast("Drop on a globe linked to it"); return; }
   const n=send(src.id,tgt.id,0,Math.ceil(src.units/2));
+  if (n){ toast(`${n} bugs flying to the gate to ${gname(tgt)}`); return; }
   if (n) toast(`${n} units marching to ${gname(tgt)}`); else toast("No units there. Open the globe to train some.");
 });
 mapC.addEventListener("pointercancel",()=>drag=null);
@@ -1521,6 +1600,12 @@ function renderView(){
   ctx.globalCompositeOperation="source-over"; ctx.globalAlpha=1;
   ctx.restore();
   ctx.drawImage(shadeC,0,0);
+  for (const gt of g.gates){                                         // the gates in the glass: bright when open
+    const oc2 = gt.open ? (g.owner>=0?OWN_COL[g.owner]:NEU_COL) : [70,78,100];
+    ctx.strokeStyle=`rgb(${oc2.join(",")})`; ctx.lineWidth=Math.max(3,s*1.3); ctx.lineCap="round";
+    ctx.beginPath(); ctx.arc(c,c,RAD*s+ctx.lineWidth*.3,gt.ang-GATE_HALF,gt.ang+GATE_HALF); ctx.stroke();
+    if (gt.open){ ctx.globalAlpha=.35; ctx.lineWidth*=2.4; ctx.stroke(); ctx.globalAlpha=1; }
+  }
   if (preview){                                                   // shape preview while dragging a line or box
     ctx.strokeStyle="rgba(255,255,255,.85)"; ctx.lineWidth=Math.max(1,s*.5); ctx.setLineDash([s*2,s*2]);
     const {a,b}=preview; ctx.beginPath();
@@ -1552,7 +1637,9 @@ function refreshView(){
       <div class="row"><button class="b" data-train="5" ${total(0)<UNIT_COST?"disabled":""}>🪖 Hatch 5<small>${UNIT_COST} each, any 🔷🌿🍄</small></button><button class="b" data-train="20" ${total(0)<UNIT_COST?"disabled":""}>🪖 Hatch 20<small>${UNIT_COST*20}</small></button></div>
       <div class="lbl">Send units · <a href="#" id="sendToggle" style="color:var(--accent);text-transform:none;letter-spacing:0">${sendAll?"sending all":"sending half"}</a></div>`+
       g.nb.map(n=>{ const t=globes[n]; const who=t.owner===0?"yours":t.owner>0?NAMES[t.owner]:"neutral";
-        return `<div class="send"><span class="who">→ ${BIOMES[t.biome].icon} ${gname(t)} · ${who} · 🪖 ${t.units}${t.bonus>=.1?` ×${(1+t.bonus).toFixed(1)}`:""}</span><button class="b" data-send="${n}" ${g.units<1?"disabled":""}>Send ${sendN}</button></div>`; }).join(""));
+        const gt=g.gates.find(x=>x.to===n);
+        return `<div class="send"><span class="who">${BIOMES[t.biome].icon} ${gname(t)} · ${who} · 🪖 ${t.units}</span><button class="b ${gt.open?"on":""}" data-gate="${gt.slot}">${gt.open?"🚪 Open":"🚪 Closed"}</button><button class="b" data-send="${n}" ${g.units<1?"disabled":""}>Send ${sendN}</button></div>`; }).join("")
+      + `<div class="sub">An open gate lets whatever touches it pour through into that globe: sand, water, lava, acid downhill, steam and fire uphill. Your bugs use gates whenever you send them.</div>`);
   } else {
     const from=g.nb.filter(n=>globes[n].owner===0);
     setHTML($("army"), `<div class="lbl">Attack from your globes</div>` + (from.length ? from.map(n=>{ const s=globes[n];
@@ -1568,7 +1655,8 @@ $("army").addEventListener("click",e=>{
   const g=globes[view];
   if (b.id==="sendToggle"){ e.preventDefault(); sendAll=!sendAll; }
   else if (b.dataset.train){ const n=train(g,0,+b.dataset.train); if (n>1) toast(`Trained ${n} units`); }
-  else if (b.dataset.send){ const n=+b.dataset.send, k=send(g.id,n,0,sendAll?g.units:Math.ceil(g.units/2)); if (k) toast(`${k} units marching to ${gname(globes[n])}`); }
+  else if (b.dataset.send){ const n=+b.dataset.send, k=send(g.id,n,0,sendAll?g.units:Math.ceil(g.units/2)); if (k) toast(`${k} bugs flying to the gate to ${gname(globes[n])}`); }
+  else if (b.dataset.gate){ const gt=g.gates[+b.dataset.gate]; gt.open=!gt.open; toast(gt.open ? `Gate to ${gname(globes[gt.to])} open: what touches it pours through` : `Gate to ${gname(globes[gt.to])} closed`); }
   else if (b.dataset.strike){ const s=STRIKES[+b.dataset.strike]; if (canPay(0,s.cost)){ pay(0,s.cost); s.fn(g); toast(`${s.name} on ${gname(g)}`); } }
   else if (b.dataset.from){ const s=globes[+b.dataset.from], n=b.dataset.k==="a"?s.units:Math.ceil(s.units/2), k=send(s.id,g.id,0,n); if (k) toast(`${k} units marching on ${gname(g)}`); }
   refreshView(); drawHud();
