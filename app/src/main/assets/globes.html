@@ -163,7 +163,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
       <div class="row"><button class="b" data-shape="rect">▢ Box</button><button class="b" data-shape="frect">■ Fill</button></div>
       <div class="row"><button class="b" data-shape="pan"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/><path d="M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></svg>Move &amp; zoom</button></div>
     </div>
-    <div class="row sizeRow"><span id="sizeDot"><i></i></span><input id="size" type="range" min="0" max="5" value="1" aria-label="Brush size"></div>
+    <div class="row sizeRow"><span id="sizeDot"><i></i></span><input id="size" type="range" min="0" max="7" value="2" aria-label="Brush size"></div>
   </div>
 
   <div id="armyMenu" class="menu glass">
@@ -203,9 +203,9 @@ input[type=range]{width:100%;accent-color:var(--accent);height:30px}
 <script>
 "use strict";
 // =====================================================================
-//  Globe simulation: Sandfall's own element rules, on 80x80 round worlds
+//  Globe simulation: Sandfall's own element rules, on 112x112 round worlds
 // =====================================================================
-const G=80, W=G, H=G, N=G*G, GN=N, CX=40, RAD=38;
+const G=112, W=G, H=G, N=G*G, GN=N, CX=56, RAD=54;
 const E=0,WALL=1,SAND=2,WATER=3,OIL=4,FIRE=5,PLANT=6,SEED=7,SALT=8,SOIL=9,VIRUS=10,CLOUD=11,MAGMA=12,SHAKER=13,SPILL=14,TOXIN=15,BRINE=16,STEAM=17,SEEDER=18,ACID=19,VAT=20,SPORE=21,FUNGUS=22,MYCELIUM=23,FUMES=24,LAVA=25,GLASS=26,
       BOUND=27,CORE=28,REAPER=29,HARVEST=30,VENT=31,SPOUT=32,SWARM=33,GATE=34;
 const INFO = [
@@ -271,7 +271,7 @@ const rnd = Math.random;
 // swarm units: how fast attackers chew through things, and the core they fly at
 const CHEW=new Float32Array(64); CHEW[SAND]=CHEW[SOIL]=CHEW[SALT]=.08; CHEW[PLANT]=CHEW[SEED]=CHEW[FUNGUS]=.12; CHEW[VIRUS]=.1;
 CHEW[GLASS]=.01; CHEW[WALL]=.004; [CLOUD,SHAKER,SPILL,VAT,TOXIN,SEEDER,VENT,SPOUT,REAPER].forEach(t=>CHEW[t]=.01);
-const CORE_CX=40, CORE_CY=33;
+const CORE_CX=56, CORE_CY=46;
 const DIRK=[]; for (let k=0;k<8;k++) DIRK[(DY[k]+1)*3+(DX[k]+1)]=k;
 function dirTo(tx,ty){ const sx=tx>.5?1:tx<-.5?-1:0, sy=ty>.5?1:ty<-.5?-1:0; return sx||sy ? DIRK[(sy+1)*3+(sx+1)] : (rnd()*8)|0; }
 function set(i, t){
@@ -705,7 +705,7 @@ function stepWorld(){
           const tx=CORE_CX-x, ty=CORE_CY-y;
           let k;
           if (alarm && rnd()<.6) k=dirTo(cur.ax-x, cur.ay-y);                              // defenders hunt the invaders
-          else if (def) k = (tx*tx+ty*ty > (alarm ? 31 : 77) && rnd()<(alarm ? .8 : .6)) ? dirTo(tx,ty) : (rnd()*8)|0;
+          else if (def) k = (tx*tx+ty*ty > (alarm ? 61 : 151) && rnd()<(alarm ? .8 : .6)) ? dirTo(tx,ty) : (rnd()*8)|0;
           else k = rnd()<.7 ? dirTo(tx,ty) : (rnd()*8)|0;
           const j=idx(x+DX[k],y+DY[k]); if (j<0) break;
           const o=type[j];
@@ -1019,44 +1019,44 @@ const BIOMES={
 // production per tick of a fresh globe of each biome (measured), used until a globe has been seen live
 const BASE_RATE={ volcano:[.085,0,0], garden:[0,.07,0], fungus:[0,0,.12] };
 const CORE_HP=20;
-const CORE_BOX=[35,30,44,36];
+const CORE_BOX=[49,42,62,50];
 function newGlobe(id,biome){
   const g={id, biome, owner:-1, T:new Uint8Array(GN), Sh:new Uint8Array(GN), L:new Uint8Array(GN), St:new Uint16Array(GN), tk:1,
     got:[0,0,0], rate:BASE_RATE[biome].slice(), units:0, foes:0, ax:CORE_CX, ay:CORE_CY, coreHP:CORE_HP, hitBy:3, queue:[], bonus:0, bonusParts:"", inv:{}, live:false,
-    spoutRate:.045, ventRate:.04, cloudRate:.008, canvas:null, ctx:null, nb:[]};
+    spoutRate:.045, ventRate:.03, cloudRate:.008, canvas:null, ctx:null, nb:[]};
   use(g);
   for (let i=0;i<GN;i++){ type[i]=INSIDE[i]?E:BOUND; shade[i]=(rnd()*16)|0; }
   const fill=(x0,y0,x1,y1,t)=>{ for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++){ const i=y*G+x; if (INSIDE[i]) set(i,t); } };
   fill(...CORE_BOX,CORE);                       // the core: the globe's heart, which units defend
   if (biome==="volcano"){
-    fill(8,50,25,52,MAGMA);                     // magma ledge on the left
-    fill(15,20,16,20,SPOUT);                    // a small sand spout pours onto it and melts into lava
-    fill(50,69,55,71,REAPER);                   // reaper across the bowl, where the lava has cooled into glass
+    fill(11,70,35,73,MAGMA);                     // magma ledge on the left
+    fill(21,28,23,28,SPOUT);                    // a small sand spout pours onto it and melts into lava
+    fill(70,97,77,99,REAPER);                   // reaper across the bowl, where the lava has cooled into glass
     g.inv={[SAND]:60,[WALL]:15,[SPOUT]:4};   // a small factory to start: more spouts over the magma make much more
   } else if (biome==="garden"){
-    fill(15,25,24,25,CLOUD);                    // one small rain cloud to start
-    fill(12,67,68,78,PLANT);                    // a low plant bed
-    for (let i=65*G;i<GN-G;i++) if (type[i]===PLANT && (type[i+G]===BOUND||type[i-1]===BOUND||type[i+1]===BOUND)) set(i,SEEDER);   // seeder lining the bowl: the bed regrows after it is eaten
-    fill(19,64,23,66,REAPER); fill(57,64,61,66,REAPER);   // a reaper under each cloud: rain runs off it and plants grow up into it
+    fill(19,35,36,35,CLOUD);                    // one small rain cloud to start
+    fill(17,94,95,109,PLANT);                    // a low plant bed
+    for (let i=91*G;i<GN-G;i++) if (type[i]===PLANT && (type[i+G]===BOUND||type[i-1]===BOUND||type[i+1]===BOUND)) set(i,SEEDER);   // seeder lining the bowl: the bed regrows after it is eaten
+    fill(27,90,32,92,REAPER); fill(80,90,85,92,REAPER);   // a reaper under each cloud: rain runs off it and plants grow up into it
     g.inv={[WATER]:60,[WALL]:15,[CLOUD]:12};
   } else {
-    fill(36,75,41,75,VENT);                     // a small steam vent at the bottom
-    fill(26,61,27,62,MYCELIUM); fill(50,61,51,62,MYCELIUM);   // mycelium either side of the steam column
-    fill(42,71,45,75,REAPER);                   // right against the vent: grazes the mushrooms in its steam
+    fill(49,105,58,105,VENT);                     // a small steam vent at the bottom
+    fill(36,85,38,87,MYCELIUM); fill(70,85,72,87,MYCELIUM);   // mycelium either side of the steam column
+    fill(59,99,63,105,REAPER);                   // right against the vent: grazes the mushrooms in its steam
     g.inv={[WATER]:40,[WALL]:15,[VENT]:4,[REAPER]:6};   // another vent with a reaper beside it doubles the crop
   }
   return g;
 }
 function countG(g,t){ let n=0; const a=g.T; for (let i=0;i<GN;i++) if (a[i]===t) n++; return n; }
 
-// Defence bonus: what surrounds the core, in a ring up to 6 cells out
-const RING=[]; { const [x0,y0,x1,y1]=CORE_BOX; for (let y=y0-6;y<=y1+6;y++) for (let x=x0-6;x<=x1+6;x++) if (x<x0||x>x1||y<y0||y>y1) RING.push(y*G+x); }
+// Defence bonus: what surrounds the core, in a ring up to 8 cells out
+const RING=[]; { const [x0,y0,x1,y1]=CORE_BOX; for (let y=y0-8;y<=y1+8;y++) for (let x=x0-8;x<=x1+8;x++) if (x<x0||x>x1||y<y0||y>y1) RING.push(y*G+x); }
 function computeBonus(g){
   let wall=0, hot=0; const A=g.T;
   for (const i of RING){ const t=A[i];
     if (t===WALL) wall+=1; else if (t===GLASS) wall+=.7;
     else if (t===LAVA||t===MAGMA) hot+=2; else if (t===ACID) hot+=1.5; else if (t===FUMES) hot+=.5; }
-  const w=Math.min(.9, wall/80), h=Math.min(.9, hot/80);
+  const w=Math.min(.9, wall/160), h=Math.min(.9, hot/160);
   g.bonus=Math.min(1.5, w+h);
   g.bonusParts=[w>.04?`walls +${Math.round(w*100)}%`:"", h>.04?`heat & acid +${Math.round(h*100)}%`:""].filter(Boolean).join(", ");
 }
@@ -1099,6 +1099,7 @@ function thumb(g){
 // =====================================================================
 const NAMES=["You","Red","Green"], OWN_CSS=["var(--you)","var(--red)","var(--green)"];
 let globes=[], links=[], res=[], armies=[], running=true, view=null, focus=0, over=false, tick=0, lastHitPlayer={};
+const MAX_BUGS=250;                          // a globe holds at most this many of its own bugs
 const UNIT_COST=10;                          // one swarm bug, paid in any mix of resources, from the biggest stock
 const TRAVEL_TICKS=240;                       // 4 s per link
 const UPKEEP_TICKS=600, AI_TICKS=360;         // AIs decide every 6 s
@@ -1126,33 +1127,12 @@ function newGame(){
   over=false; tick=0; armies=[]; lastHitPlayer={};
   $("overlay").style.display="none";
   globes=[]; links=[];
-  const cols=2, rows=4, kinds=["volcano","garden","fungus"];
-  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++){
-    const id=r*cols+c;
-    const g=newGlobe(id, kinds[(id*7+((rnd()*3)|0))%3]);
-    g.mx=(c+.5)/cols + (rnd()-.5)*.1;
-    g.my=(r+.5)/rows + (rnd()-.5)*.07;
-    globes.push(g);
-  }
-  const link=(a,b)=>{ if (a===b || globes[a].nb.includes(b)) return; globes[a].nb.push(b); globes[b].nb.push(a); links.push([a,b]); };
-  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++){
-    const id=r*cols+c;
-    if (c<cols-1 && rnd()<.85) link(id,id+1);
-    if (r<rows-1 && rnd()<.85) link(id,id+cols);
-    if (r<rows-1 && c<cols-1 && rnd()<.22) link(id,id+cols+1);
-    if (r<rows-1 && c>0 && rnd()<.22) link(id,id+cols-1);
-  }
-  for (const g of globes){
-    if (g.nb.length<2){ const c=g.id%cols, r=(g.id/cols)|0; const opts=[]; if(c<cols-1)opts.push(g.id+1); if(c>0)opts.push(g.id-1); if(r<rows-1)opts.push(g.id+cols); if(r>0)opts.push(g.id-cols);
-      for (const o of opts){ if (g.nb.length>=2) break; link(g.id,o); } }
-  }
-  for(;;){
-    const seen=new Set([0]), q=[0]; while(q.length){ const a=q.pop(); for (const b of globes[a].nb) if(!seen.has(b)){ seen.add(b); q.push(b); } }
-    if (seen.size===globes.length) break;
-    const a=[...seen][(rnd()*seen.size)|0]; const c=a%cols;
-    for (const o of [a+1,a-1,a+cols,a-cols]){ if (o>=0 && o<globes.length && !seen.has(o) && Math.abs((o%cols)-c)<=1){ link(a,o); break; } }
-  }
-  const start=[6+((rnd()*2)|0), 0, 3], startBiome=["volcano","garden","fungus"];
+  // four globes in a square, linked in a ring: top-left (you), top-right (Green), bottom-left (Red), bottom-right (neutral)
+  const kinds=["volcano","garden","fungus"];
+  for (let id=0;id<4;id++){ const g=newGlobe(id, kinds[(rnd()*3)|0]); g.mx=id%2; g.my=(id/2)|0; globes.push(g); }
+  const link=(a,b)=>{ globes[a].nb.push(b); globes[b].nb.push(a); links.push([a,b]); };
+  link(0,1); link(0,2); link(1,3); link(2,3);
+  const start=[0, 2, 1], startBiome=["volcano","garden","fungus"];
   start.forEach((id,p)=>{ const old=globes[id], g=newGlobe(id,startBiome[p]); Object.assign(g,{mx:old.mx,my:old.my,nb:old.nb}); g.owner=p; globes[id]=g; });
   for (const g of globes) hatch(g, g.owner<0?3:g.owner, g.owner<0 ? 8+((rnd()*12)|0) : 20);
   res=[[60,60,60],[60,60,60],[60,60,60]];
@@ -1198,7 +1178,7 @@ function countSwarm(g){
 function hatch(g,o,n){
   use(g); let made=0;
   for (let k=0;k<n*30 && made<n;k++){
-    const a=rnd()*Math.PI*2, r=7.5+rnd()*7.5, x=Math.round(CORE_CX+Math.cos(a)*r), y=Math.round(CORE_CY+Math.sin(a)*r*.8), i=idx(x,y);
+    const a=rnd()*Math.PI*2, r=10.5+rnd()*10.5, x=Math.round(CORE_CX+Math.cos(a)*r), y=Math.round(CORE_CY+Math.sin(a)*r*.8), i=idx(x,y);
     if (i>=0 && (type[i]===E||type[i]===STEAM||type[i]===SPORE)){ set(i,SWARM); shade[i]=o; made++; }
   }
   if (o===oc(g.owner)) g.units+=made;
@@ -1214,7 +1194,7 @@ function takeSwarm(g,o,n){
 }
 function train(g,p,n){
   let made=0;
-  for (let k=0;k<n;k++){ if (total(p)<UNIT_COST) break; if (!hatch(g,p,1)) break; payAny(p,UNIT_COST); made++; }
+  for (let k=0;k<n;k++){ if (total(p)<UNIT_COST || g.units>=MAX_BUGS) break; if (!hatch(g,p,1)) break; payAny(p,UNIT_COST); made++; }
   return made;
 }
 // send n bugs through the gate to a linked globe: they fly to the gate and through it
@@ -1229,7 +1209,7 @@ function send(from,to,p,n){
 // ---- gates: doors in the glass between linked globes ----
 const MOV=new Uint8Array(64); [SAND,WATER,OIL,FIRE,SEED,SALT,BRINE,STEAM,ACID,SPORE,FUMES,LAVA].forEach(t=>MOV[t]=1);
 const HAZARD=new Uint8Array(64); [LAVA,ACID,FUMES].forEach(t=>HAZARD[t]=1);
-const GATE_HALF=.13;                                                    // half the gate's width, in radians
+const GATE_HALF=.1;                                                    // half the gate's width, in radians
 function buildGates(g){
   g.gates=[];
   g.nb.forEach((n,slot)=>{
@@ -1296,13 +1276,13 @@ function spawnQueue(g){
 // ---- strikes: drop elements into a neighbouring globe ----
 function topCell(g,x){ for (let y=0;y<G;y++){ const i=y*G+x; if (g.T[i]!==BOUND) return g.T[i]===E ? i : -1; } return -1; }   // first cell inside the globe, if open
 const STRIKES=[
-  {name:"🔥 Fire rain", cost:[15,10,0], fn:g=>{ use(g); for (let n=0;n<26;n++){ const i=topCell(g,10+((rnd()*60)|0)); if (i<0) continue; set(i,OIL); const j=i+G; if (type[j]===E) set(j,OIL); const k=i+1; if (type[k]===E) set(k,FIRE); } }},
-  {name:"🧪 Acid rain", cost:[0,25,0], fn:g=>{ use(g); for (let n=0;n<40;n++){ const i=topCell(g,8+((rnd()*64)|0)); if (i>=0) set(i,ACID); } }},
+  {name:"🔥 Fire rain", cost:[15,10,0], fn:g=>{ use(g); for (let n=0;n<36;n++){ const i=topCell(g,14+((rnd()*84)|0)); if (i<0) continue; set(i,OIL); const j=i+G; if (type[j]===E) set(j,OIL); const k=i+1; if (type[k]===E) set(k,FIRE); } }},
+  {name:"🧪 Acid rain", cost:[0,25,0], fn:g=>{ use(g); for (let n=0;n<55;n++){ const i=topCell(g,11+((rnd()*90)|0)); if (i>=0) set(i,ACID); } }},
   {name:"🦠 Virus", cost:[0,0,25], fn:g=>{ use(g); const food=[]; for (let i=0;i<GN;i++) if (type[i]===PLANT||type[i]===FUNGUS) food.push(i);
-      const c = food.length ? food[(rnd()*food.length)|0] : idx(CORE_CX, 56), cx=c%G, cy=(c/G)|0;
+      const c = food.length ? food[(rnd()*food.length)|0] : idx(CORE_CX, 78), cx=c%G, cy=(c/G)|0;
       for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){ const i=idx(cx+dx,cy+dy); if (i>=0 && (type[i]===E||type[i]===WATER||type[i]===PLANT||type[i]===FUNGUS) && rnd()<.5) set(i,VIRUS); } }},
-  {name:"☄️ Meteor", cost:[30,0,20], fn:g=>{ use(g); const cx=CORE_CX+((rnd()*9)|0)-4, cy=10;
-      for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){ const i=idx(cx+dx,cy+dy); if (i>=0 && dx*dx+dy*dy<=10 && (type[i]===E||type[i]===STEAM||type[i]===SPORE)){ set(i,LAVA); life[i]=255; } } }},
+  {name:"☄️ Meteor", cost:[30,0,20], fn:g=>{ use(g); const cx=CORE_CX+((rnd()*11)|0)-5, cy=14;
+      for (let dy=-4;dy<=4;dy++) for (let dx=-4;dx<=4;dx++){ const i=idx(cx+dx,cy+dy); if (i>=0 && dx*dx+dy*dy<=17 && (type[i]===E||type[i]===STEAM||type[i]===SPORE)){ set(i,LAVA); life[i]=255; } } }},
 ];
 const FLOW_COL={[LAVA]:"#ff7a1a",[WATER]:"#4aa2ff",[SAND]:"#e6c27a",[ACID]:"#aaec32",[FIRE]:"#ffcc40",[STEAM]:"#e8eef8",[OIL]:"#8a5a2a",[BRINE]:"#3f9e98",[SALT]:"#eef0f6",[FUMES]:"#c4e250",[SPORE]:"#e4d4f4"};
 const costText=c=>c.map((v,j)=>v?`${v}${RES[j][0]}`:"").filter(Boolean).join(" ");
@@ -1456,12 +1436,12 @@ function layout(){
   const dpr=Math.min(devicePixelRatio||1,2.5);
   mapC.width=innerWidth*dpr; mapC.height=innerHeight*dpr; mapC.style.width=innerWidth+"px"; mapC.style.height=innerHeight+"px";
   const top=$("hud").getBoundingClientRect().bottom+14, bottom=innerHeight-INS.b-12;
-  const w=innerWidth, h=bottom-top, rad=Math.min(w/2.4, h/4)*.3;
+  const w=innerWidth, h=bottom-top, rad=Math.min(w*.2, h*.16);
   mapGeom={dpr, top, w, h, rad, pad:rad*1.6};
   if (view!==null){ fitView(); placeBubbles(); }
 }
 addEventListener("resize",layout);
-function nodePos(g){ const m=mapGeom; return [m.pad + g.mx*(m.w-2*m.pad), m.top + m.pad*.6 + g.my*(m.h-1.4*m.pad)]; }
+function nodePos(g){ const m=mapGeom; return [m.w*(.27+.46*g.mx), m.top + m.h*(.25+.48*g.my)]; }   // the four globes in a square
 
 let drag=null;   // {from, x, y}
 function drawMap(){
