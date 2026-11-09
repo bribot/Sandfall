@@ -652,7 +652,7 @@ function stepWorld(){
             }
             if (hot && rnd()<.6){ set(i,E); break; }
           }
-          if (life[i]===0 && fungusK>0 && rnd() < .004){                          // starving: dies, leaving soil, nothing or (rarely) a seed
+          if (life[i]===0 && fungusK>0 && rnd() < .0006){                         // starving: slowly dies (about a minute), leaving soil, nothing or (rarely) a seed
             const r=rnd(); set(i, r<.7 ? E : r<.93 ? SOIL : SEED); if (type[i]===SOIL) life[i]=2; break;   // nothing 70%, crumbly soil 23%, seed 7%
           }
           if (rnd()<.35){
