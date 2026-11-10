@@ -270,6 +270,7 @@ body.land .sl,body.land .sizeRow{touch-action:none}
       <option value="B2/S">Virus: Seeds</option>
       <option value="B368/S245">Virus: Morley</option>
     </select>
+    <button class="b" id="lightningBtn">⚡ Lightning: on</button>
   </div>
   <div id="challengeOnly" class="hidden" style="display:flex;flex-direction:column;gap:9px">
     <button class="b" id="reset">↺ Reset level</button>
@@ -472,7 +473,72 @@ function corrode(i,x,y,diluted){
   return false;
 }
 const SEEP = [0, .0005, .002, .03, .06];   // chance per tick that water swaps with soil or sand below it, by how many of its 4 neighbours are soil or sand
-const FUMES_FRAC = .4;   // share of acid boiled on magma that becomes toxic fumes (the rest just evaporates)
+const FUMES_FRAC = .4;
+
+// --- explosions: fumes touching fire, magma or lava blow up; burning oil now and then pops ---
+const FLY = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,ACID,LAVA].forEach(t=>FLY[t]=1);   // thrown by a blast
+let shake = 0;                      // screen shake, in cells; fades each frame
+function blast(cx,cy,r){
+  const r2=r*r, fly=[];
+  for (let dy=-r-3; dy<=r+3; dy++) for (let dx=-r-3; dx<=r+3; dx++){
+    const d2=dx*dx+dy*dy; if (d2>(r+3)*(r+3)) continue;
+    const j=idx(cx+dx,cy+dy); if (j<0) continue;
+    const t=type[j];
+    if (d2<=r2){
+      if (t===FUMES || t===STEAM || t===SPORE || (t===E && d2<=r2*.6)) set(j,FIRE);       // the fireball (fumes caught in it flash too)
+      else if (FLAMMABLE[t]) set(j,FIRE);
+      else if (t===GLASS && rnd()<.6) vanish(j);                                           // glass shatters
+      else if (t===SOIL && rnd()<.5) life[j]=2;                                            // soil crumbles loose
+      else if (FLY[t] || (t===SOIL && life[j])) fly.push([d2,j,dx,dy]);
+    } else if (FLY[t] || (t===SOIL && life[j])) fly.push([d2,j,dx,dy]);
+  }
+  fly.sort((a,b)=>b[0]-a[0]);                                                              // outermost first, so the inner ones have room
+  for (const [d2,j,dx,dy] of fly){
+    const d=Math.sqrt(d2)||1, ux=dx/d, uy=dy/d, push=2+((r+3-d)*.9|0);
+    let to=-1;
+    for (let k=1;k<=push;k++){ const t2=idx(Math.round(cx+dx+ux*k), Math.round(cy+dy+uy*k)); if (t2<0 || type[t2]!==E) break; to=t2; }
+    if (to>=0){ swap(j,to); }
+  }
+  shake=Math.min(5, shake+r*.6);
+}
+
+// --- lightning: clouds, and big steam clouds, now and then strike the ground below ---
+let lightningOn = true;
+const bolts = [];                   // flashes on screen: {pts:[[x,y]...], t}
+function bolt(x0,y0){
+  const gx=DX[grav], gy=DY[grav], px=DX[(grav+2)&7], py=DY[(grav+2)&7];
+  let x=x0+gx, y=y0+gy; const pts=[[x0,y0]];
+  for (let n=0; n<H*2; n++){
+    const j=idx(x,y);
+    if (j<0){ pts.push([x,y]); break; }
+    const t=type[j];
+    let air = t===E || t===STEAM || t===FUMES || t===SPORE || t===CLOUD || t===FIRE;
+    if (!air && (t===WATER || t===SAND || t===SEED || t===SALT)){                     // passes through falling rain and grains
+      let open=0; for (const [dx,dy] of ORTH){ const k=idx(x+dx,y+dy); if (k>=0 && (type[k]===E||type[k]===STEAM)) open++; }
+      air = open>=3;
+    }
+    if (!air){ pts.push([x,y]); strike(j,x,y); break; }
+    if (n%3===0) pts.push([x,y]);
+    const r=rnd(); if (r<.3){ x+=px; y+=py; } else if (r<.6){ x-=px; y-=py; }                // jagged
+    x+=gx; y+=gy;
+  }
+  bolts.push({pts, t:9, branch: pts.length>4 ? (pts.length*rnd()*.6|0)+1 : 0});
+}
+function strike(j,x,y){
+  const t=type[j], gx=DX[grav], gy=DY[grav], px=DX[(grav+2)&7], py=DY[(grav+2)&7];
+  if (t===SAND){                                                                           // fuses a streak of glass down into the sand
+    for (const side of [0, rnd()<.5?1:-1]){
+      let cx=x+px*side, cy=y+py*side;
+      for (let n=0;n<10;n++){ const k=idx(cx,cy); if (k<0 || (type[k]!==SAND && type[k]!==GLASS)) break; set(k,GLASS);
+        cx+=gx; cy+=gy; const r=rnd(); if (r<.25){ cx+=px; cy+=py; } else if (r<.5){ cx-=px; cy-=py; } }
+    }
+  } else if (t===WATER || t===BRINE){                                                      // flashes water to steam
+    for (let dy=-2;dy<=2;dy++) for (let dx=-2;dx<=2;dx++){ const k=idx(x+dx,y+dy); if (k>=0 && (type[k]===WATER||type[k]===BRINE) && rnd()<.6) set(k,STEAM); }
+  } else if (FLAMMABLE[t]){                                                                // sets things alight
+    for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++){ const k=idx(x+dx,y+dy); if (k>=0 && FLAMMABLE[type[k]]) set(k,FIRE); }
+  } else if (t===SOIL){ blast(x,y,2); }                                                    // blasts a small crater
+  const a=idx(x-gx,y-gy); if (a>=0 && type[a]===E) set(a,FIRE);                            // a spark where it hit
+}   // share of acid boiled on magma that becomes toxic fumes (the rest just evaporates)
 
 // Every few frames, find connected pieces of soil (diagonals count). Pieces smaller than
 // LOOSE_SOIL cells are marked loose (life=1, which moves with the cell) and fall; bigger ones stay rigid.
@@ -608,6 +674,9 @@ function stepWorld(){
           // acid boiled into a gas: eats like acid, drifts like steam, fades away (never turns back into acid)
           if (life[i]<=1){ set(i,E); break; }
           life[i]--;
+          let boom=false;
+          for (const [dx,dy] of ORTH){ const j=idx(x+dx,y+dy); if (j>=0 && (type[j]===FIRE||type[j]===MAGMA||type[j]===LAVA)){ boom=true; break; } }
+          if (boom && rnd()<.5){ blast(x,y,3+((rnd()*3)|0)); break; }                     // fumes touching fire blow up
           if (!corrode(i,x,y,E)) steamMove(i,x,y,up);
           break;
         }
@@ -635,6 +704,10 @@ function stepWorld(){
           const dec = (steamDec|0) + (rnd() < steamDec%1 ? 1 : 0);
           if (life[i]<=dec){ set(i, rnd()<steamWater ? WATER : E); break; }   // condenses into rain (or just fades)
           life[i]-=dec;
+          if (lightningOn && !challenge && rnd()<.00006){                         // a big, dense steam cloud may throw lightning
+            let n=0; for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){ const k=idx(x+dx,y+dy); if (k>=0 && type[k]===STEAM) n++; }
+            if (n>=30) bolt(x,y);
+          }
           let grew=false;
           for (const [dx,dy] of ORTH){                                   // plants can drink the steam and grow into it
             const j=idx(x+dx,y+dy);
@@ -714,7 +787,7 @@ function stepWorld(){
           for (const [dx,dy] of ORTH){
             const j=idx(x+dx,y+dy); if(j<0) continue;
             const f=FLAMMABLE[type[j]];
-            if (f){ fuel=true; if (rnd()<f){ const was=type[j]; set(j,FIRE); if(was===OIL) life[j]+=12; } }
+            if (f){ fuel=true; if (rnd()<f){ const was=type[j]; set(j,FIRE); if(was===OIL){ life[j]+=12; if (rnd()<.006){ blast(x+dx,y+dy,2); break; } } } }   // burning oil now and then pops
             else if (type[j]===SALT || type[j]===BRINE) shade[i] |= 16;
           }
           if (fuel && rnd()<.7) break;      // flames cling to whatever they're burning
@@ -730,7 +803,7 @@ function stepWorld(){
           }
           break;
         }
-        case CLOUD:  emit(i,x,y,WATER,.06,grav); break;
+        case CLOUD:  emit(i,x,y,WATER,.06,grav); if (lightningOn && !challenge && rnd()<.000002) bolt(x,y); break;
         case SHAKER: emit(i,x,y,SALT,.05,grav); break;
         case VAT:    emit(i,x,y,ACID,.05,grav); break;
         case SEEDER: {                                                   // grows plants into water that touches it
@@ -1063,6 +1136,9 @@ function render(){
   const cw = cv.width, ch = cv.height;
   ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
   ctx.drawImage(bgC,0,0);
+  const sc = cw / W;
+  ctx.save();
+  if (shake > .05){ ctx.translate((rnd()-.5)*2*shake*sc, (rnd()-.5)*2*shake*sc); shake *= .82; } else shake = 0;   // explosions shake the world
   // soft shadow of everything for depth
   shadX.clearRect(0,0,W,H); shadX.filter="blur(1.2px) brightness(0)"; shadX.drawImage(simC,0,0);
   ctx.imageSmoothingEnabled = true;
@@ -1079,6 +1155,20 @@ function render(){
   ctx.globalAlpha = .75; ctx.drawImage(blurC,0,0,cw,ch);
   ctx.globalAlpha = .6;  ctx.drawImage(haloC,0,0,cw,ch);
   ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+  // lightning bolts: a bright jagged line with a glow, and a flash over everything
+  for (let b=bolts.length-1; b>=0; b--){
+    const bo=bolts[b], a=bo.t/9;
+    const line=(pts,w)=>{ ctx.beginPath(); pts.forEach(([x,y],k)=>k?ctx.lineTo((x+.5)*sc,(y+.5)*sc):ctx.moveTo((x+.5)*sc,(y+.5)*sc)); ctx.lineWidth=w; ctx.stroke(); };
+    ctx.lineJoin="round"; ctx.lineCap="round";
+    ctx.strokeStyle=`rgba(120,160,255,${.18*a})`; line(bo.pts, sc*9);
+    ctx.strokeStyle=`rgba(160,200,255,${.45*a})`; line(bo.pts, sc*3.5);
+    ctx.strokeStyle=`rgba(255,255,255,${a})`; line(bo.pts, Math.max(1.5,sc*1.4));
+    if (bo.branch){ const k=bo.branch, [bx,by]=bo.pts[k]; const br=[[bx,by]]; let x=bx, y=by; for (let n=0;n<4;n++){ x+=DX[grav]*3+((rnd()*5)|0)-2; y+=DY[grav]*3+((rnd()*3)|0)-1; br.push([x,y]); }
+      ctx.strokeStyle=`rgba(220,235,255,${.7*a})`; line(br, Math.max(1,sc*.8)); }
+    if (bo.t>6){ ctx.fillStyle=`rgba(200,220,255,${.12*(bo.t-6)})`; ctx.fillRect(-cw,-ch,cw*3,ch*3); }
+    if (--bo.t<=0) bolts.splice(b,1);
+  }
+  ctx.restore();
   ctx.drawImage(vigC,0,0);
   // shape preview while dragging a line or box
   if (preview){
@@ -1291,10 +1381,10 @@ const GUIDE = {
   [SAND]:"Falls and piles up. Sinks through water and oil.",
   [WATER]:"Flows and spreads. Puts out fire and boils into steam on fire or magma. Dissolves salt into brine. Slowly erodes soil into sand.",
   [BRINE]:"Salty water. Heavier than water, so it sinks. Withers plants and kills virus. Boils into steam, leaving some salt behind (with a yellow flame). Acid turns it back into water.",
-  [OIL]:"Floats on water. Very flammable, and burning oil lasts long.",
+  [OIL]:"Floats on water. Very flammable, and burning oil lasts long and now and then pops in a small explosion.",
   [ACID]:"A little heavier than water. Dissolves salt into nothing and turns brine into water. Quickly eats plants, seeds, spores and fungus; slowly eats sand, soil and virus; never walls or generators. Gets used up as it eats; water slowly dilutes it. Boils into toxic fumes on magma.",
   [FIRE]:"Rises and burns out. Clings to and burns plants, oil, seeds, virus, spores and fungus. Burns yellow next to salt.",
-  [STEAM]:"Floats up and spreads like a gas along ceilings, then cools and rains down as water (or fades). Plants touching it may grow into it.",
+  [STEAM]:"Floats up and spreads like a gas along ceilings, then cools and rains down as water (or fades). Plants touching it may grow into it. A big, dense steam cloud may throw lightning.",
   [PLANT]:"Drinks water and grows into it. Won't drink brine.",
   [SEED]:"Falls. Sprouts into a plant when it touches water.",
   [SALT]:"Piles up. Dissolves in water into brine. Kills virus, spores and (slowly) fungus. Melts on magma. Makes flames burn yellow.",
@@ -1303,13 +1393,13 @@ const GUIDE = {
   [SPORE]:"Glowing dust that floats and slowly sinks, fading after 10-20 s. Turns steam into fungus and can sprout mushrooms on plants and seeds. Killed by fire, magma, water, acid, salt and brine.",
   [FUNGUS]:"Mushrooms. Grow into steam, eat plants and virus, slowly grow into water, and puff out spores. Need food (steam, water, plants or virus) within ~30 cells or they die, leaving nothing, soil or a seed. Heat dries them out; fire, acid and salt kill them.",
   [WALL]:"Blocks everything. Nothing destroys it.",
-  [CLOUD]:"Rains water.", [MAGMA]:"Spews fire. Sets anything flammable touching it alight, boils water and brine, melts salt, boils acid into toxic fumes and melts sand into lava.",
+  [CLOUD]:"Rains water, and now and then throws lightning (sandbox only; switch it off in the options): it fuses sand into glass, flashes water to steam, sets plants alight and blasts craters in soil.", [MAGMA]:"Spews fire. Sets anything flammable touching it alight, boils water and brine, melts salt, boils acid into toxic fumes and melts sand into lava.",
   [SHAKER]:"Sprinkles salt.", [SPILL]:"Leaks oil.", [TOXIN]:"Breeds virus around it.",
   [SEEDER]:"Turns water touching it into plants.", [VAT]:"Drips acid.",
   [MYCELIUM]:"Releases spores into the air. Indestructible: only the Eraser removes it.",
   [LAVA]:"Molten sand: sand touching magma melts into it. A thick, glowing liquid that oozes slowly downhill. Sets flammable things alight, boils water and brine, boils acid into fumes. Hot lava throws off the odd flame. Water quenches it straight into glass; otherwise it cools into glass after about 10 s. Lava on or above magma stays molten, since heat rises; lava that flows away cools.",
   [GLASS]:"Cooled lava. A solid, see-through block. Acid and fumes can't eat it, so it makes acid-proof containers. Magma melts it back into lava, even under water.",
-  [FUMES]:"Toxic gas made when acid touches magma (40% of the acid becomes fumes, the rest evaporates). Floats and spreads like steam and eats like acid: dissolves salt, turns brine into water, eats plants, seeds, spores and fungus fast and sand, soil and virus slowly. Gets used up as it eats and fades after a few seconds; it never turns back into acid.",
+  [FUMES]:"Toxic gas made when acid touches magma (40% of the acid becomes fumes, the rest evaporates). Floats and spreads like steam and eats like acid: dissolves salt, turns brine into water, eats plants, seeds, spores and fungus fast and sand, soil and virus slowly. Gets used up as it eats and fades after a few seconds; it never turns back into acid. Explodes when it touches fire, magma or lava: the blast throws loose things outward, shatters glass, crumbles soil, and sets off the rest of the cloud.",
   [E]:"Erases anything, generators included.",
 };
 function buildGuide(){
@@ -1492,6 +1582,11 @@ $("fungusSpeed").oninput=()=>{ fungusLevel=+$("fungusSpeed").value; applyNature(
 $("steamPct").oninput=()=>{ steamPct=+$("steamPct").value; applyNature(); try{ localStorage.setItem("sandfall.steamPct",steamPct); }catch(e){} };
 $("steamTime").oninput=()=>{ steamLevel=+$("steamTime").value; applyNature(); try{ localStorage.setItem("sandfall.steamTime",steamLevel); }catch(e){} };
 applyEdges();
+function showLightning(){ $("lightningBtn").textContent = `⚡ Lightning: ${lightningOn?"on":"off"}`; $("lightningBtn").classList.toggle("on", lightningOn); }
+try{ lightningOn = localStorage.getItem("sandfall.lightning")!=="off"; }catch(e){}
+showLightning();
+$("lightningBtn").onclick=()=>{ lightningOn=!lightningOn; showLightning(); try{ localStorage.setItem("sandfall.lightning", lightningOn?"on":"off"); }catch(e){}
+  toast(lightningOn ? "Lightning on: clouds and big steam clouds now and then strike" : "Lightning off"); };
 
 // --- tilt with the phone's motion sensor (the app is locked to portrait) ---
 let tiltOn=false;

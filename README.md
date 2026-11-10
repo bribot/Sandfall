@@ -29,9 +29,9 @@ The whole screen is the play area, held upright (portrait).
 | Brine | Salty water. Sinks under fresh water, withers plants, kills virus. Boils into steam, leaving some salt behind (with a yellow flame) |
 | Lava | Molten sand: sand touching magma melts into it, and a sand pile on a vent melts down into a lava pool. A thick, glowing liquid that oozes slowly downhill; stays molten near magma. Sets flammable things alight and throws off the odd flame while hot, boils water and brine, boils acid into fumes. Water quenches it into glass; otherwise it cools into glass after about 10-13 s |
 | Glass | Cooled lava. A solid, see-through block that acid and fumes can't eat. Magma melts it back into lava, even under water |
-| Fumes | Toxic gas made when acid touches magma (40% of the boiled acid; the rest evaporates). Floats and spreads like steam and eats like acid, then fades away after a few seconds. Never turns back into acid |
+| Fumes | Toxic gas made when acid touches magma (40% of the boiled acid; the rest evaporates). Floats and spreads like steam and eats like acid, then fades away after a few seconds. Never turns back into acid. **Explodes** when it touches fire, magma or lava: the blast throws loose things outward, shatters glass, crumbles soil, shakes the screen and sets off the rest of the cloud |
 | Steam | Floats up and spreads out like a gas, sliding along ceilings, then cools and rains back down as water (or fades away). Plants it touches may grow into it |
-| Oil | Floats on water, very flammable |
+| Oil | Floats on water, very flammable; burning oil now and then pops in a small explosion |
 | Acid | Sinks in water. Dissolves salt into nothing, turns brine back into water, quickly eats plants, seeds, spores and fungus, slowly eats sand, soil and virus (never walls or generators). Gets used up as it eats, and water slowly dilutes it. Boils into toxic fumes on magma |
 | Fire | Rises and burns out. Clings to and burns plants, oil, seeds and virus |
 | Plant | Drinks neighbouring water and grows into it. Won't drink brine |
@@ -48,6 +48,7 @@ The whole screen is the play area, held upright (portrait).
 | Seeder | Drops nothing. Water that touches it turns into plants, which then keep growing into nearby water |
 
 - **Nature sliders:** *Virus eats plants* goes from never to instantly; *Steam turns to water* goes from about half a second to 30 seconds; *Steam that becomes water* sets how much of it comes back as water (0–100%, default 60%) instead of vanishing. Like screen edges, they only apply in the sandbox; challenges use the defaults.
+- **Lightning:** clouds (and big, dense steam clouds) now and then throw a bolt at whatever is below: it fuses sand into a streak of glass, flashes water to steam, sets plants and oil alight and blasts a small crater in soil. Sandbox only; switch it off in the options (⚡ Lightning).
 - **Screen edges:** *Solid* edges act like walls. With *Open* edges, anything that moves off the screen is gone for good. Challenges always use solid edges.
 - **Tilt:** ⟲ ⟳ rotate gravity in 45° steps, or turn on **📱 Tilt phone** so gravity follows the way you hold the device.
 - **Challenges:** pick a puzzle in the options menu. Each one gives you a limited supply of certain elements to reach a goal. Tap the goal card to hide or show the hint.
