@@ -471,7 +471,7 @@ function corrode(i,x,y,diluted){
   }
   return false;
 }
-const SEEP = [0, .002, .01, .3, .5];     // chance per tick that water swaps with soil or sand below it, by how many of its 4 neighbours are soil or sand
+const SEEP = [0, .0005, .002, .03, .06];   // chance per tick that water swaps with soil or sand below it, by how many of its 4 neighbours are soil or sand
 const FUMES_FRAC = .4;   // share of acid boiled on magma that becomes toxic fumes (the rest just evaporates)
 
 // Every few frames, find connected pieces of soil (diagonals count). Pieces smaller than
@@ -531,7 +531,7 @@ function stepWorld(){
             const j=idx(x+dx,y+dy); if(j<0) continue;
             const o=type[j];
             if (o===FIRE){ if (rnd()<.5) set(j,E); set(i,STEAM); break; }   // boils, and may put the fire out
-            else if (o===SOIL && rnd()<.004) set(j,SAND);
+            else if (o===SOIL && rnd()<.001) set(j,SAND);                  // slowly erodes soil into sand
           }
           if (type[i]===WATER){                                          // trickles down through soil and sand, faster the more it's buried in them
             let n=0;
