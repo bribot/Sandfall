@@ -375,8 +375,14 @@ function canDisplace(s, o){
 function tryDir(i,x,y,k){
   const j = idx(x+DX[k&7], y+DY[k&7]);
   if (j<0){ if (edgesOpen){ vanish(i); return OUT; } return -1; }
-  if (canDisplace(type[i], type[j])) { swap(i,j); return j; }
+  if (canDisplace(type[i], type[j]) && !(type[j]===WATER && (type[i]===SAND||type[i]===SOIL) && buried(j))) { swap(i,j); return j; }
   return -1;
+}
+// water held in the pores of soil or sand (3+ of its 4 neighbours): grains don't sink into it, it trickles down through them
+function buried(j){
+  const x=j%W, y=(j/W)|0; let n=0;
+  for (const [dx,dy] of ORTH){ const k=idx(x+dx,y+dy); if (k>=0 && (type[k]===SOIL||type[k]===SAND)) n++; }
+  return n>=3;
 }
 function tryEmpty(i,x,y,k){
   const j = idx(x+DX[k&7], y+DY[k&7]);
@@ -465,7 +471,7 @@ function corrode(i,x,y,diluted){
   }
   return false;
 }
-const SOAK = .004, WET = 32;   // water soaking into soil: chance per tick; wet soil is marked in shade bit 32
+const SEEP = [0, .002, .01, .3, .5];     // chance per tick that water swaps with soil or sand below it, by how many of its 4 neighbours are soil or sand
 const FUMES_FRAC = .4;   // share of acid boiled on magma that becomes toxic fumes (the rest just evaporates)
 
 // Every few frames, find connected pieces of soil (diagonals count). Pieces smaller than
@@ -527,10 +533,24 @@ function stepWorld(){
             if (o===FIRE){ if (rnd()<.5) set(j,E); set(i,STEAM); break; }   // boils, and may put the fire out
             else if (o===SOIL && rnd()<.004) set(j,SAND);
           }
-          if (type[i]===WATER && rnd()<SOAK){                            // soaks into dry soil below it (through the sand it erodes into)
-            let k=1, j=idx(x+DX[grav], y+DY[grav]);
-            while (j>=0 && type[j]===SAND && k<6){ k++; j=idx(x+DX[grav]*k, y+DY[grav]*k); }
-            if (j>=0 && type[j]===SOIL && !(shade[j]&WET)){ shade[j]|=WET; vanish(i); break; }
+          if (type[i]===WATER){                                          // trickles down through soil and sand, faster the more it's buried in them
+            let n=0;
+            for (const [dx,dy] of ORTH){ const j=idx(x+dx,y+dy); if (j>=0 && (type[j]===SOIL||type[j]===SAND)) n++; }
+            const dn=idx(x+DX[grav], y+DY[grav]);
+            if (n>=2 && dn>=0 && type[dn]===E){                            // drips out of the bottom: the soil above settles back into its place
+              set(dn,WATER);
+              let c=i, cx=x, cy=y;
+              for (;;){ const u=idx(cx-DX[grav], cy-DY[grav]); if (u<0 || (type[u]!==SOIL && type[u]!==SAND)) break;
+                type[c]=type[u]; shade[c]=shade[u]; life[c]=life[u]; stamp[c]=tk; c=u; cx-=DX[grav]; cy-=DY[grav]; }
+              vanish(c); break;
+            }
+            if (n && rnd() < SEEP[n]){
+              const sd=rnd()<.5?1:-1;
+              for (const k of [grav, grav+sd, grav-sd]){
+                const j=idx(x+DX[(k+8)&7], y+DY[(k+8)&7]);
+                if (j>=0 && (type[j]===SOIL||type[j]===SAND)){ swap(i,j); break; }
+              }
+            }
           }
           if (type[i]===WATER) liquid(i,x,y);
           break;
@@ -579,19 +599,6 @@ function stepWorld(){
         case SOIL: {
           // soil is solid ground, but tiny loose pieces (life 1, from markLooseSoil) and crumbly soil
           // left by dead fungus (life 2) fall like sand when there is room below
-          if ((shade[i]&WET) && rnd()<.15){                               // wet soil passes its water on: down, diagonally, sideways; drips out below
-            const dn=idx(x+DX[grav], y+DY[grav]);
-            if (dn>=0 && type[dn]===E){ set(dn,WATER); shade[i]&=~WET; }
-            else if (dn>=0 && type[dn]===SOIL && !(shade[dn]&WET)){ shade[dn]|=WET; shade[i]&=~WET; }
-            else {
-              const sd=rnd()<.5?1:-1;
-              for (const k of [grav+sd, grav-sd, grav+2*sd, grav-2*sd]){
-                const j=idx(x+DX[(k+8)&7], y+DY[(k+8)&7]); if (j<0) continue;
-                if (type[j]===E && (k===grav+sd || k===grav-sd)){ set(j,WATER); shade[i]&=~WET; break; }   // drips out diagonally below
-                if (type[j]===SOIL && !(shade[j]&WET)){ shade[j]|=WET; shade[i]&=~WET; break; }
-              }
-            }
-          }
           if (life[i]===0) break;
           const j=idx(x+DX[grav], y+DY[grav]);
           if (j<0 ? edgesOpen : (type[j]===E || canDisplace(SOIL,type[j]))) powder(i,x,y);
@@ -936,14 +943,12 @@ function paintCells(){
           break;
         }
         case SOIL: {
-          const s4 = sh&15;
-          r = 104 + (s4-8)*2; g = 70 + (s4-8); b = 44;
+          r = 104 + (sh-8)*2; g = 70 + (sh-8); b = 44;
           if (hs>232){ r=150; g=114; b=80; }
           else if (hs<18){ r=64; g=40; b=24; }
-          if (open){ r = 90 + (s4<<1); g = 128 + (s4<<1); b = 54; }           // moss on top
+          if (open){ r = 90 + (sh<<1); g = 128 + (sh<<1); b = 54; }           // moss on top
           else if (d<2 && above!==SOIL){ r+=10; g+=8; }
           const k=Math.min(d,30)*.8; r-=k; g-=k*.7; b-=k*.5;
-          if (sh&WET){ r*=.62; g*=.64; b=b*.7+16; }                           // wet soil is darker
           break;
         }
         case VIRUS: {
@@ -1293,7 +1298,7 @@ const GUIDE = {
   [PLANT]:"Drinks water and grows into it. Won't drink brine.",
   [SEED]:"Falls. Sprouts into a plant when it touches water.",
   [SALT]:"Piles up. Dissolves in water into brine. Kills virus, spores and (slowly) fungus. Melts on magma. Makes flames burn yellow.",
-  [SOIL]:"Solid ground. Water slowly erodes it into sand, and slowly soaks into it: wet soil turns dark and passes the water down and sideways through the soil, dripping it out wherever there is open space below. Soil with nowhere to drain fills up, and then water pools on top. Tiny loose bits (fewer than 10 connected cells) and soil left by dead fungus fall like sand.",
+  [SOIL]:"Solid ground. Water slowly erodes it into sand, and slowly trickles down through it (and through sand), faster once it is buried in it. Tiny loose bits (fewer than 10 connected cells) and soil left by dead fungus fall like sand.",
   [VIRUS]:"Lives by Conway's Game of Life (rule in the options). Eats plants it touches. Killed by salt, brine, fire and fungus.",
   [SPORE]:"Glowing dust that floats and slowly sinks, fading after 10-20 s. Turns steam into fungus and can sprout mushrooms on plants and seeds. Killed by fire, magma, water, acid, salt and brine.",
   [FUNGUS]:"Mushrooms. Grow into steam, eat plants and virus, slowly grow into water, and puff out spores. Need food (steam, water, plants or virus) within ~30 cells or they die, leaving nothing, soil or a seed. Heat dries them out; fire, acid and salt kill them.",

@@ -25,7 +25,7 @@ The whole screen is the play area, held upright (portrait).
 | Element | Behaviour |
 |---|---|
 | Sand | Falls and piles up |
-| Water | Flows. Boils into steam when it touches fire or magma, dissolves salt into brine, erodes soil into sand, and slowly soaks into soil |
+| Water | Flows. Boils into steam when it touches fire or magma, dissolves salt into brine, erodes soil into sand, and slowly trickles down through soil and sand |
 | Brine | Salty water. Sinks under fresh water, withers plants, kills virus. Boils into steam, leaving some salt behind (with a yellow flame) |
 | Lava | Molten sand: sand touching magma melts into it, and a sand pile on a vent melts down into a lava pool. A thick, glowing liquid that oozes slowly downhill; stays molten near magma. Sets flammable things alight and throws off the odd flame while hot, boils water and brine, boils acid into fumes. Water quenches it into glass; otherwise it cools into glass after about 10-13 s |
 | Glass | Cooled lava. A solid, see-through block that acid and fumes can't eat. Magma melts it back into lava, even under water |
@@ -37,7 +37,7 @@ The whole screen is the play area, held upright (portrait).
 | Plant | Drinks neighbouring water and grows into it. Won't drink brine |
 | Seed | Falls. Sprouts into a plant when wet |
 | Salt | Piles up, sinks slowly through oil, dissolves in water into brine, kills virus, makes flames burn yellow, melts away on magma |
-| Soil | Solid ground. Water slowly soaks into it (through the sand it erodes into): wet soil turns dark and passes the water down and sideways, dripping it out wherever there is open space below or diagonally below. Soil with nowhere to drain fills up, and then water pools on top. Tiny loose bits (pieces of fewer than 10 connected cells) and the soil left by dead fungus fall like sand |
+| Soil | Solid ground. Water slowly trickles down through it (and through sand), swapping places with the grains: a tiny chance at the surface, much more once it is buried in soil or sand, and it drips out underneath. Tiny loose bits (pieces of fewer than 10 connected cells) and the soil left by dead fungus fall like sand |
 | Virus | Lives by Life rules (B3/S23 by default) in air and water. Eats any plant it touches |
 | Spores | Float in the air and slowly sink; fade after 10-20 s. Turn steam they touch into fungus, and may sprout a mushroom when they land on a plant or seed. Killed by fire, magma, water, acid, salt and brine |
 | Fungus | Mushrooms: gray stalks with red, white-spotted caps that glow faintly. Grows into steam, eats plants and virus, slowly grows into water (water doesn't kill it). Puffs out spores into open air. Needs food: fungus more than ~30 cells (through the colony) from steam, water, plants or virus slowly dies (a starving colony fades over a minute or two), leaving nothing (70%), soil (23%) or a seed (7%). Dries out within 3 cells of fire or magma. Burns; acid eats it; salt and brine slowly kill it |
