@@ -465,6 +465,7 @@ function corrode(i,x,y,diluted){
   }
   return false;
 }
+const SEEP = .005, SEEP_MAX = 12;   // water seeping through soil: chance per tick, and the thickest soil it gets through
 const FUMES_FRAC = .4;   // share of acid boiled on magma that becomes toxic fumes (the rest just evaporates)
 
 // Every few frames, find connected pieces of soil (diagonals count). Pieces smaller than
@@ -525,6 +526,15 @@ function stepWorld(){
             const o=type[j];
             if (o===FIRE){ if (rnd()<.5) set(j,E); set(i,STEAM); break; }   // boils, and may put the fire out
             else if (o===SOIL && rnd()<.004) set(j,SAND);
+          }
+          if (type[i]===WATER && rnd()<SEEP){                            // seeps slowly down through soil and drips out underneath
+            let k=1, j=idx(x+DX[grav], y+DY[grav]);
+            if (j>=0 && (type[j]===SOIL || type[j]===SAND)){                 // through soil, and the sand it erodes into
+              let soil = type[j]===SOIL;
+              do { k++; j=idx(x+DX[grav]*k, y+DY[grav]*k); if (j>=0 && type[j]===SOIL) soil=true; } while (k<=SEEP_MAX && j>=0 && (type[j]===SOIL || type[j]===SAND));
+              if (!soil) j=-1;                                              // (a sand pile alone just sits in the water)
+              if (j>=0 && type[j]===E && rnd() < 2/k){ set(j,WATER); vanish(i); break; }   // thicker soil lets less through
+            }
           }
           if (type[i]===WATER) liquid(i,x,y);
           break;
@@ -1272,7 +1282,7 @@ const GUIDE = {
   [PLANT]:"Drinks water and grows into it. Won't drink brine.",
   [SEED]:"Falls. Sprouts into a plant when it touches water.",
   [SALT]:"Piles up. Dissolves in water into brine. Kills virus, spores and (slowly) fungus. Melts on magma. Makes flames burn yellow.",
-  [SOIL]:"Solid ground. Water slowly erodes it into sand. Tiny loose bits (fewer than 10 connected cells) and soil left by dead fungus fall like sand.",
+  [SOIL]:"Solid ground. Water slowly erodes it into sand, and slowly seeps through it, dripping out underneath (up to 12 cells of soil; thicker soil lets less through). Tiny loose bits (fewer than 10 connected cells) and soil left by dead fungus fall like sand.",
   [VIRUS]:"Lives by Conway's Game of Life (rule in the options). Eats plants it touches. Killed by salt, brine, fire and fungus.",
   [SPORE]:"Glowing dust that floats and slowly sinks, fading after 10-20 s. Turns steam into fungus and can sprout mushrooms on plants and seeds. Killed by fire, magma, water, acid, salt and brine.",
   [FUNGUS]:"Mushrooms. Grow into steam, eat plants and virus, slowly grow into water, and puff out spores. Need food (steam, water, plants or virus) within ~30 cells or they die, leaving nothing, soil or a seed. Heat dries them out; fire, acid and salt kill them.",
