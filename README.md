@@ -32,7 +32,7 @@ The whole screen is the play area, held upright (portrait).
 | Fumes | Toxic gas made when acid touches magma (40% of the boiled acid; the rest evaporates). Floats and spreads like steam and eats like acid, then fades away after a few seconds. Never turns back into acid. **Explodes** when it touches fire, magma or lava: the blast throws loose things outward, shatters glass, crumbles soil, and sets off the rest of the cloud |
 | Steam | Floats up and spreads out like a gas, sliding along ceilings, then cools and rains back down as water (or fades away). Plants it touches may grow into it |
 | Oil | Floats on water, very flammable; burning oil now and then pops in a small explosion |
-| Acid | Sinks in water. Dissolves salt into nothing, turns brine back into water, quickly eats plants, seeds, spores and fungus, slowly eats sand, soil and virus (never walls or generators). Gets used up as it eats, and water slowly dilutes it. Boils into toxic fumes on magma |
+| Acid | Sinks in water. Dissolves salt into nothing, turns brine back into water, quickly eats plants, seeds, spores and fungus, slowly eats sand, soil and virus (never walls or generators). Gets used up as it eats, and water slowly dilutes it. Boils into toxic fumes on magma, and an open pool slowly gives off fumes too, shrinking as it does |
 | Fire | Rises and burns out. Clings to and burns plants, oil, seeds and virus |
 | Plant | Drinks neighbouring water and grows into it. Won't drink brine |
 | Seed | Falls. Sprouts into a plant when wet |

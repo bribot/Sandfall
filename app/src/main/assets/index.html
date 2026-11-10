@@ -477,6 +477,7 @@ function corrode(i,x,y,diluted){
 }
 const SEEP = [0, .0005, .002, .03, .06];   // chance per tick that water swaps with soil or sand below it, by how many of its 4 neighbours are soil or sand
 const FUMES_FRAC = .4;
+const ACID_FUME = .002;    // chance per tick that acid with open air above it gives off a fume
 
 // --- explosions: fumes touching fire, magma or lava blow up; burning oil now and then pops ---
 const FLY = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,ACID,LAVA].forEach(t=>FLY[t]=1);   // thrown by a blast
@@ -623,6 +624,10 @@ function stepWorld(){
           break;
         }
         case ACID: {
+          if (rnd() < ACID_FUME){                                         // an open pool slowly gives off toxic fumes
+            const a=idx(x+DX[up], y+DY[up]);
+            if (a>=0 && type[a]===E){ set(a,FUMES); if (rnd()<.25){ vanish(i); break; } }   // (only some of it uses the acid up)
+          }
           if (!corrode(i,x,y,WATER)) liquid(i,x,y);
           break;
         }
@@ -1382,7 +1387,7 @@ const GUIDE = {
   [WATER]:"Flows and spreads. Puts out fire and boils into steam on fire or magma. Dissolves salt into brine. Slowly erodes soil into sand.",
   [BRINE]:"Salty water. Heavier than water, so it sinks. Withers plants and kills virus. Boils into steam, leaving some salt behind (with a yellow flame). Acid turns it back into water.",
   [OIL]:"Floats on water. Very flammable, and burning oil lasts long and now and then pops in a small explosion.",
-  [ACID]:"A little heavier than water. Dissolves salt into nothing and turns brine into water. Quickly eats plants, seeds, spores and fungus; slowly eats sand, soil and virus; never walls or generators. Gets used up as it eats; water slowly dilutes it. Boils into toxic fumes on magma.",
+  [ACID]:"A little heavier than water. Dissolves salt into nothing and turns brine into water. Quickly eats plants, seeds, spores and fungus; slowly eats sand, soil and virus; never walls or generators. Gets used up as it eats; water slowly dilutes it. Boils into toxic fumes on magma. An open pool slowly gives off toxic fumes, shrinking as it does.",
   [FIRE]:"Rises and burns out. Clings to and burns plants, oil, seeds, virus, spores and fungus. Burns yellow next to salt.",
   [STEAM]:"Floats up and spreads like a gas along ceilings, then cools and rains down as water (or fades). Plants touching it may grow into it. A big, dense steam cloud may throw lightning.",
   [PLANT]:"Drinks water and grows into it. Won't drink brine.",
