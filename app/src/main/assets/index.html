@@ -480,7 +480,6 @@ const FUMES_FRAC = .4;
 
 // --- explosions: fumes touching fire, magma or lava blow up; burning oil now and then pops ---
 const FLY = new Uint8Array(32); [SAND,WATER,OIL,SEED,SALT,BRINE,ACID,LAVA].forEach(t=>FLY[t]=1);   // thrown by a blast
-let shake = 0;                      // screen shake, in cells; fades each frame
 function blast(cx,cy,r){
   const r2=r*r, fly=[];
   for (let dy=-r-3; dy<=r+3; dy++) for (let dx=-r-3; dx<=r+3; dx++){
@@ -502,7 +501,6 @@ function blast(cx,cy,r){
     for (let k=1;k<=push;k++){ const t2=idx(Math.round(cx+dx+ux*k), Math.round(cy+dy+uy*k)); if (t2<0 || type[t2]!==E) break; to=t2; }
     if (to>=0){ swap(j,to); }
   }
-  shake=Math.min(5, shake+r*.6);
 }
 
 // --- lightning: clouds, and big steam clouds, now and then strike the ground below ---
@@ -1141,7 +1139,6 @@ function render(){
   ctx.drawImage(bgC,0,0);
   const sc = cw / W;
   ctx.save();
-  if (shake > .05){ ctx.translate((rnd()-.5)*2*shake*sc, (rnd()-.5)*2*shake*sc); shake *= .82; } else shake = 0;   // explosions shake the world
   // soft shadow of everything for depth
   shadX.clearRect(0,0,W,H); shadX.filter="blur(1.2px) brightness(0)"; shadX.drawImage(simC,0,0);
   ctx.imageSmoothingEnabled = true;
