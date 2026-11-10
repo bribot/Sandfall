@@ -14,7 +14,7 @@ The whole screen is the play area, held upright (portrait).
 
 - **Elements bubble** (starts bottom left): the elements menu. Pick an element, and choose a brush (draw, line, box, filled box) and its size.
 - **Move & zoom** (in the brush section): drag with one finger to move around, pinch to zoom in up to 8×, double-tap to zoom back out. With any other tool, two fingers zoom and pan too (whatever the first finger had just drawn is taken back). The zoom stays when you go back to drawing, so you can draw precisely; the magnifier button in the top bar zooms back out.
-- **Options bubble** (starts bottom right): the options menu: sandbox or challenges, gravity, tilt with your phone, screen edges, save/load/clear, how fast virus eats plants, how fast fungus grows, how fast mushrooms eat plants, how long steam takes to turn back into water and how much of it does, and how the virus grows.
+- **Options bubble** (starts bottom right): the options menu: sandbox or challenges, gravity, tilt with your phone, screen edges, save/load/clear, how fast virus eats plants, how fast fungus grows, how fast mushrooms eat plants, how long steam takes to turn back into water and how much of it does, and how the virus grows, and how often lightning strikes.
 - **Top:** pause/play, step one frame, speed (1×, 2×, 4×, ½×) and **undo**. Undo takes the world back to just before your last stroke (or Clear/Load), up to 20 steps; in a challenge it also gives back the elements that stroke used.
 - **Floating bubbles:** drag either round button anywhere; it drifts to the nearest side and its menu opens beside it. Positions are remembered.
 - **Holding the phone sideways:** the game stays portrait, but the interface turns to stay upright. Menus open in the middle of the screen using the long side, and the play/step/speed buttons move to the edge that is on top.
@@ -48,7 +48,7 @@ The whole screen is the play area, held upright (portrait).
 | Seeder | Drops nothing. Water that touches it turns into plants, which then keep growing into nearby water |
 
 - **Nature sliders:** *Virus eats plants* goes from never to instantly; *Steam turns to water* goes from about half a second to 30 seconds; *Steam that becomes water* sets how much of it comes back as water (0–100%, default 60%) instead of vanishing. Like screen edges, they only apply in the sandbox; challenges use the defaults.
-- **Lightning:** clouds (and big, dense steam clouds) now and then throw a bolt at whatever is below: it fuses sand into a streak of glass, flashes water to steam, sets plants and oil alight and blasts a small crater in soil. Sandbox only; switch it off in the options (⚡ Lightning).
+- **Lightning:** clouds (and big, dense steam clouds) now and then throw a bolt at whatever is below: it fuses sand into a streak of glass, flashes water to steam, sets plants and oil alight and blasts a small crater in soil. Sandbox only; the **⚡ Lightning** slider in the options sets how often it strikes, from off through very rare, rare, normal, often and stormy to constant (each step doubles it).
 - **Screen edges:** *Solid* edges act like walls. With *Open* edges, anything that moves off the screen is gone for good. Challenges always use solid edges.
 - **Tilt:** ⟲ ⟳ rotate gravity in 45° steps, or turn on **📱 Tilt phone** so gravity follows the way you hold the device.
 - **Challenges:** pick a puzzle in the options menu. Each one gives you a limited supply of certain elements to reach a goal. Tap the goal card to hide or show the hint.

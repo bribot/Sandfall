@@ -270,7 +270,10 @@ body.land .sl,body.land .sizeRow{touch-action:none}
       <option value="B2/S">Virus: Seeds</option>
       <option value="B368/S245">Virus: Morley</option>
     </select>
-    <button class="b" id="lightningBtn">⚡ Lightning: on</button>
+    <div class="sl">
+      <div class="slab"><span>⚡ Lightning</span><b id="lightVal"></b></div>
+      <input id="lightning" type="range" min="0" max="6" step="1" aria-label="How often lightning strikes">
+    </div>
   </div>
   <div id="challengeOnly" class="hidden" style="display:flex;flex-direction:column;gap:9px">
     <button class="b" id="reset">↺ Reset level</button>
@@ -503,7 +506,7 @@ function blast(cx,cy,r){
 }
 
 // --- lightning: clouds, and big steam clouds, now and then strike the ground below ---
-let lightningOn = true;
+let lightK = 1;                     // how often lightning strikes (options slider): 0 = never
 const bolts = [];                   // flashes on screen: {pts:[[x,y]...], t}
 function bolt(x0,y0){
   const gx=DX[grav], gy=DY[grav], px=DX[(grav+2)&7], py=DY[(grav+2)&7];
@@ -704,7 +707,7 @@ function stepWorld(){
           const dec = (steamDec|0) + (rnd() < steamDec%1 ? 1 : 0);
           if (life[i]<=dec){ set(i, rnd()<steamWater ? WATER : E); break; }   // condenses into rain (or just fades)
           life[i]-=dec;
-          if (lightningOn && !challenge && rnd()<.00006){                         // a big, dense steam cloud may throw lightning
+          if (lightK && !challenge && rnd()<.00006*lightK){                         // a big, dense steam cloud may throw lightning
             let n=0; for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){ const k=idx(x+dx,y+dy); if (k>=0 && type[k]===STEAM) n++; }
             if (n>=30) bolt(x,y);
           }
@@ -803,7 +806,7 @@ function stepWorld(){
           }
           break;
         }
-        case CLOUD:  emit(i,x,y,WATER,.06,grav); if (lightningOn && !challenge && rnd()<.000002) bolt(x,y); break;
+        case CLOUD:  emit(i,x,y,WATER,.06,grav); if (lightK && !challenge && rnd()<.000002*lightK) bolt(x,y); break;
         case SHAKER: emit(i,x,y,SALT,.05,grav); break;
         case VAT:    emit(i,x,y,ACID,.05,grav); break;
         case SEEDER: {                                                   // grows plants into water that touches it
@@ -1393,7 +1396,7 @@ const GUIDE = {
   [SPORE]:"Glowing dust that floats and slowly sinks, fading after 10-20 s. Turns steam into fungus and can sprout mushrooms on plants and seeds. Killed by fire, magma, water, acid, salt and brine.",
   [FUNGUS]:"Mushrooms. Grow into steam, eat plants and virus, slowly grow into water, and puff out spores. Need food (steam, water, plants or virus) within ~30 cells or they die, leaving nothing, soil or a seed. Heat dries them out; fire, acid and salt kill them.",
   [WALL]:"Blocks everything. Nothing destroys it.",
-  [CLOUD]:"Rains water, and now and then throws lightning (sandbox only; switch it off in the options): it fuses sand into glass, flashes water to steam, sets plants alight and blasts craters in soil.", [MAGMA]:"Spews fire. Sets anything flammable touching it alight, boils water and brine, melts salt, boils acid into toxic fumes and melts sand into lava.",
+  [CLOUD]:"Rains water, and now and then throws lightning (sandbox only; set how often with the Lightning slider in the options): it fuses sand into glass, flashes water to steam, sets plants alight and blasts craters in soil.", [MAGMA]:"Spews fire. Sets anything flammable touching it alight, boils water and brine, melts salt, boils acid into toxic fumes and melts sand into lava.",
   [SHAKER]:"Sprinkles salt.", [SPILL]:"Leaks oil.", [TOXIN]:"Breeds virus around it.",
   [SEEDER]:"Turns water touching it into plants.", [VAT]:"Drips acid.",
   [MYCELIUM]:"Releases spores into the air. Indestructible: only the Eraser removes it.",
@@ -1582,11 +1585,12 @@ $("fungusSpeed").oninput=()=>{ fungusLevel=+$("fungusSpeed").value; applyNature(
 $("steamPct").oninput=()=>{ steamPct=+$("steamPct").value; applyNature(); try{ localStorage.setItem("sandfall.steamPct",steamPct); }catch(e){} };
 $("steamTime").oninput=()=>{ steamLevel=+$("steamTime").value; applyNature(); try{ localStorage.setItem("sandfall.steamTime",steamLevel); }catch(e){} };
 applyEdges();
-function showLightning(){ $("lightningBtn").textContent = `⚡ Lightning: ${lightningOn?"on":"off"}`; $("lightningBtn").classList.toggle("on", lightningOn); }
-try{ lightningOn = localStorage.getItem("sandfall.lightning")!=="off"; }catch(e){}
-showLightning();
-$("lightningBtn").onclick=()=>{ lightningOn=!lightningOn; showLightning(); try{ localStorage.setItem("sandfall.lightning", lightningOn?"on":"off"); }catch(e){}
-  toast(lightningOn ? "Lightning on: clouds and big steam clouds now and then strike" : "Lightning off"); };
+const LIGHT_K = [0, .25, .5, 1, 2, 4, 8], LIGHT_NAMES = ["off","very rare","rare","normal","often","stormy","constant"], LIGHT_DEF = 3;
+let lightLevel = LIGHT_DEF;
+try{ const v=localStorage.getItem("sandfall.lightLevel"); if (v!==null) lightLevel=Math.max(0,Math.min(6,+v)); else if (localStorage.getItem("sandfall.lightning")==="off") lightLevel=0; }catch(e){}
+function applyLight(){ lightK = LIGHT_K[lightLevel]; $("lightning").value = lightLevel; $("lightVal").textContent = LIGHT_NAMES[lightLevel]; }
+applyLight();
+$("lightning").oninput=()=>{ lightLevel=+$("lightning").value; applyLight(); try{ localStorage.setItem("sandfall.lightLevel",lightLevel); }catch(e){} };
 
 // --- tilt with the phone's motion sensor (the app is locked to portrait) ---
 let tiltOn=false;
